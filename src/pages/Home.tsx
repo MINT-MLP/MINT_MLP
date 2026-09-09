@@ -1011,6 +1011,14 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
     handleRecommend(midpoint, nearestAreas, validLocs);
   }
 
+  // 이름이 있는 출발지 중 하나를 무작위로 — 같은 지명이 여러 번 나와도 후보엔 한 번만 넣는다
+  // (두 명이 같은 역에서 출발한다고 그 지명이 두 배로 당첨될 이유는 없다).
+  function pickTreasurer(locs: LocationEntry[]): string | null {
+    const named = [...new Set(locs.map((l) => l.name?.trim()).filter((n): n is string => !!n))];
+    if (named.length === 0) return null;
+    return named[Math.floor(Math.random() * named.length)];
+  }
+
   async function handleRecommend(
     midpoint: Coordinates,
     nearestAreas: string[],
@@ -1157,12 +1165,11 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
           setResultThird((prev) => (prev ? apply(prev) : prev));
         });
 
-      let pickedTreasurer: string | null = null;
-      const namedLocs = locations.filter((l) => l.name);
-      if (namedLocs.length > 0) {
-        pickedTreasurer = namedLocs[Math.floor(Math.random() * namedLocs.length)].name;
-        setTreasurer(pickedTreasurer);
-      }
+      // 총무 후보는 '이번 추천에 실제로 쓰인 출발지'에서 뽑는다. 재추천(다시 뽑기·취향 조절·거절)은
+      // setTreasurer(null) 뒤 validLocs를 인자로 넘겨 다시 들어오므로 state 반영이 늦어도 후보를 놓치지 않는다.
+      // 지역 직접 선택 모드는 출발지 입력 화면 자체가 없어 후보가 0개 → null이 되고,
+      // 그때는 결과 카드가 '공정 규칙' 폴백 팝업을 띄운다(버튼이 죽지 않게).
+      setTreasurer(pickTreasurer(validLocs.length > 0 ? validLocs : locations));
       setView('result');
       trackEvent('recommend_shown'); // 결과가 실제로 렌더된 성공 케이스(퍼널 분자)
 

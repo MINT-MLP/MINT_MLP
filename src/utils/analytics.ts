@@ -27,6 +27,9 @@ type EventType = 'landing_view' | 'cta_click' | 'reservation_attempt' | 'session
   | 'visit_cert_open' | 'visit_cert_done' | 'visit_cert_fail' | 'points_store_teaser_click'
   // B. 총무 플랜 가짜 문 — 가격 검증(frame별 전환율)
   | 'plan_entry_click' | 'plan_detail_view' | 'plan_preregister' | 'plan_detail_close'
+  // B-1. 오늘의 총무 팝업 — mode=location(출발지로 뽑음) / rule(출발지 없어 공정 규칙으로 뽑음).
+  //      rule 비중이 높으면 '지역 직접 선택' 유저가 총무 기능을 반쪽으로 쓰고 있다는 신호.
+  | 'treasurer_open'
   // C. 참석 확정(가요/못가요)
   | 'rsvp_submit'
   // D. 찜(발굴) 기록 — 1호 발굴자 소급 씨앗

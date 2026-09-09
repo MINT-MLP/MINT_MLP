@@ -23,6 +23,20 @@ function openPlace(url: string, type: PlaceClickEvent, place?: PlaceRecommendati
   window.open(url, '_blank');
 }
 
+// 출발지를 한 곳도 안 적은 경우(지역 직접 선택 모드)엔 뽑을 지명이 없다.
+// 그래도 '오늘의 총무' 버튼은 눌리는 버튼이어야 하므로, 데이터 없이도 성립하는 공정 규칙을 대신 뽑는다.
+const TREASURER_RULES = [
+  '가장 늦게 도착한 분이',
+  '가위바위보에서 진 분이',
+  '생일이 가장 빠른 분이',
+  '오늘 제일 배고픈 분이',
+  '이 링크를 처음 연 분이',
+];
+function rollTreasurerRule(prev?: string): string {
+  const pool = TREASURER_RULES.filter((r) => r !== prev);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 // 매칭된 인증 이모지(최대 2개)를 리스트 행 앞에 붙일 접두사로 — 대안/더보기 행의 인증 표식.
 function certPrefix(place: { placeName?: string; address?: string; area?: string }): string {
   const c = findCertifications(place).slice(0, 2);
@@ -362,6 +376,7 @@ export default function ResultCard({
   onPointsChange,
 }: Props) {
   const [showTreasurerPopup, setShowTreasurerPopup] = useState(false);
+  const [treasurerRule, setTreasurerRule] = useState(() => rollTreasurerRule());
   const [showVisitCert, setShowVisitCert] = useState(false);
   const [showPlanSheet, setShowPlanSheet] = useState(false);
   const [preregistered, setPreregistered] = useState(() => isPreregistered());
@@ -735,7 +750,13 @@ export default function ResultCard({
       {/* ── 보조: 총무 + 예약(연동 준비 중) ── */}
       <div className="flex gap-2">
         <button
-          onClick={() => treasurer && setShowTreasurerPopup(true)}
+          onClick={() => {
+            // treasurer가 null(출발지 미입력)이어도 팝업은 뜬다 — 예전엔 여기서 조용히 무시돼
+            // 버튼이 눌리지 않는 것처럼 보였다.
+            if (!treasurer) setTreasurerRule((prev) => rollTreasurerRule(prev));
+            trackEvent('treasurer_open', { device_id: getDeviceId(), mode: treasurer ? 'location' : 'rule' });
+            setShowTreasurerPopup(true);
+          }}
           className="flex-1 py-2.5 rounded-2xl bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-200 flex items-center justify-center gap-2 active:scale-95 transition-all"
         >
           <span className="text-lg">💰</span>
@@ -785,7 +806,7 @@ export default function ResultCard({
       )}
 
       {/* 총무 팝업 */}
-      {showTreasurerPopup && treasurer && (
+      {showTreasurerPopup && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-6"
           onClick={() => setShowTreasurerPopup(false)}
@@ -795,15 +816,30 @@ export default function ResultCard({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-5xl mb-4">🎲</div>
-            <p className="text-lg font-black text-gray-800 leading-snug">
-              {treasurer}에서 출발하는 분이<br />오늘의 총무 당첨!
+            <p className="text-lg font-black text-gray-800 leading-snug break-keep">
+              {treasurer
+                ? <>{treasurer}에서 출발하는 분이<br />오늘의 총무 당첨!</>
+                : <>{treasurerRule}<br />오늘의 총무 당첨!</>}
             </p>
-            <button
-              onClick={() => setShowTreasurerPopup(false)}
-              className="mt-5 w-full py-3 rounded-2xl bg-[#3CDBC0] text-white font-black text-base active:scale-95 transition-transform"
-            >
-              확인
-            </button>
+            {!treasurer && (
+              <p className="text-xs text-gray-400 mt-2 break-keep">출발지를 입력하면 출발지로 뽑아드려요</p>
+            )}
+            <div className="mt-5 flex gap-2">
+              {!treasurer && (
+                <button
+                  onClick={() => setTreasurerRule((prev) => rollTreasurerRule(prev))}
+                  className="flex-1 py-3 rounded-2xl border-2 border-amber-200 bg-amber-50 text-amber-700 font-black text-base active:scale-95 transition-transform"
+                >
+                  다시 뽑기
+                </button>
+              )}
+              <button
+                onClick={() => setShowTreasurerPopup(false)}
+                className="flex-1 py-3 rounded-2xl bg-[#3CDBC0] text-white font-black text-base active:scale-95 transition-transform"
+              >
+                확인
+              </button>
+            </div>
           </div>
         </div>
       )}
