@@ -31,3 +31,7 @@ dist-ssr
 .granite
 .vercel
 .env*
+
+# 로컬 전용 — Claude Code 세션/메모리, 라이브 앱이 아닌 MLP 실험 폴더
+.claude/projects/
+MINT_MLP/
