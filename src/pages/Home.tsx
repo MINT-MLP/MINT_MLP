@@ -390,6 +390,7 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
         excludeFoods?: string[];
       } | null;
       if (!saved || !Array.isArray(saved.result) || saved.result.length === 0) return;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 마운트 시 localStorage 스냅샷을 페인트 전에 복원(useLayoutEffect, 깜빡임 방지)
       setResult(saved.result);
       if (saved.resultThird) setResultThird(saved.resultThird);
       if (saved.resultThirdLabel) setResultThirdLabel(saved.resultThirdLabel);
@@ -405,7 +406,6 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
       if (Array.isArray(saved.excludeFoods)) setExcludeFoods(saved.excludeFoods);
       setView('result');
     } catch { /* 손상된 캐시는 무시 */ }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 입력 초안 복원 — 결과가 없을 때만. 그룹도 링크 생성 전에는 서버 세션이 없으므로 로컬 초안에서 복원한다.
@@ -422,6 +422,7 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
         localStorage.removeItem(INPUT_DRAFT_KEY);
         return;
       }
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 마운트 시 localStorage 입력 초안을 페인트 전에 복원(만료 초안 삭제 등 부수효과 포함)
       setAppMode(d.appMode);
       if (typeof d.step === 'number') setStep(d.step as Step);
       if (typeof d.expectedCount === 'number') setExpectedCount(d.expectedCount);
@@ -444,7 +445,6 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
       }
       if (Array.isArray(d.locations)) setLocations(d.locations);
     } catch { /* 손상된 초안 무시 */ }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 그룹 호스트 세션 복원 — 결과 스냅샷 유무와 무관하게 항상 복원한다.
@@ -466,6 +466,7 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
         localStorage.removeItem(GROUP_SESSION_KEY);
         return;
       }
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 마운트 시 localStorage 그룹 세션을 페인트 전에 복원(결과 복원보다 뒤에 실행돼 step/appMode/view를 덮어써야 함)
       setSessionId(g.sessionId);
       if (typeof g.expectedCount === 'number') setExpectedCount(g.expectedCount);
       if (g.purpose) setPurpose(g.purpose);              // 호스트가 정한 코스 복원
@@ -477,7 +478,6 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
       // 멤버 목록이 영영 채워지지 않아 자동 추천이 시작되지 않는다.
       if (new URLSearchParams(window.location.search).has('grp')) setView('steps');
     } catch { /* 손상된 그룹 세션 무시 */ }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 탭바 표시 여부를 AppShell에 보고 — 입력 플로우 1단계(step 0)에서만 탭바가 보인다.
@@ -539,7 +539,7 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
         groupSize: isGroup ? `${expectedCount}명` : groupSize,
       });
     }
-  }, [view, result, resultThird, resultThirdLabel, purpose, midpointData, treasurer, meetingLocation, resultTravelTimes, resultWeather, vibe, keywords, excludeFoods, isGroup, expectedCount, groupSize]);
+  }, [view, result, resultThird, resultThirdLabel, purpose, midpointData, treasurer, meetingLocation, resultTravelTimes, resultWeather, vibe, keywords, conditions, excludeFoods, isGroup, expectedCount, groupSize]);
 
   // 그룹 호스트가 추천을 받으면 결과 요약을 세션에 저장 → 게스트 done 화면이 폴링으로 수신(협업 루프 완결).
   // enrich·재추천으로 결과가 바뀌면 자동 재저장. 실패는 무해(게스트가 못 볼 뿐, 카톡 공유로도 전달 가능).
@@ -605,11 +605,9 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
   }, [view]);
 
   // 혼자 정하기 분위기 단계에서 아래 키워드 영역이 화면 밖에 있을 때만 스크롤 힌트를 보여준다.
+  // step 3을 벗어나면(view·step·isGroup 변경) cleanup에서 힌트를 해제한다.
   useEffect(() => {
-    if (view !== 'steps' || step !== 3 || isGroup) {
-      setShowVibeScrollHint(false);
-      return;
-    }
+    if (view !== 'steps' || step !== 3 || isGroup) return;
 
     const scrollArea = stepScrollRef.current;
     if (!scrollArea) return;
@@ -626,6 +624,7 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
       cancelAnimationFrame(frame);
       observer.disconnect();
       scrollArea.removeEventListener('scroll', updateHint);
+      setShowVibeScrollHint(false);
     };
   }, [view, step, isGroup]);
 
@@ -684,6 +683,7 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
   // 대기 화면 "지금 추천받기" — 집계(setState) 반영 뒤 다음 렌더에서 추천을 트리거해 stale 상태를 피한다
   useEffect(() => {
     if (!pendingGroupRecommend) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 플래그 리셋: 같은 '지금 추천받기'를 다시 누를 수 있게 하고 GroupWaiting의 recommending 표시를 끈다
     setPendingGroupRecommend(false);
     if (meetingLocation) handleConfirmMeetingLocation(meetingLocation);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -696,6 +696,7 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
     if (groupMembers.length < 2 || !meetingLocation) return;
     try { window.history.replaceState(null, '', '/app'); } catch { /* ignore */ }
     aggregateGroupMembers();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 집계 setState가 커밋된 다음 렌더에서 추천을 시작해야 해서 플래그로 넘긴다(직접 호출은 stale locations/vibe를 읽음)
     setPendingGroupRecommend(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isGroup, sessionId, step, groupMembers.length]);
