@@ -1616,11 +1616,12 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
       >
 
         {/* 헤더 — 노치/상단 안전영역 반영(인앱·일반 세로모드에선 16px 그대로).
-            결과 화면 헤더와 같은 문법: 높이 h-10, 소형 텍스트 버튼, 로고 절대 중앙 정렬. */}
+            결과 화면 헤더와 같은 문법: 높이 h-10, 소형 텍스트 버튼, 로고 절대 중앙 정렬.
+            좌측 "← 홈"은 결과 화면 로고처럼 랜딩페이지로 탈출, 중앙 로고는 step 0으로 되감기(의도된 비대칭). */}
         <div className="flex-shrink-0 px-5 pt-[max(1rem,env(safe-area-inset-top))]">
           <div className="relative -mx-2 flex h-10 items-center justify-center">
             <button
-              onClick={() => handleStepJump(0)}
+              onClick={() => { window.location.href = '/'; }}
               className="absolute left-0 top-1/2 -translate-y-1/2 flex min-h-10 items-center gap-1 rounded-lg px-2 text-xs font-bold text-gray-500 transition-colors hover:text-[#2AB5A0]"
               aria-label="홈으로 가기"
             >
