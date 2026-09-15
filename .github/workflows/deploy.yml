@@ -3,6 +3,7 @@ name: Deploy to Vercel
 # Vercel Hobby는 비공개 GitHub Organization 저장소의 Git 연동을 막는다.
 # 대신 main push마다 Vercel CLI로 프로덕션 배포를 올린다.
 # 필요한 Secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
+# VERCEL_TOKEN은 Scope를 Full Account로 발급할 것. 팀 범위 토큰은 CLI의 계정 조회에서 거부된다.
 
 on:
   push:
@@ -31,18 +32,6 @@ jobs:
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
-
-      - name: Diagnose token and IDs (temporary)
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          echo "ORG_ID length: ${#VERCEL_ORG_ID}  (expected 29)"
-          echo "PROJECT_ID length: ${#VERCEL_PROJECT_ID}  (expected 32)"
-          echo "ORG_ID prefix: ${VERCEL_ORG_ID:0:5}  PROJECT_ID prefix: ${VERCEL_PROJECT_ID:0:4}"
-          echo "TOKEN length: ${#VERCEL_TOKEN}  (expected 24)"
-          vercel whoami --token=${{ secrets.VERCEL_TOKEN }} || true
-          vercel teams ls --token=${{ secrets.VERCEL_TOKEN }} || true
-          vercel project ls --scope="$VERCEL_ORG_ID" --token=${{ secrets.VERCEL_TOKEN }} || true
 
       - name: Pull Vercel project settings and env
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
