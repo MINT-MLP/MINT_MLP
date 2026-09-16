@@ -473,10 +473,11 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
       if (g.meetingLocation) setMeetingLocation(g.meetingLocation); // 호스트가 정한 지역 복원
       setStep(2);                 // 공유·대기 화면(step 2)으로 되돌린다
       setAppMode('group');        // 폴링이 다시 붙어 멤버 현황을 서버에서 재수화한다
-      // 호스트가 ?grp= 링크를 눌러 돌아온 경우엔 옛 결과 화면을 걷어내고 대기 화면으로 보낸다.
-      // 폴링·자동추천 effect가 둘 다 view==='steps'/step===2를 요구하므로, 여기서 결과 뷰를 치우지 않으면
-      // 멤버 목록이 영영 채워지지 않아 자동 추천이 시작되지 않는다.
-      if (new URLSearchParams(window.location.search).has('grp')) setView('steps');
+      // 살아있는 그룹 세션이 있으면 기본적으로 대기 화면을 연다. 예외는 '이 세션으로 이미 받은 결과'뿐.
+      // ?grp= 유무로 판정하던 때는 랜딩·북마크로 돌아온 호스트가 옛 혼자 모드 결과에 갇혔다 —
+      // 폴링·자동추천이 둘 다 view==='steps'/step===2를 요구해서 멤버가 영영 안 채워졌다.
+      const snap = loadResultSnapshot() as { sessionId?: string } | null;
+      if (!snap || snap.sessionId !== g.sessionId) setView('steps');
     } catch { /* 손상된 그룹 세션 무시 */ }
   }, []);
 
@@ -516,6 +517,7 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
     if (view !== 'result' || !result || result.length === 0) return;
     const snapshot = {
       result, resultThird, resultThirdLabel, purpose, midpointData, treasurer, meetingLocation, resultTravelTimes, resultWeather, vibe, keywords, conditions, excludeFoods,
+      sessionId, // 이 결과가 '어느 그룹 세션의 것인지' — 재진입 시 대기 화면과 결과 화면 중 무엇을 열지 가른다
     };
     saveResultSnapshot(snapshot);
     const hasSecondCourse = !!(purpose?.second && purpose.second !== '없음');
@@ -539,7 +541,7 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
         groupSize: isGroup ? `${expectedCount}명` : groupSize,
       });
     }
-  }, [view, result, resultThird, resultThirdLabel, purpose, midpointData, treasurer, meetingLocation, resultTravelTimes, resultWeather, vibe, keywords, conditions, excludeFoods, isGroup, expectedCount, groupSize]);
+  }, [view, result, resultThird, resultThirdLabel, purpose, midpointData, treasurer, meetingLocation, resultTravelTimes, resultWeather, vibe, keywords, conditions, excludeFoods, sessionId, isGroup, expectedCount, groupSize]);
 
   // 그룹 호스트가 추천을 받으면 결과 요약을 세션에 저장 → 게스트 done 화면이 폴링으로 수신(협업 루프 완결).
   // enrich·재추천으로 결과가 바뀌면 자동 재저장. 실패는 무해(게스트가 못 볼 뿐, 카톡 공유로도 전달 가능).
@@ -789,7 +791,12 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
   // 그룹 링크 생성 후 코스·지역을 바꾸려면 이미 공유된 링크와 어긋난다 → 동의받고 세션을 무효화.
   // (handleBack·스텝바 점프가 공유 헬퍼로 재사용)
   function confirmInvalidateGroupLink(): boolean {
-    const ok = window.confirm('코스·지역을 바꾸려면 지금 링크를 취소하고 다시 설정해야 해요.\n계속할까요? (이미 공유한 링크는 무효가 됩니다)');
+    // window.confirm은 버튼 라벨을 못 바꾼다 — 마지막 문장이 곧 '확인'의 의미가 되게 쓴다.
+    // 이미 입력한 친구가 있으면 사라지는 것이 링크만이 아니므로 그 수를 명시한다.
+    const msg = groupMembers.length > 0
+      ? `코스나 지역을 바꾸면 지금 초대 링크는 못 쓰게 돼요.\n이미 입력한 ${groupMembers.length}명의 취향도 함께 사라지고, 새 링크를 다시 보내야 해요.\n\n초대 링크를 취소하고 다시 설정할까요?`
+      : '코스나 지역을 바꾸면 지금 초대 링크는 못 쓰게 돼요.\n이미 링크를 받은 친구들에겐 새 링크를 다시 보내야 해요.\n\n초대 링크를 취소하고 다시 설정할까요?';
+    const ok = window.confirm(msg);
     if (!ok) return false;
     if (sessionId) cancelGroupSessionOnServer(sessionId); // 서버에도 알려야 옛 링크가 실제로 죽는다
     setSessionId(null);
@@ -824,7 +831,13 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
 
   // 처음부터 다시 — 결과·입력 취향을 전부 지우고 첫 화면으로. 파괴적이라 반드시 확인 1회.
   function handleFullReset() {
-    if (!window.confirm('추천 결과와 입력한 취향이 모두 지워져요.\n처음부터 다시 시작할까요?')) return;
+    // 그룹 링크가 살아있으면 확인 문구에 그 사실을 먼저 알린다 — 친구들에게 보낸 링크가 함께 죽기 때문.
+    const msg = sessionId
+      ? '추천 결과와 입력한 취향이 모두 지워져요.\n친구들에게 보낸 초대 링크도 함께 취소돼요.\n\n처음부터 다시 시작할까요?'
+      : '추천 결과와 입력한 취향이 모두 지워져요.\n처음부터 다시 시작할까요?';
+    if (!window.confirm(msg)) return;
+    // 서버에도 알려야 옛 링크가 실제로 죽는다 — 안 알리면 그 링크로 들어온 게스트가 영원히 결과를 기다린다.
+    if (sessionId) cancelGroupSessionOnServer(sessionId);
     clearResultSnapshot();
     try { localStorage.removeItem(INPUT_DRAFT_KEY); sessionStorage.removeItem(INPUT_DRAFT_KEY); localStorage.removeItem(GROUP_SESSION_KEY); } catch { /* ignore */ }
     setResult(null);
