@@ -1,16 +1,9 @@
 name: Deploy to Vercel
 
-# Vercel 프로젝트에는 Git 저장소가 연결돼 있지 않다. 배포는 전적으로 이 워크플로가 담당한다.
-# main push마다 Vercel CLI로 프로덕션 배포를 올린다.
-#
+# Vercel Hobby는 비공개 GitHub Organization 저장소의 Git 연동을 막는다.
+# 대신 main push마다 Vercel CLI로 프로덕션 배포를 올린다.
 # 필요한 Secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
 # VERCEL_TOKEN은 Scope를 Full Account로 발급할 것. 팀 범위 토큰은 CLI의 계정 조회에서 거부된다.
-#
-# Hobby 플랜은 커밋 작성자가 팀 소유자가 아니면 배포를 차단한다. Git 연동 여부와 무관하게,
-# CLI가 러너의 체크아웃에서 읽어 붙이는 커밋 메타데이터에도 이 검사가 적용된다.
-# (실측: 소유자가 아닌 작성자의 커밋이 Duration '—' 상태로 차단돼 빌드조차 시작되지 않았고,
-#  CLI는 그 배포를 기다리다 워크플로 타임아웃까지 14분을 소진했다.)
-# 그래서 배포 직전에 러너 안의 임시 체크아웃만 소유자 명의로 바꾼다. 아래 Normalize 스텝 참조.
 
 on:
   push:
