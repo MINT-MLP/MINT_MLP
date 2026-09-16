@@ -36,4 +36,5 @@ dist-ssr
 .claude/projects/
 MINT_MLP/
 
-handover-notes/*
+# 인수 분석 노트 — 개인 보관용, 커밋하지 않음
+handover-notes/
