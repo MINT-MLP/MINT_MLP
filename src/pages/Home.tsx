@@ -908,6 +908,7 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
   }
 
   function handleBack() {
+    // 헤더 "← 뒤로"(step>0)와 하단 "← 이전 단계"가 같이 쓴다 — 한 화면의 두 뒤로가기가 다른 곳으로 가면 안 된다.
     // 그룹: 링크 생성 후 코스·지역을 바꾸면 이미 공유된 링크의 파라미터와 어긋난다.
     // 공유(step2)에서 뒤로가기는 '링크 취소 후 재설정'으로 처리해 항상 링크=설정이 일치하게 유지.
     if (isGroup && step === 2 && sessionId) {
@@ -1618,16 +1619,19 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
 
         {/* 헤더 — 노치/상단 안전영역 반영(인앱·일반 세로모드에선 16px 그대로).
             결과 화면 헤더와 같은 문법: 높이 h-10, 소형 텍스트 버튼, 로고 절대 중앙 정렬.
-            좌측 "← 홈"은 결과 화면 로고처럼 랜딩페이지로 탈출, 중앙 로고는 step 0으로 되감기(의도된 비대칭). */}
+            좌측 버튼은 step에 따라 역할이 다르다 — step 0(모드 선택)에서만 "← 홈"으로 랜딩페이지에 나가고,
+            step 1~3에서는 "← 뒤로"로 이전 단계로만 간다(하단 "← 이전 단계"와 같은 handleBack).
+            중간 단계에서 홈을 누르면 랜딩으로 튕겨 입력 흐름이 끊기던 문제를 막는다.
+            중앙 로고는 어느 step에서든 step 0으로 되감기(step 0에선 no-op) — 좌측은 한 단계, 로고는 끝까지. */}
         <div className="flex-shrink-0 px-5 pt-[max(1rem,env(safe-area-inset-top))]">
           <div className="relative -mx-2 flex h-10 items-center justify-center">
             <button
-              onClick={() => { window.location.href = '/'; }}
+              onClick={step === 0 ? () => { window.location.href = '/'; } : handleBack}
               className="absolute left-0 top-1/2 -translate-y-1/2 flex min-h-10 items-center gap-1 rounded-lg px-2 text-xs font-bold text-gray-500 transition-colors hover:text-[#2AB5A0]"
-              aria-label="홈으로 가기"
+              aria-label={step === 0 ? '홈으로 가기' : '뒤로 가기'}
             >
               <span aria-hidden>←</span>
-              <span>홈</span>
+              <span>{step === 0 ? '홈' : '뒤로'}</span>
             </button>
             <h1
               className="text-2xl font-black text-[#2AB5A0] tracking-tight cursor-pointer select-none"
