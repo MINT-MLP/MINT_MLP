@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /app
+Disallow: /admin
+Disallow: /pilot-admin
+Disallow: /pilot
+Disallow: /join
+Disallow: /shared
+
+Sitemap: https://www.meetatmint.com/sitemap.xml
