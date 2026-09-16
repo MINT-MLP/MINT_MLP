@@ -222,7 +222,7 @@ export default function Landing() {
               ✦ 그룹 만남 장소 큐레이션
             </div>
             <h1 className="text-4xl lg:text-6xl font-black text-gray-800 leading-tight mb-3 lg:mb-5">
-              약속은 잡았는데 개발서버 테스트<br />
+              약속은 잡았는데<br />
               <span className="text-[#3CDBC0]">어디서 만나지?</span>
             </h1>
             <p className="text-gray-600 text-lg lg:text-xl leading-relaxed mb-7 lg:mb-10 break-keep">
