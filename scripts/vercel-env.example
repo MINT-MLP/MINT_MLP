@@ -1,0 +1,31 @@
+# 개발 Vercel 프로젝트(mint-mlp-dev)에 넣을 환경변수 목록.
+# 이 파일을 .env.dev-vercel 로 복사해 값을 채운 뒤 scripts/vercel-env-push.ps1 로 올린다.
+# (.env* 는 .gitignore 대상이라 커밋되지 않는다. 이 example 파일에는 값을 적지 말 것.)
+#
+# 키 목록은 api/, src/ 에서 process.env / import.meta.env 를 grep 한 결과 18개.
+
+# ── 개발 DB로 바꿔야 하는 것 (운영 값 넣으면 dev 테스트가 운영 DB에 쌓인다) ──
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+
+# ── dev에서 낮게 잡는 게 좋은 것 ──
+RECOMMEND_DAILY_CAP=
+EXPOSE_DEBUG=
+
+# ── 운영과 같은 값 써도 되는 것 (외부 API 키. dev 호출도 실비 과금) ──
+ANTHROPIC_API_KEY=
+NAVER_CLIENT_ID=
+NAVER_CLIENT_SECRET=
+PUBLIC_DATA_SERVICE_KEY=
+SEOUL_DATA_API_KEY=
+VITE_SEOUL_DATA_API_KEY=
+VITE_KAKAO_JS_API_KEY=
+VITE_KAKAO_REST_API_KEY=
+VITE_ODSAY_API_KEY=
+
+# ── 관리·크론 비밀. dev는 크론이 없지만 admin-batch POST 수동 실행엔 필요 ──
+ADMIN_PASSWORD=
+ADMIN_REFRESH_SECRET=
+CRON_SECRET=

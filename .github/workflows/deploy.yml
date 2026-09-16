@@ -1,22 +1,26 @@
 name: Deploy to Vercel
 
 # Vercel Hobby는 비공개 GitHub Organization 저장소의 Git 연동을 막는다.
-# 대신 main push마다 Vercel CLI로 프로덕션 배포를 올린다.
-# 필요한 Secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
+# 대신 push마다 Vercel CLI로 배포를 올린다. 브랜치에 따라 대상 프로젝트가 갈린다.
+#   main → 운영 프로젝트 (VERCEL_PROJECT_ID)      https://www.meetatmint.com
+#   dev  → 개발 프로젝트 (VERCEL_DEV_PROJECT_ID)  https://mint-mlp-dev.vercel.app
+# 둘 다 각 프로젝트의 프로덕션 슬롯에 올린다. 개발 프로젝트도 --prod로 올려야 주소가 고정된다.
+#
+# 필요한 Secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID, VERCEL_DEV_PROJECT_ID
 # VERCEL_TOKEN은 Scope를 Full Account로 발급할 것. 팀 범위 토큰은 CLI의 계정 조회에서 거부된다.
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   workflow_dispatch:
 
+# 브랜치별로 직렬화. dev 배포가 운영 배포를 기다리거나 막지 않는다.
 concurrency:
-  group: deploy-production
+  group: deploy-${{ github.ref_name }}
   cancel-in-progress: false
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
 jobs:
   deploy:
@@ -24,6 +28,24 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+
+      # 브랜치 → 배포 대상 결정. 이후 스텝은 전부 DEPLOY_TARGET / VERCEL_PROJECT_ID만 본다.
+      - name: Resolve deploy target
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            target=production
+            project_id='${{ secrets.VERCEL_PROJECT_ID }}'
+          else
+            target=dev
+            project_id='${{ secrets.VERCEL_DEV_PROJECT_ID }}'
+          fi
+          if [ -z "$project_id" ]; then
+            echo "::error::VERCEL_PROJECT_ID / VERCEL_DEV_PROJECT_ID secret이 비어 있다 (target=$target)"
+            exit 1
+          fi
+          echo "DEPLOY_TARGET=$target" >> "$GITHUB_ENV"
+          echo "VERCEL_PROJECT_ID=$project_id" >> "$GITHUB_ENV"
+          echo "deploy target: $target (branch ${{ github.ref_name }})"
 
       # Hobby 커밋 작성자 검사 통과용. 러너의 일회용 체크아웃에서 HEAD 커밋의 작성자만
       # 소유자 명의로 바꾼다. push하지 않으므로 원격 저장소 히스토리는 전혀 바뀌지 않는다.
@@ -34,6 +56,18 @@ jobs:
           git config user.email "rladndus321@gmail.com"
           git commit --amend --no-edit --reset-author
           git log -1 --format='author now: %an <%ae>'
+
+      # 개발 프로젝트에서는 cron을 돌리지 않는다. 같은 배치가 운영과 이중으로 돌면
+      # 네이버 API 호출과 캐시 갱신이 중복된다. 러너 안의 vercel.json에서만 crons를 지운다.
+      - name: Strip cron jobs (dev only)
+        if: env.DEPLOY_TARGET == 'dev'
+        run: |
+          jq 'del(.crons)' vercel.json > vercel.json.tmp && mv vercel.json.tmp vercel.json
+          if [ "$(jq '.crons' vercel.json)" != "null" ]; then
+            echo "::error::crons 제거 실패"
+            exit 1
+          fi
+          echo "crons removed for dev"
 
       - uses: actions/setup-node@v4
         with:
