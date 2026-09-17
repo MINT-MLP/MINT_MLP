@@ -59,15 +59,28 @@ jobs:
 
       # 개발 프로젝트에서는 cron을 돌리지 않는다. 같은 배치가 운영과 이중으로 돌면
       # 네이버 API 호출과 캐시 갱신이 중복된다. 러너 안의 vercel.json에서만 crons를 지운다.
-      - name: Strip cron jobs (dev only)
+      #
+      # 색인 차단도 같이 건다. robots.txt는 두 프로젝트가 같은 파일을 배포하는데다,
+      # 개발 프로젝트도 프리뷰가 아니라 프로덕션 배포라 Vercel이 noindex를 자동으로 붙이지 않는다.
+      # 그대로 두면 운영과 같은 앱이 다른 도메인에 색인돼 검색 신호가 갈린다.
+      # robots.txt를 Disallow로 막지는 않는다 — 크롤러가 아예 안 들어오면 noindex를 못 읽는다.
+      - name: Strip cron jobs and block indexing (dev only)
         if: env.DEPLOY_TARGET == 'dev'
         run: |
-          jq 'del(.crons)' vercel.json > vercel.json.tmp && mv vercel.json.tmp vercel.json
+          jq 'del(.crons)
+              | .headers = ((.headers // []) + [{
+                  "source": "/(.*)",
+                  "headers": [{"key": "X-Robots-Tag", "value": "noindex, nofollow"}]
+                }])' vercel.json > vercel.json.tmp && mv vercel.json.tmp vercel.json
           if [ "$(jq '.crons' vercel.json)" != "null" ]; then
             echo "::error::crons 제거 실패"
             exit 1
           fi
-          echo "crons removed for dev"
+          if [ "$(jq -r '[.headers[].headers[] | select(.key == "X-Robots-Tag")] | length' vercel.json)" != "1" ]; then
+            echo "::error::X-Robots-Tag 헤더 주입 실패"
+            exit 1
+          fi
+          echo "crons removed, noindex header added for dev"
 
       - uses: actions/setup-node@v4
         with:
