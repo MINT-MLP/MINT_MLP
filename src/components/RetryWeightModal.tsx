@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { VibeState } from './VibeSelect';
-import { VIBE_KEY_TO_LABEL } from './VibeSelect';
+import type { VibeState } from '@/types';
+import { VIBE_KEY_TO_LABEL } from '@/constants/vibeOptions';
 
 export type VibeWeights = Record<string, number>;
 

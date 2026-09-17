@@ -1,16 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import Home from './Home';
-import BottomTabBar, { type TabKey } from '../components/BottomTabBar';
-import MyMeetings from './tabs/MyMeetings';
-import Discover from './tabs/Discover';
-import MintShop from './tabs/MintShop';
-import Profile from './tabs/Profile';
-import ResumeRecommendSheet from '../components/ResumeRecommendSheet';
-import FeedbackFab, { FEEDBACK_OPENED_KEY } from '../components/FeedbackFab';
-import FeedbackSheet from '../components/FeedbackSheet';
-import { clearRecommendSession, loadResultSummary, type ResultSummary } from '../utils/history';
-import { trackEvent } from '../utils/analytics';
-import { bindOutboxExitFlush, flushOutbox } from '../utils/feedback';
+import Home from '@/pages/Home';
+import { BottomTabBar, ResumeRecommendSheet, FeedbackFab, FEEDBACK_OPENED_KEY, FeedbackSheet } from '@/components';
+import MyMeetings from '@/pages/mock/MyMeetings';
+import Discover from '@/pages/mock/Discover';
+import MintShop from '@/pages/mock/MintShop';
+import Profile from '@/pages/Profile';
+import { clearRecommendSession, loadResultSummary } from '@/utils/history';
+import { trackEvent } from '@/utils/analytics';
+import { bindOutboxExitFlush, flushOutbox } from '@/utils/feedback';
+import type { TabKey, ResultSummary } from '@/types';
 
 // /app 셸 — 홈 탭의 콘텐츠는 항상 추천 플로우(Home)다.
 // 탭바를 보여도 되는지는 각 탭이 onChromeChange로 보고한다(셸은 localStorage를 보지 않는다).

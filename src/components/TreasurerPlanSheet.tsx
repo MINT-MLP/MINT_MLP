@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { getDeviceId } from '../utils/points';
-import { trackEvent } from '../utils/analytics';
-import { isPreregistered, markPreregistered, type PlanFrame } from '../utils/plan';
+import { getDeviceId } from '@/utils/points';
+import { trackEvent } from '@/utils/analytics';
+import { isPreregistered, markPreregistered, type PlanFrame } from '@/utils/plan';
 
 // 총무 플랜 '자세히 알아보기' 상세 시트 — 구독하면 어떤 서비스가 실현되는지 보여준다.
 // 결제·기능은 없다(가짜 문). 순수 가격 검증 + 사전등록. 가격 프레임은 기기별 A/B 고정.

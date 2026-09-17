@@ -1,20 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { searchRegions, matchHotplaces } from '../services/kakaoMap';
-import type { RegionSuggestion, RegionLevel } from '../services/kakaoMap';
-import { ensureKakaoMaps } from '../utils/kakaoLoader';
-
-export interface RegionScopeInfo {
-  level: RegionLevel;
-  matchTokens: string[];
-  searchAreas: string[];
-}
-
-export type MeetingLocation =
-  | { type: 'auto' }
-  // 직접 입력 지역은 실제 좌표(lat/lng) + 행정단위 스코프(scope)를 담아 그 시/구/동 범위로 추천된다.
-  // 프리셋 지역(regionId 있음)은 좌표가 서비스(PRESET_REGIONS)에 있어 생략 가능.
-  | { type: 'manual'; regionId: string; area: string; lat?: number; lng?: number; scope?: RegionScopeInfo };
+import { searchRegions, matchHotplaces } from '@/services/kakaoMap';
+import type { RegionSuggestion, RegionLevel, MeetingLocation } from '@/types';
+import { ensureKakaoMaps } from '@/utils/kakaoLoader';
 
 interface Props {
   value: MeetingLocation | null;

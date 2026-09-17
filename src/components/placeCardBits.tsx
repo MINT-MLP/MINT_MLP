@@ -2,6 +2,9 @@
 // 같은 신뢰 요소(사진·적합도·영업중·혼잡도)를 '한 벌'로 공유하기 위한 순수 표현 헬퍼.
 // 액션(재추천·예약·총무)은 각 화면이 카드 바깥에서 조립한다 — 여긴 표현만.
 import type React from 'react';
+import type { PlaceRecommendation } from '@/types';
+import { trackEvent } from '@/utils/analytics';
+import { findCertifications } from '@/constants/certifications';
 
 // 깨진 이미지는 흔적 없이 숨긴다 (네이버 썸네일 만료 대응)
 export function hideOnError(e: React.SyntheticEvent<HTMLImageElement>) {
@@ -71,4 +74,19 @@ export function kakaoUrl(place: { placeName: string; lat?: number | null; lng?: 
   if (place.lat && place.lng && place.lat !== 0 && place.lng !== 0)
     return `https://map.kakao.com/link/map/${encodeURIComponent(place.placeName)},${place.lat},${place.lng}`;
   return `https://map.kakao.com/link/search/${encodeURIComponent(place.placeName)}`;
+}
+
+// 선택 신호(ground truth) — 노출된 후보 중 실제로 어떤 순위를 눌러 지도를 열었나.
+// recommend.ts가 이미 기록 중인 노출 순위(finalRank)와 대비하면 랭킹 튜닝 학습셋이 된다.
+export type PlaceClickEvent = 'place_click_rank1' | 'place_click_second' | 'place_click_candidate' | 'place_click_third';
+export function openPlace(url: string, type: PlaceClickEvent, place?: PlaceRecommendation) {
+  // payload: 어떤 장소를 실제 선택했나. session_key로 recommendation_log의 노출 순위와 대비하면 랭킹 정답 레이블.
+  trackEvent(type, place ? { placeName: place.placeName, address: place.address, priceRange: place.priceRange, fitScore: place.fitScore } : undefined);
+  window.open(url, '_blank');
+}
+
+// 매칭된 인증 이모지(최대 2개)를 리스트 행 앞에 붙일 접두사로 — 대안/더보기 행의 인증 표식.
+export function certPrefix(place: { placeName?: string; address?: string; area?: string }): string {
+  const c = findCertifications(place).slice(0, 2);
+  return c.length ? c.map((m) => m.source.emoji).join('') + ' ' : '';
 }

@@ -1,136 +1,14 @@
 import { useEffect, useState } from 'react';
-import { trackEvent } from '../utils/analytics';
-import { exitAppFullscreen, navigateInApp, requestAppFullscreen } from '../utils/fullscreen';
-import CertShowcase from '../components/CertShowcase';
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt(): Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
-
-type InstallGuide = 'ios-safari' | 'ios-kakao' | null;
-
-const IOS_INSTALL_GUIDE_SEEN_KEY = 'mint_ios_install_guide_seen_v1';
-
-type MintWindow = Window & {
-  __mintInstallPrompt?: BeforeInstallPromptEvent | null;
-  MSStream?: unknown;
-};
-
-function useInstallPrompt() {
-  const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isIOS, setIsIOS] = useState(false);
-  const [isKakao, setIsKakao] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [guide, setGuide] = useState<InstallGuide>(null);
-
-  useEffect(() => {
-    const w = window as MintWindow;
-    if (
-      w.matchMedia('(display-mode: fullscreen)').matches ||
-      w.matchMedia('(display-mode: standalone)').matches
-    ) {
-      setIsInstalled(true);
-      return;
-    }
-    const ua = navigator.userAgent;
-    setIsIOS(/iPad|iPhone|iPod/.test(ua) && !w.MSStream);
-    setIsKakao(/KAKAOTALK/i.test(ua));
-
-    // index.html이 리액트 마운트 전에 이미 잡아둔 프롬프트가 있으면 즉시 사용
-    if (w.__mintInstallPrompt) setPrompt(w.__mintInstallPrompt);
-
-    // 이후 발화분(또는 index.html이 잡은 뒤 쏜 커스텀 이벤트) 수신
-    const onReady = () => { if (w.__mintInstallPrompt) setPrompt(w.__mintInstallPrompt); };
-    const onPrompt = (e: Event) => { e.preventDefault(); setPrompt(e as BeforeInstallPromptEvent); };
-    const onInstalled = () => { setPrompt(null); setIsInstalled(true); };
-    window.addEventListener('mint:installready', onReady);
-    window.addEventListener('beforeinstallprompt', onPrompt);
-    window.addEventListener('mint:installed', onInstalled);
-    return () => {
-      window.removeEventListener('mint:installready', onReady);
-      window.removeEventListener('beforeinstallprompt', onPrompt);
-      window.removeEventListener('mint:installed', onInstalled);
-    };
-  }, []);
-
-  async function triggerInstall() {
-    trackEvent('pwa_install_click');
-    const w = window as MintWindow;
-    const nativePrompt = prompt ?? w.__mintInstallPrompt;
-    // Android/Chrome은 브라우저 네이티브 설치창만 사용한다.
-    if (nativePrompt) {
-      await nativePrompt.prompt();
-      const choice = await nativePrompt.userChoice;
-      // 클릭≠설치 — 실제 설치 전환율을 보려면 outcome을 나눠 기록한다
-      trackEvent(choice?.outcome === 'accepted' ? 'pwa_install_accepted' : 'pwa_install_dismissed');
-      w.__mintInstallPrompt = null;
-      setPrompt(null);
-      return;
-    }
-    // iOS는 자동 설치 API가 없다. 브라우저 메뉴가 보이도록 전체화면을 먼저 해제하고,
-    // 기기당 한 번만 Safari의 홈 화면 추가 순서를 안내한다.
-    if (isIOS) {
-      await exitAppFullscreen();
-      try {
-        if (localStorage.getItem(IOS_INSTALL_GUIDE_SEEN_KEY)) return;
-        localStorage.setItem(IOS_INSTALL_GUIDE_SEEN_KEY, '1');
-      } catch { /* 저장이 막힌 환경에서는 현재 방문 중 한 번 더 보일 수 있다. */ }
-      setGuide(isKakao ? 'ios-kakao' : 'ios-safari');
-    }
-  }
-
-  // Android는 실제 네이티브 설치 이벤트가 준비된 경우에만 버튼을 노출한다.
-  const canInstall = !isInstalled && (isIOS || !!prompt);
-  return { canInstall, triggerInstall, isIOS, guide, setGuide };
-}
+import { trackEvent } from '@/utils/analytics';
+import { navigateInApp, requestAppFullscreen } from '@/utils/fullscreen';
+import { CertShowcase, LandingPhoneMockup, LandingHeroPhone, LandingKakaoBubble } from '@/components';
+import { useInstallPrompt } from '@/hooks';
+import { COMBOS } from '@/constants/landing';
 
 async function goToApp() {
   trackEvent('cta_click');
   await requestAppFullscreen();
   navigateInApp('/app');
-}
-
-// ── 모바일 히어로: 조건 → 결과 예시 바 ──
-const COMBOS = [
-  { chips: ['🍻 술', '시끌벅적', '성수'], result: '아키야마 성수본점' },
-  { chips: ['🍜 밥', '검증된 곳', '선릉'], result: '농민백암순대 본점' },
-  { chips: ['☕ 카페', '인스타감성', '연남'], result: '카페 레이어드 연남점' },
-  { chips: ['💕 100일 데이트', '야경맛집', '성수'], result: '성수옥상' },
-  { chips: ['🏢 회식', '단체 가능', '용산'], result: '몽탄' },
-];
-
-function PhoneMockup({ src, alt, width = 'w-56' }: { src: string; alt: string; width?: string }) {
-  return (
-    <div className={`${width} mx-auto rounded-[2rem] bg-white p-1.5 ring-1 ring-black/5 shadow-2xl shadow-teal-900/10`}>
-      <div className="overflow-hidden rounded-[1.6rem] bg-white">
-        <img src={src} alt={alt} className="w-full block" loading="lazy" />
-      </div>
-    </div>
-  );
-}
-
-// 히어로 전용 디바이스 프레임 — 얇은 흰 베젤 + 깊은 그림자로 실제 폰처럼
-function HeroPhone({ src, alt, className = '', featured = false }: { src: string; alt: string; className?: string; featured?: boolean }) {
-  return (
-    <div
-      className={`rounded-[2.1rem] bg-white p-1.5 ring-1 ring-black/5 ${
-        featured ? '' : 'shadow-2xl shadow-teal-900/10'
-      } ${className}`}
-    >
-      <div className="overflow-hidden rounded-[1.7rem] bg-white">
-        <img src={src} alt={alt} className="block w-full" loading="lazy" />
-      </div>
-    </div>
-  );
-}
-
-function KakaoTalkBubble({ className = 'w-6 h-6' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12 3C6.48 3 2 6.58 2 11c0 2.83 1.83 5.31 4.6 6.73L5.5 21.5l4.2-2.3c.74.13 1.51.2 2.3.2 5.52 0 10-3.58 10-8s-4.48-8-10-8z" />
-    </svg>
-  );
 }
 
 export default function Landing() {
@@ -297,14 +175,14 @@ export default function Landing() {
             </div>
 
             {/* 뒤: 입력(조건 선택) 화면 */}
-            <HeroPhone
+            <LandingHeroPhone
               src="/image/landing/hero-purpose.webp"
               alt="MINT 조건 선택 화면 예시"
               className="absolute left-0 top-1 w-[256px] rotate-[-7deg] z-10"
             />
 
             {/* 앞: 추천 결과 화면 — 주인공 */}
-            <HeroPhone
+            <LandingHeroPhone
               src="/image/landing/hero-result.webp"
               alt="MINT 첫 추천 결과 예시"
               featured
@@ -435,7 +313,7 @@ export default function Landing() {
             </div>
           </div>
           <div className="mt-8 lg:mt-0 lg:order-1">
-            <PhoneMockup src="/image/landing/result.webp" alt="MINT 추천 결과 — 1차 일식 다이닝, 2차 와인바 코스" width="w-64" />
+            <LandingPhoneMockup src="/image/landing/result.webp" alt="MINT 추천 결과 — 1차 일식 다이닝, 2차 와인바 코스" width="w-64" />
           </div>
         </div>
       </section>
@@ -473,7 +351,7 @@ export default function Landing() {
                   }`}>{badge}</span>
                   <h3 className="text-lg font-bold text-gray-800 mb-1">{title}</h3>
                   <p className="text-base text-gray-500 mb-5 lg:min-h-[72px]">{desc}</p>
-                  <PhoneMockup src={img} alt={`${badge} ${title}`} width="w-56 lg:w-full" />
+                  <LandingPhoneMockup src={img} alt={`${badge} ${title}`} width="w-56 lg:w-full" />
                 </div>
               </div>
             ))}
@@ -500,7 +378,7 @@ export default function Landing() {
           <div className="lg:grid lg:grid-cols-2 lg:gap-14 lg:items-center">
             {/* 스마트폰 목업 — 메뉴 콕 직접 입력 화면 */}
             <div className="mb-8 lg:mb-0 lg:order-1">
-              <PhoneMockup src="/image/landing/menu-demo.webp" alt="'메뉴 콕!'에 #회&초밥 #파스타를 입력하는 화면" width="w-56 lg:w-64" />
+              <LandingPhoneMockup src="/image/landing/menu-demo.webp" alt="'메뉴 콕!'에 #회&초밥 #파스타를 입력하는 화면" width="w-56 lg:w-64" />
             </div>
 
             {/* 설명 카드 2개 */}
@@ -637,7 +515,7 @@ export default function Landing() {
                       <span className="text-base font-semibold text-gray-800">{title}</span>
                     </div>
                     <p className="text-sm text-gray-500 mb-4 leading-relaxed min-h-[48px] lg:min-h-[56px]">{desc}</p>
-                    <PhoneMockup src={img} alt={`${active.label} ${title}`} width="w-full" />
+                    <LandingPhoneMockup src={img} alt={`${active.label} ${title}`} width="w-full" />
                   </div>
                 ))}
               </div>
@@ -822,7 +700,7 @@ export default function Landing() {
             <span className="bg-teal-50 border border-teal-200 text-[#2AB5A0] text-sm lg:text-base font-bold px-4 lg:px-5 py-2 lg:py-2.5 rounded-full whitespace-nowrap">✨ 장소 추천</span>
             <span className="text-[#3CDBC0] font-bold flex-shrink-0">→</span>
             <div className="flex items-center gap-1.5 bg-teal-50 border border-teal-200 text-[#2AB5A0] text-sm lg:text-base font-bold px-3 lg:px-4 py-2 lg:py-2.5 rounded-full whitespace-nowrap flex-shrink-0">
-              <KakaoTalkBubble className="w-4 h-4" />
+              <LandingKakaoBubble className="w-4 h-4" />
               카톡 공유
             </div>
           </div>
@@ -840,7 +718,7 @@ export default function Landing() {
                       <p className="text-[13px] font-bold text-gray-800">안목 성수 · 시끌벅적 국밥</p>
                       <p className="text-[11px] text-gray-500 mt-0.5">1차 밥 → 2차 술 · 적합도 88점</p>
                       <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-[#2AB5A0]">
-                        <KakaoTalkBubble className="w-3.5 h-3.5" /> MINT 추천 열어보기
+                        <LandingKakaoBubble className="w-3.5 h-3.5" /> MINT 추천 열어보기
                       </div>
                     </div>
                   </div>
@@ -938,7 +816,7 @@ export default function Landing() {
               장소 추천
             </div>
             <div className="flex items-center gap-1 text-sm text-gray-500">
-              <KakaoTalkBubble className="w-3.5 h-3.5" />
+              <LandingKakaoBubble className="w-3.5 h-3.5" />
               카톡 공유
             </div>
             <div className="flex items-center gap-1 text-sm text-gray-500">

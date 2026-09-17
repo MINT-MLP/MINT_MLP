@@ -1,7 +1,4 @@
-export interface Coordinates {
-  lat: number;
-  lng: number;
-}
+import type { Coordinates, PresetRegion } from '@/types';
 
 // 구형(球形) 지구 기준 두 좌표 간 직선거리 (km)
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -228,12 +225,6 @@ export function calcMidpoint(coords: Coordinates[]): Coordinates {
 }
 
 // 직접 선택용 지역 프리셋
-export interface PresetRegion {
-  id: string;
-  label: string;
-  sublabel: string;
-  midpoint: Coordinates;
-}
 
 export const PRESET_REGIONS: PresetRegion[] = [
   { id: 'gangnam',        label: '강남/서초',   sublabel: '강남역·역삼·선릉',     midpoint: { lat: 37.4979, lng: 127.0276 } },

@@ -1,6 +1,10 @@
 import { useState } from 'react';
-import { isTrackingPaused, setTrackingPaused } from '../utils/analytics';
-import type { ReservationRecord } from './Reserve';
+import { isTrackingPaused, setTrackingPaused } from '@/utils/analytics';
+import type { ReservationRecord } from '@/pages/Reserve';
+import { AdminPasswordGate, AdminStatCard, AdminBarRow, AdminMiniStat, AdminFunnelStep } from '@/components';
+import { pct, pctLabel, formatDuration, formatDate, formatRelative } from '@/utils/format';
+import { downloadCsv } from '@/utils/csv';
+import { callAdmin } from '@/services/admin';
 
 // 어드민 — 모든 데이터 접근은 /api/admin-data(서버 비밀번호 검증 + service role) 경유.
 // 클라이언트 하드코딩 비밀번호와 anon 키 직접 select는 보안 문제로 제거됨.
@@ -205,138 +209,6 @@ function rangeToFrom(range: RangeKey): string | undefined {
   if (range === '7d') return new Date(now - 7 * 86400000).toISOString();
   if (range === '30d') return new Date(now - 30 * 86400000).toISOString();
   return undefined; // all
-}
-
-async function callAdmin(password: string, extra: Record<string, unknown> = {}) {
-  const res = await fetch('/api/admin-data', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password, ...extra }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `요청 실패 (${res.status})`);
-  return data;
-}
-
-// 분모가 0이면 비율은 존재하지 않는다 — '0.0'으로 찍으면 "성과가 0"으로 읽혀서
-// (기간 필터로 유입만 0이 된 소스처럼) 정반대 결론을 유도한다.
-function pct(numer: number, denom: number): string {
-  if (denom <= 0) return '—';
-  return ((numer / denom) * 100).toFixed(1);
-}
-
-// 화면에 그대로 박는 표기용 — 비율이 없을 땐 '—%'가 되지 않게 %를 떼고 내보낸다.
-function pctLabel(numer: number, denom: number): string {
-  const v = pct(numer, denom);
-  return v === '—' ? v : `${v}%`;
-}
-
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}초`;
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return s > 0 ? `${m}분 ${s}초` : `${m}분`;
-}
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  const hh = String(d.getHours()).padStart(2, '0');
-  const min = String(d.getMinutes()).padStart(2, '0');
-  return `${mm}/${dd} ${hh}:${min}`;
-}
-
-// 피드백은 "언제 왔나"보다 "얼마나 따끈한가"가 먼저다 — 하루 넘으면 날짜로 돌아간다.
-function formatRelative(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  if (!Number.isFinite(diff) || diff < 0) return formatDate(iso);
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return '방금';
-  if (min < 60) return `${min}분 전`;
-  const hour = Math.floor(min / 60);
-  if (hour < 24) return `${hour}시간 전`;
-  return formatDate(iso);
-}
-
-function downloadCsv(filename: string, rows: (string | number | null | undefined)[][]) {
-  const csv = rows
-    .map((r) => r.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
-    .join('\r\n');
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' }); // BOM: 엑셀 한글 깨짐 방지
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function PasswordGate({ onUnlock, verifying, error }: {
-  onUnlock: (password: string) => void;
-  verifying: boolean;
-  error: string | null;
-}) {
-  const [input, setInput] = useState('');
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (input.trim()) onUnlock(input.trim());
-  }
-
-  return (
-    <div className="min-h-screen bg-[#F5FBF8] flex items-center justify-center px-4">
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-xs text-center">
-        <div className="text-3xl mb-3">🔒</div>
-        <h1 className="text-lg font-black text-gray-800 mb-1">MINT 어드민</h1>
-        <p className="text-sm text-gray-400 mb-6">비밀번호를 입력해주세요</p>
-        <input
-          type="password"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="비밀번호"
-          autoFocus
-          className={`w-full px-4 py-3 rounded-xl border-2 text-center text-lg tracking-widest outline-none transition-all ${error ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-[#36CFA0]'}`}
-        />
-        {error && <p className="text-xs text-red-400 mt-2">{error}</p>}
-        <button
-          type="submit"
-          disabled={verifying}
-          className="w-full mt-4 bg-[#36CFA0] text-white font-black py-3 rounded-xl hover:bg-[#2AB58C] transition-colors disabled:bg-gray-200 disabled:text-gray-400"
-        >
-          {verifying ? '확인 중...' : '입장'}
-        </button>
-      </form>
-    </div>
-  );
-}
-
-// ── 작은 프레젠테이션 컴포넌트 ──
-function StatCard({ label, value, unit, sub, highlight }: {
-  label: string; value: string | number; unit?: string; sub?: string; highlight?: boolean;
-}) {
-  return (
-    <div className={`rounded-2xl p-4 shadow-sm ${highlight ? 'border-2 border-[#36CFA0] bg-teal-50' : 'bg-white border border-gray-100'}`}>
-      <div className={`text-xs mb-1 ${highlight ? 'text-[#36CFA0] font-bold' : 'text-gray-400'}`}>{label}</div>
-      <div className="text-2xl font-black text-[#36CFA0]">{value}{unit && <span className="text-sm text-gray-300 font-bold"> {unit}</span>}</div>
-      {sub && <div className="text-xs text-gray-300 mt-1">{sub}</div>}
-    </div>
-  );
-}
-
-function BarRow({ label, count, total, color = '#36CFA0' }: {
-  label: string; count: number; total: number; color?: string;
-}) {
-  const p = total > 0 ? Math.round((count / total) * 100) : 0;
-  return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="w-14 text-gray-500 font-bold shrink-0">{label}</span>
-      <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all" style={{ width: `${p}%`, backgroundColor: color }} />
-      </div>
-      <span className="w-16 text-right text-gray-500 shrink-0">{count}건 ({p}%)</span>
-    </div>
-  );
 }
 
 export default function Admin() {
@@ -562,7 +434,7 @@ export default function Admin() {
     setPaused(next);
   }
 
-  if (!password) return <PasswordGate onUnlock={handleUnlock} verifying={verifying} error={gateError} />;
+  if (!password) return <AdminPasswordGate onUnlock={handleUnlock} verifying={verifying} error={gateError} />;
 
   if (loading) {
     return (
@@ -677,11 +549,11 @@ export default function Admin() {
             </button>
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col gap-2">
-            <FunnelStep label="랜딩 조회" value={a.landingViews} rate={null} />
-            <FunnelStep label="CTA 클릭" value={a.ctaClicks} rate={pctLabel(a.ctaClicks, a.landingViews)} />
-            <FunnelStep label="앱 진입(세션)" value={a.sessions} rate={pctLabel(a.sessions, a.ctaClicks)} />
-            <FunnelStep label="예약 시도" value={a.reservationAttempts} rate={pctLabel(a.reservationAttempts, a.sessions)} />
-            <FunnelStep label="예약 완료" value={a.reservationCompleted} rate={pctLabel(a.reservationCompleted, a.reservationAttempts)} last />
+            <AdminFunnelStep label="랜딩 조회" value={a.landingViews} rate={null} />
+            <AdminFunnelStep label="CTA 클릭" value={a.ctaClicks} rate={pctLabel(a.ctaClicks, a.landingViews)} />
+            <AdminFunnelStep label="앱 진입(세션)" value={a.sessions} rate={pctLabel(a.sessions, a.ctaClicks)} />
+            <AdminFunnelStep label="예약 시도" value={a.reservationAttempts} rate={pctLabel(a.reservationAttempts, a.sessions)} />
+            <AdminFunnelStep label="예약 완료" value={a.reservationCompleted} rate={pctLabel(a.reservationCompleted, a.reservationAttempts)} last />
           </div>
           <p className="text-[11px] text-gray-400 mt-2 px-1">
             * 예약 시도는 이벤트, 예약 완료는 reservations 테이블 실건수 — 소스가 달라 초기화 대상도 달라요.
@@ -745,10 +617,10 @@ export default function Admin() {
 
         {/* ── 핵심 지표 카드 ── */}
         <div className="grid grid-cols-2 gap-3 mb-6">
-          <StatCard label="전환율 (랜딩→CTA)" value={pctLabel(a.ctaClicks, a.landingViews)} highlight />
-          <StatCard label="예약 완료율 (시도→완료)" value={pctLabel(a.reservationCompleted, a.reservationAttempts)} highlight />
-          <StatCard label="평균 체류시간" value={a.avgStaySeconds != null ? formatDuration(a.avgStaySeconds) : '—'} sub={a.medianStaySeconds != null ? `중앙값 ${formatDuration(a.medianStaySeconds)}` : '아직 기록 없음'} />
-          <StatCard label="카카오 공유" value={a.kakaoShares} unit="회" sub={a.kakaoShareFallbacks > 0 ? `폴백 ${a.kakaoShareFallbacks}회` : undefined} />
+          <AdminStatCard label="전환율 (랜딩→CTA)" value={pctLabel(a.ctaClicks, a.landingViews)} highlight />
+          <AdminStatCard label="예약 완료율 (시도→완료)" value={pctLabel(a.reservationCompleted, a.reservationAttempts)} highlight />
+          <AdminStatCard label="평균 체류시간" value={a.avgStaySeconds != null ? formatDuration(a.avgStaySeconds) : '—'} sub={a.medianStaySeconds != null ? `중앙값 ${formatDuration(a.medianStaySeconds)}` : '아직 기록 없음'} />
+          <AdminStatCard label="카카오 공유" value={a.kakaoShares} unit="회" sub={a.kakaoShareFallbacks > 0 ? `폴백 ${a.kakaoShareFallbacks}회` : undefined} />
         </div>
 
         {/* ── 거절 사유 (알고리즘 핵심 신호) ── */}
@@ -759,9 +631,9 @@ export default function Admin() {
               <p className="text-xs text-gray-400 text-center py-3">아직 거절 기록이 없어요.</p>
             ) : (
               <div className="flex flex-col gap-2">
-                <BarRow label="비쌈" count={a.rejectExpensive} total={rejectTotal} color="#F59E0B" />
-                <BarRow label="멀어요" count={a.rejectFar} total={rejectTotal} color="#EF4444" />
-                <BarRow label="분위기" count={a.rejectVibe} total={rejectTotal} color="#8B5CF6" />
+                <AdminBarRow label="비쌈" count={a.rejectExpensive} total={rejectTotal} color="#F59E0B" />
+                <AdminBarRow label="멀어요" count={a.rejectFar} total={rejectTotal} color="#EF4444" />
+                <AdminBarRow label="분위기" count={a.rejectVibe} total={rejectTotal} color="#8B5CF6" />
                 <div className="text-[11px] text-gray-400 mt-1 pt-2 border-t border-gray-50">총 {rejectTotal}건 거절</div>
               </div>
             )}
@@ -777,8 +649,8 @@ export default function Admin() {
                 <p className="text-xs text-gray-400 text-center py-3">기록 없음</p>
               ) : (
                 <div className="flex flex-col gap-2">
-                  <BarRow label="새로" count={a.retryFresh} total={retryTotal} />
-                  <BarRow label="조정" count={a.retryAdjust} total={retryTotal} color="#0EA5E9" />
+                  <AdminBarRow label="새로" count={a.retryFresh} total={retryTotal} />
+                  <AdminBarRow label="조정" count={a.retryAdjust} total={retryTotal} color="#0EA5E9" />
                 </div>
               )}
             </div>
@@ -790,9 +662,9 @@ export default function Admin() {
                 <p className="text-xs text-gray-400 text-center py-3">기록 없음</p>
               ) : (
                 <div className="flex flex-col gap-2">
-                  <BarRow label="캐치" count={a.deeplinkCatchtable} total={deeplinkTotal} />
-                  <BarRow label="네이버" count={a.deeplinkNaver} total={deeplinkTotal} color="#22C55E" />
-                  <BarRow label="카카오맵" count={a.deeplinkKakaomap} total={deeplinkTotal} color="#EAB308" />
+                  <AdminBarRow label="캐치" count={a.deeplinkCatchtable} total={deeplinkTotal} />
+                  <AdminBarRow label="네이버" count={a.deeplinkNaver} total={deeplinkTotal} color="#22C55E" />
+                  <AdminBarRow label="카카오맵" count={a.deeplinkKakaomap} total={deeplinkTotal} color="#EAB308" />
                 </div>
               )}
             </div>
@@ -803,8 +675,8 @@ export default function Admin() {
         <section className="mb-6">
           <h2 className="text-sm font-black text-gray-600 mb-3">🎯 추천 품질 <span className="text-gray-300 font-normal">(랭킹 튜닝 신호)</span></h2>
           <div className="grid grid-cols-2 gap-3 mb-3">
-            <StatCard label="추천 노출" value={a.recommendShown} unit="회" sub={`요청 ${a.recommendRequests}회`} />
-            <StatCard label="추천 성공률" value={pctLabel(a.recommendShown, a.recommendRequests)} sub={a.recommendErrors > 0 ? `에러 ${a.recommendErrors}회` : '에러 없음'} highlight />
+            <AdminStatCard label="추천 노출" value={a.recommendShown} unit="회" sub={`요청 ${a.recommendRequests}회`} />
+            <AdminStatCard label="추천 성공률" value={pctLabel(a.recommendShown, a.recommendRequests)} sub={a.recommendErrors > 0 ? `에러 ${a.recommendErrors}회` : '에러 없음'} highlight />
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
             <p className="text-xs font-black text-gray-500 mb-2">선택 순위 분포 <span className="text-gray-300 font-normal">(어떤 순위를 눌렀나 = ground truth)</span></p>
@@ -812,10 +684,10 @@ export default function Admin() {
               <p className="text-xs text-gray-400 text-center py-3">아직 장소 클릭 기록이 없어요.</p>
             ) : (
               <div className="flex flex-col gap-2">
-                <BarRow label="1순위" count={a.placeClickRank1} total={placeClickTotal} />
-                <BarRow label="2차" count={a.placeClickSecond} total={placeClickTotal} color="#1A7A6E" />
-                <BarRow label="대안" count={a.placeClickCandidate} total={placeClickTotal} color="#0EA5E9" />
-                <BarRow label="3차" count={a.placeClickThird} total={placeClickTotal} color="#8B5CF6" />
+                <AdminBarRow label="1순위" count={a.placeClickRank1} total={placeClickTotal} />
+                <AdminBarRow label="2차" count={a.placeClickSecond} total={placeClickTotal} color="#1A7A6E" />
+                <AdminBarRow label="대안" count={a.placeClickCandidate} total={placeClickTotal} color="#0EA5E9" />
+                <AdminBarRow label="3차" count={a.placeClickThird} total={placeClickTotal} color="#8B5CF6" />
                 <div className="text-[11px] text-gray-400 mt-1 pt-2 border-t border-gray-50">
                   후보 펼침 {a.candidatesExpand}회 · 인증 뱃지 열람 {a.certBadgeOpen}회
                 </div>
@@ -829,20 +701,20 @@ export default function Admin() {
           <section>
             <h2 className="text-sm font-black text-gray-600 mb-3">📝 입력 단계 진행</h2>
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col gap-2">
-              <FunnelStep label="1단계 통과" value={a.stepNext0} rate={null} />
-              <FunnelStep label="2단계 통과" value={a.stepNext1} rate={pctLabel(a.stepNext1, a.stepNext0)} />
-              <FunnelStep label="3단계 통과" value={a.stepNext2} rate={pctLabel(a.stepNext2, a.stepNext1)} last />
+              <AdminFunnelStep label="1단계 통과" value={a.stepNext0} rate={null} />
+              <AdminFunnelStep label="2단계 통과" value={a.stepNext1} rate={pctLabel(a.stepNext1, a.stepNext0)} />
+              <AdminFunnelStep label="3단계 통과" value={a.stepNext2} rate={pctLabel(a.stepNext2, a.stepNext1)} last />
             </div>
           </section>
           <section>
             <h2 className="text-sm font-black text-gray-600 mb-3">🔎 검색·설치·그룹</h2>
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-              <MiniStat label="검색 0건" value={a.locationSearchZero} />
-              <MiniStat label="검색 에러" value={a.locationSearchError} />
-              <MiniStat label="PWA 설치" value={a.pwaInstallAccepted} />
-              <MiniStat label="PWA 취소" value={a.pwaInstallDismissed} />
-              <MiniStat label="그룹 링크 생성" value={a.groupSessionCreate} />
-              <MiniStat label="데모 장소 클릭" value={a.demoPlaceClicks} />
+              <AdminMiniStat label="검색 0건" value={a.locationSearchZero} />
+              <AdminMiniStat label="검색 에러" value={a.locationSearchError} />
+              <AdminMiniStat label="PWA 설치" value={a.pwaInstallAccepted} />
+              <AdminMiniStat label="PWA 취소" value={a.pwaInstallDismissed} />
+              <AdminMiniStat label="그룹 링크 생성" value={a.groupSessionCreate} />
+              <AdminMiniStat label="데모 장소 클릭" value={a.demoPlaceClicks} />
             </div>
           </section>
         </div>
@@ -855,11 +727,11 @@ export default function Admin() {
               <p className="text-xs text-gray-400 text-center py-3">아직 탭 이동 기록이 없어요.</p>
             ) : (
               <div className="flex flex-col gap-2">
-                <BarRow label={TAB_LABELS.home} count={tabCounts.home ?? 0} total={tabTotal} />
-                <BarRow label={TAB_LABELS.meetings} count={tabCounts.meetings ?? 0} total={tabTotal} color="#0EA5E9" />
-                <BarRow label={TAB_LABELS.discover} count={tabCounts.discover ?? 0} total={tabTotal} color="#8B5CF6" />
-                <BarRow label={TAB_LABELS.shop} count={tabCounts.shop ?? 0} total={tabTotal} color="#F59E0B" />
-                <BarRow label={TAB_LABELS.profile} count={tabCounts.profile ?? 0} total={tabTotal} color="#94A3B8" />
+                <AdminBarRow label={TAB_LABELS.home} count={tabCounts.home ?? 0} total={tabTotal} />
+                <AdminBarRow label={TAB_LABELS.meetings} count={tabCounts.meetings ?? 0} total={tabTotal} color="#0EA5E9" />
+                <AdminBarRow label={TAB_LABELS.discover} count={tabCounts.discover ?? 0} total={tabTotal} color="#8B5CF6" />
+                <AdminBarRow label={TAB_LABELS.shop} count={tabCounts.shop ?? 0} total={tabTotal} color="#F59E0B" />
+                <AdminBarRow label={TAB_LABELS.profile} count={tabCounts.profile ?? 0} total={tabTotal} color="#94A3B8" />
                 <div className="text-[11px] text-gray-400 mt-1 pt-2 border-t border-gray-50">
                   총 {a.tabClicksTotal || tabTotal}회 이동 · 빈 모임 CTA 클릭 {a.meetingsEmptyCtaClicks}회
                 </div>
@@ -872,11 +744,11 @@ export default function Admin() {
         <section className="mb-6">
           <h2 className="text-sm font-black text-gray-600 mb-3">🛍️ 민트샵 반응 <span className="text-gray-300 font-normal">(쿠폰 수요 = 가짜 문)</span></h2>
           <div className="grid grid-cols-2 gap-3 mb-3">
-            <StatCard label="쿠폰 탭" value={a.shopCouponClicks} unit="회" sub={`페이지 이동 ${a.shopPageChanges}회`} />
-            <StatCard label="순 알림신청" value={a.couponNotifyAdds - a.couponNotifyRemoves} unit="건" sub={`신청 ${a.couponNotifyAdds} · 취소 ${a.couponNotifyRemoves}`} highlight />
+            <AdminStatCard label="쿠폰 탭" value={a.shopCouponClicks} unit="회" sub={`페이지 이동 ${a.shopPageChanges}회`} />
+            <AdminStatCard label="순 알림신청" value={a.couponNotifyAdds - a.couponNotifyRemoves} unit="건" sub={`신청 ${a.couponNotifyAdds} · 취소 ${a.couponNotifyRemoves}`} highlight />
             {/* 쿠폰 상세를 연 사람이 어느 문을 두드렸나 — 예약은 진짜 문, 구매는 아직 가짜 문이다 */}
-            <StatCard label="예약하기 클릭 (진짜 문)" value={a.couponReserveClicks} unit="회" sub={`쿠폰 탭 대비 ${pctLabel(a.couponReserveClicks, a.shopCouponClicks)}`} />
-            <StatCard label="구매 클릭 (가짜 문)" value={a.couponPurchaseClicks} unit="회" sub={`쿠폰 탭 대비 ${pctLabel(a.couponPurchaseClicks, a.shopCouponClicks)}`} />
+            <AdminStatCard label="예약하기 클릭 (진짜 문)" value={a.couponReserveClicks} unit="회" sub={`쿠폰 탭 대비 ${pctLabel(a.couponReserveClicks, a.shopCouponClicks)}`} />
+            <AdminStatCard label="구매 클릭 (가짜 문)" value={a.couponPurchaseClicks} unit="회" sub={`쿠폰 탭 대비 ${pctLabel(a.couponPurchaseClicks, a.shopCouponClicks)}`} />
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3">
             <p className="text-xs font-black text-gray-500 mb-2">필터 사용 <span className="text-gray-300 font-normal">(어떤 혜택을 찾나)</span></p>
@@ -885,7 +757,7 @@ export default function Admin() {
             ) : (
               <div className="flex flex-col gap-2">
                 {shopFilterEntries.map(([key, count]) => (
-                  <BarRow key={key} label={SHOP_FILTER_LABELS[key] ?? key} count={count} total={shopFilterTotal} color="#F59E0B" />
+                  <AdminBarRow key={key} label={SHOP_FILTER_LABELS[key] ?? key} count={count} total={shopFilterTotal} color="#F59E0B" />
                 ))}
                 <div className="text-[11px] text-gray-400 mt-1 pt-2 border-t border-gray-50">총 {a.shopFilterClicksTotal || shopFilterTotal}회 필터</div>
               </div>
@@ -921,9 +793,9 @@ export default function Admin() {
         <section className="mb-6">
           <h2 className="text-sm font-black text-gray-600 mb-3">🙋 총무 플랜 퍼널 <span className="text-gray-300 font-normal">(가격 검증)</span></h2>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col gap-2">
-            <FunnelStep label="진입 클릭" value={a.planEntryClicks} rate={null} />
-            <FunnelStep label="상세 열람" value={a.planDetailViews} rate={pctLabel(a.planDetailViews, a.planEntryClicks)} />
-            <FunnelStep label="사전 신청" value={a.planPreregisters} rate={pctLabel(a.planPreregisters, a.planDetailViews)} last />
+            <AdminFunnelStep label="진입 클릭" value={a.planEntryClicks} rate={null} />
+            <AdminFunnelStep label="상세 열람" value={a.planDetailViews} rate={pctLabel(a.planDetailViews, a.planEntryClicks)} />
+            <AdminFunnelStep label="사전 신청" value={a.planPreregisters} rate={pctLabel(a.planPreregisters, a.planDetailViews)} last />
           </div>
           <p className="text-[11px] text-gray-400 mt-2 px-1">
             * 상세만 보고 닫음(이탈) {a.planDetailCloses}건 — 열람 대비 {pctLabel(a.planDetailCloses, a.planDetailViews)}
@@ -935,19 +807,19 @@ export default function Admin() {
           <section>
             <h2 className="text-sm font-black text-gray-600 mb-3">🧭 발굴·찜</h2>
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-              <MiniStat label="찜 추가" value={a.wishlistAdds} />
-              <MiniStat label="찜 해제" value={a.wishlistRemoves} />
-              <MiniStat label="찜 목록 열람" value={a.wishlistOpens} />
-              <MiniStat label="지도 열기" value={a.discoverGemMapOpens} />
-              <MiniStat label="포인트샵 티저" value={a.pointsStoreTeaserClicks} />
-              <MiniStat label="순 찜" value={a.wishlistAdds - a.wishlistRemoves} />
+              <AdminMiniStat label="찜 추가" value={a.wishlistAdds} />
+              <AdminMiniStat label="찜 해제" value={a.wishlistRemoves} />
+              <AdminMiniStat label="찜 목록 열람" value={a.wishlistOpens} />
+              <AdminMiniStat label="지도 열기" value={a.discoverGemMapOpens} />
+              <AdminMiniStat label="포인트샵 티저" value={a.pointsStoreTeaserClicks} />
+              <AdminMiniStat label="순 찜" value={a.wishlistAdds - a.wishlistRemoves} />
             </div>
           </section>
           <section>
             <h2 className="text-sm font-black text-gray-600 mb-3">📍 방문 인증</h2>
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col gap-2">
-              <FunnelStep label="인증 시작" value={a.visitCertOpens} rate={null} />
-              <FunnelStep label="인증 완료" value={a.visitCertDones} rate={pctLabel(a.visitCertDones, a.visitCertOpens)} last />
+              <AdminFunnelStep label="인증 시작" value={a.visitCertOpens} rate={null} />
+              <AdminFunnelStep label="인증 완료" value={a.visitCertDones} rate={pctLabel(a.visitCertDones, a.visitCertOpens)} last />
               <div className="text-[11px] text-gray-400 pt-2 border-t border-gray-50">
                 전환율 {pctLabel(a.visitCertDones, a.visitCertOpens)} · 실패 {a.visitCertFails}건
               </div>
@@ -963,9 +835,9 @@ export default function Admin() {
               <p className="text-xs text-gray-400 text-center py-3">아직 참석 응답이 없어요.</p>
             ) : (
               <div className="flex flex-col gap-2">
-                <BarRow label="가요" count={a.rsvpGoing} total={rsvpTotal} color="#22C55E" />
-                <BarRow label="못가요" count={a.rsvpNotGoing} total={rsvpTotal} color="#EF4444" />
-                <BarRow label="미정" count={a.rsvpUndecided} total={rsvpTotal} color="#94A3B8" />
+                <AdminBarRow label="가요" count={a.rsvpGoing} total={rsvpTotal} color="#22C55E" />
+                <AdminBarRow label="못가요" count={a.rsvpNotGoing} total={rsvpTotal} color="#EF4444" />
+                <AdminBarRow label="미정" count={a.rsvpUndecided} total={rsvpTotal} color="#94A3B8" />
                 <div className="text-[11px] text-gray-400 mt-1 pt-2 border-t border-gray-50">총 {a.rsvpSubmitTotal || rsvpTotal}건 응답</div>
               </div>
             )}
@@ -979,11 +851,11 @@ export default function Admin() {
             🧷 복귀·게스트 동선 <span className="text-gray-300 font-normal">(로그인 왕복 후 이탈 방지)</span>
           </h2>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-            <MiniStat label="이어보기 제안 노출" value={a.resumePromptShown} />
-            <MiniStat label="이어보기 선택" value={a.resumePromptAccepts} />
-            <MiniStat label="새로 시작 선택" value={a.resumePromptDiscards} />
-            <MiniStat label="게스트 길찾기" value={a.guestDirectionsClicks} />
-            <MiniStat label="게스트 캘린더 저장" value={a.guestCalendarAdds} />
+            <AdminMiniStat label="이어보기 제안 노출" value={a.resumePromptShown} />
+            <AdminMiniStat label="이어보기 선택" value={a.resumePromptAccepts} />
+            <AdminMiniStat label="새로 시작 선택" value={a.resumePromptDiscards} />
+            <AdminMiniStat label="게스트 길찾기" value={a.guestDirectionsClicks} />
+            <AdminMiniStat label="게스트 캘린더 저장" value={a.guestCalendarAdds} />
           </div>
           <p className="text-[11px] text-gray-400 mt-2 px-1">
             * 이어보기 수락률 {pctLabel(a.resumePromptAccepts, a.resumePromptShown)} — 카카오 로그인으로 앱을 떠났던 사람이 보던 추천으로 돌아온 비율이에요.
@@ -998,8 +870,8 @@ export default function Admin() {
           {/* 퍼널을 원문 목록과 한 섹션에 둔다 — 목적이 "어제 만든 피드백 기능이 살아 있나"의 확인이라
               원문이 0건일 때 열림/제출 숫자가 바로 옆에 있어야 원인을 가릴 수 있다. */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 flex flex-col gap-2">
-            <FunnelStep label="시트 열림" value={a.feedbackOpens} rate={null} />
-            <FunnelStep label="제출" value={a.feedbackSubmits} rate={pctLabel(a.feedbackSubmits, a.feedbackOpens)} last />
+            <AdminFunnelStep label="시트 열림" value={a.feedbackOpens} rate={null} />
+            <AdminFunnelStep label="제출" value={a.feedbackSubmits} rate={pctLabel(a.feedbackSubmits, a.feedbackOpens)} last />
             <div className="text-[11px] text-gray-400 pt-2 border-t border-gray-50">
               쓰다 말고 닫음 {a.feedbackClosesWithText}건 (닫음 {a.feedbackCloses}건 중) ·
               전송 실패 server {sendFail.server ?? 0} / network {sendFail.network ?? 0}
@@ -1024,7 +896,7 @@ export default function Admin() {
               {/* 집계는 카드 하나로 족하다 — 검색·필터·상태관리는 만들지 않는다 */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 flex flex-col gap-2">
                 {feedbackCounts.map((cat) => (
-                  <BarRow key={cat.key || 'none'} label={cat.label} count={cat.count} total={feedback.length} color={cat.color} />
+                  <AdminBarRow key={cat.key || 'none'} label={cat.label} count={cat.count} total={feedback.length} color={cat.color} />
                 ))}
               </div>
               <div className="flex flex-col gap-2">
@@ -1151,32 +1023,6 @@ export default function Admin() {
               </table>
             </div>
           </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function MiniStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-gray-400">{label}</span>
-      <span className="font-black text-gray-700">{value}</span>
-    </div>
-  );
-}
-
-function FunnelStep({ label, value, rate, last }: {
-  label: string; value: number; rate: string | null; last?: boolean;
-}) {
-  return (
-    <div className={`flex items-center justify-between py-1.5 ${last ? '' : 'border-b border-gray-50'}`}>
-      <span className="text-sm font-bold text-gray-700">{label}</span>
-      <div className="flex items-center gap-3">
-        <span className="text-lg font-black text-[#36CFA0]">{value}</span>
-        {rate != null && (
-          // rate는 pctLabel이 만든 완성 문자열이다(%까지 포함, 분모 0이면 '—').
-          <span className="text-xs text-gray-400 w-16 text-right">직전 {rate}</span>
         )}
       </div>
     </div>

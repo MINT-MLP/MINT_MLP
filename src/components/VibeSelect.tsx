@@ -1,180 +1,10 @@
 import { useRef, useState } from 'react';
+import type { VibeState, GroupVibeState, PurposeCtx, VibePreset } from '@/types';
+import { GROUPS, CONDITION_OPTIONS, VIBE_PRESETS, RECOMMENDED_KEYWORDS, MAX_PER_COURSE, BUDGET_OPTIONS } from '@/constants/vibeOptions';
+import { orderByPurpose, orderConditionsByPurpose, orderKeywordsByPurpose } from '@/utils/vibeOrder';
+import VibeKeywordTagInput from '@/components/VibeKeywordTagInput';
 
 // 코스별로 여러 개 고를 수 있다. 예전엔 슬롯 2칸이라 3번째를 누르면 첫 선택이 말없이 밀려났다.
-export type GroupVibeState = { first: string[]; second: string[] };
-export type VibeState = Record<string, GroupVibeState>;
-
-// 구버전 저장값({first: string|null, second: string|null})을 배열로 승격한다.
-// 로컬에 남은 초안·결과 스냅샷이 새 코드에서 깨지지 않게, vibe를 로컬에서 읽는 지점은 전부 이걸 거친다.
-export function migrateVibeState(raw: unknown): VibeState {
-  if (!raw || typeof raw !== 'object') return {};
-  const toArray = (v: unknown): string[] => {
-    if (Array.isArray(v)) return v.filter((x): x is string => typeof x === 'string');
-    if (typeof v === 'string') return [v];
-    return [];
-  };
-  const result: VibeState = {};
-  for (const [groupLabel, g] of Object.entries(raw as Record<string, unknown>)) {
-    if (!g || typeof g !== 'object') continue;
-    const { first, second } = g as { first?: unknown; second?: unknown };
-    result[groupLabel] = { first: toArray(first), second: toArray(second) };
-  }
-  return result;
-}
-
-// 서버 전송 라벨 매핑 — 그리드에서 내린 키(atm_hip 등)도 절대 지우지 않는다.
-// 옛 세션 복원값과 그룹 집계가 과거 멤버의 제출값을 그대로 읽어와 이 맵을 참조한다.
-export const VIBE_KEY_TO_LABEL: Record<string, string> = {
-  atm_loud:     '시끌벅적',
-  atm_quiet:    '조용하게',
-  atm_cozy:     '아늑한',
-  atm_trendy:   '트렌디한',
-  atm_mood:     '감성적인',
-  atm_hip:      '힙한',
-  pref_new:     '새로운 곳',
-  pref_known:   '검증된 곳',
-  pref_view:    '뷰 좋은 곳',
-  pref_insta:   '인스타감성',
-  pref_spacious:'넓은 공간',
-  pref_quick:   '웨이팅 없음',
-  atm_romantic: '로맨틱한',
-  atm_modern:   '모던한',
-  atm_retro:    '레트로',
-  atm_lively:   '활기찬',
-  atm_exotic:   '이국적인',
-  atm_clean:    '깔끔한',
-  pref_parking: '주차 가능',
-  pref_room:    '룸 있는 곳',
-  pref_reserve: '예약 가능',
-  pref_late:    '늦게까지',
-  pref_pet:     '반려동물',
-  pref_station: '역세권',
-};
-
-// 그리드는 14개만 노출한다. 뜻이 겹치던 힙한·로맨틱한·레트로·이국적인은
-// 지운 게 아니라 아래 RECOMMENDED_KEYWORDS로 내려, 탭 한 번으로 여전히 고를 수 있다.
-const GROUPS = [
-  {
-    label: '분위기',
-    options: [
-      { key: 'atm_loud',   label: '시끌벅적', emoji: '🎵' },
-      { key: 'atm_quiet',  label: '조용하게', emoji: '🌿' },
-      { key: 'atm_cozy',   label: '아늑한',   emoji: '🕯️' },
-      { key: 'atm_trendy', label: '트렌디한', emoji: '✨' },
-      { key: 'atm_mood',   label: '감성적인', emoji: '🌸' },
-      { key: 'atm_modern', label: '모던한',   emoji: '🏙️' },
-      { key: 'atm_lively', label: '활기찬',   emoji: '🎉' },
-      { key: 'atm_clean',  label: '깔끔한',   emoji: '🤍' },
-    ],
-  },
-  {
-    label: '취향',
-    options: [
-      { key: 'pref_new',      label: '새로운 곳',   emoji: '🗺️' },
-      { key: 'pref_known',    label: '검증된 곳',   emoji: '👍' },
-      { key: 'pref_view',     label: '뷰 좋은 곳',  emoji: '🌅' },
-      { key: 'pref_insta',    label: '인스타감성',  emoji: '📸' },
-      { key: 'pref_spacious', label: '넓은 공간',   emoji: '🏠' },
-      { key: 'pref_quick',    label: '웨이팅 없음', emoji: '⚡' },
-    ],
-  },
-];
-
-// '취향'에서 떼어낸 시설형 조건 — 주차 가능을 '2차 분위기'로 고른다는 건 말이 안 된다.
-// 코스 구분 없는 전역 필터라 별도 체크리스트로 접어둔다.
-const CONDITION_OPTIONS = [
-  { key: 'pref_parking', label: '주차 가능',  emoji: '🚗' },
-  { key: 'pref_room',    label: '룸 있는 곳', emoji: '🚪' },
-  { key: 'pref_reserve', label: '예약 가능',  emoji: '📅' },
-  { key: 'pref_late',    label: '늦게까지',   emoji: '🌙' },
-  { key: 'pref_pet',     label: '반려동물',   emoji: '🐶' },
-  { key: 'pref_station', label: '역세권',     emoji: '🚇' },
-];
-
-// 목적(코스)별로 관련 칩을 앞으로 정렬 — "AI가 선택지까지 준비해준다"는 체감. 선택 자체는 자유(단순 노출 순서).
-const PURPOSE_CHIP_BOOST: Record<string, string[]> = {
-  '밥':   ['pref_known', 'atm_clean'],
-  '술':   ['atm_loud', 'atm_lively'],
-  '카페': ['atm_cozy', 'atm_mood', 'pref_view', 'pref_insta'],
-};
-
-// 조건 체크리스트는 값 도메인이 달라 부스트 맵을 따로 둔다 — 합치면 조용히 정렬이 사라진다.
-const CONDITION_PURPOSE_BOOST: Record<string, string[]> = {
-  '밥':   ['pref_room', 'pref_parking', 'pref_reserve'],
-  '술':   ['pref_late', 'pref_station'],
-  '카페': ['pref_reserve'],
-};
-
-type PurposeCtx = { first: string | null; second?: string | null };
-
-function orderByBoost<T extends { key: string }>(options: T[], purpose: PurposeCtx | undefined, boostMap: Record<string, string[]>): T[] {
-  const courses = [purpose?.first, purpose?.second].filter((c): c is string => !!c);
-  const boost = new Set(courses.flatMap((c) => boostMap[c] ?? []));
-  if (boost.size === 0) return options;
-  // 안정 정렬 — 부스트된 칩만 앞으로, 그 외는 원래 순서 유지
-  return [...options].sort((a, b) => (boost.has(b.key) ? 1 : 0) - (boost.has(a.key) ? 1 : 0));
-}
-const orderByPurpose = <T extends { key: string }>(options: T[], purpose?: PurposeCtx) =>
-  orderByBoost(options, purpose, PURPOSE_CHIP_BOOST);
-const orderConditionsByPurpose = <T extends { key: string }>(options: T[], purpose?: PurposeCtx) =>
-  orderByBoost(options, purpose, CONDITION_PURPOSE_BOOST);
-
-interface VibePreset {
-  id: string;
-  emoji: string;
-  title: string;
-  desc: string;
-  mood: string[];       // '분위기' — 지금 보고 있는 코스에 채운다
-  pref: string[];       // '취향' — 상동
-  conditions: string[]; // 조건 — 코스 구분이 없어 항상 함께 적용된다
-}
-
-// 그리드에서 내린 칩은 절대 참조하지 않는다 — 선택은 됐는데 화면에 없어서 해제 못 하는 칩이 생긴다.
-const VIBE_PRESETS: VibePreset[] = [
-  { id: 'cozy_quiet',    emoji: '🕯️', title: '조용하고 아늑하게',    desc: '차분히 대화하기 좋은 곳',
-    mood: ['atm_quiet', 'atm_cozy'],    pref: ['pref_known', 'pref_spacious'], conditions: ['pref_reserve'] },
-  { id: 'lively_party',  emoji: '🎉', title: '신나게 왁자지껄',      desc: '텐션 올리는 활기찬 자리',
-    mood: ['atm_loud', 'atm_lively'],   pref: ['pref_new'],                    conditions: ['pref_late', 'pref_room'] },
-  { id: 'trendy_hip',    emoji: '✨', title: '요즘 뜨는 트렌디한 곳', desc: '감각적이고 힙한 분위기',
-    mood: ['atm_trendy'],               pref: ['pref_insta', 'pref_new'],      conditions: ['pref_station'] },
-  { id: 'romantic_mood', emoji: '💕', title: '분위기 있는 데이트',    desc: '로맨틱하고 감성적인 순간',
-    mood: ['atm_mood'],                 pref: ['pref_view'],                   conditions: ['pref_reserve'] },
-  { id: 'clean_modern',  emoji: '🏙️', title: '깔끔하고 모던하게',    desc: '깨끗하고 세련된, 무난히 좋은 곳',
-    mood: ['atm_modern', 'atm_clean'],  pref: ['pref_known'],                  conditions: ['pref_parking'] },
-  { id: 'easy_casual',   emoji: '⚡', title: '가볍고 편하게',        desc: '웨이팅 없이 부담 없는 자리',
-    mood: ['atm_quiet', 'atm_clean'],   pref: ['pref_quick'],                  conditions: ['pref_parking', 'pref_pet'] },
-];
-
-// 그리드에서 내린 분위기 4개 + 예시 문구로만 떠돌던 해시태그들을 "탭하면 태그"로 승격.
-// 모바일에서 키보드가 최대 마찰이라, 타이핑을 탭으로 바꾸는 게 목적이다.
-// vibe key 체계와 무관하다 — 라벨 문자열이 그대로 keywords에 들어간다(직접 친 것과 같은 취급).
-// 8개로 고정한다 — 9개면 마지막 한 칩만 셋째 줄에 홀로 떨어져 4/4/1로 보인다.
-// 뺀 건 '콜키지': 술에만 걸리는 데다 매장 정책 용어라 다른 칩(장소 성격)과 결이 다르다.
-const RECOMMENDED_KEYWORDS = ['힙한', '로맨틱한', '레트로', '이국적인', '노포', '오마카세', '창가자리', '루프탑'];
-
-// 코스당 3개씩 — 어느 코스로 들어와도 앞줄에 올라오는 칩 수가 같다
-const KEYWORD_CHIP_BOOST: Record<string, string[]> = {
-  '밥':   ['노포', '오마카세', '창가자리'],
-  '술':   ['루프탑', '힙한', '레트로'],
-  '카페': ['루프탑', '창가자리', '이국적인'],
-};
-
-function orderKeywordsByPurpose(labels: string[], purpose?: PurposeCtx): string[] {
-  const courses = [purpose?.first, purpose?.second].filter((c): c is string => !!c);
-  const boost = new Set(courses.flatMap((c) => KEYWORD_CHIP_BOOST[c] ?? []));
-  if (boost.size === 0) return labels;
-  return [...labels].sort((a, b) => (boost.has(b) ? 1 : 0) - (boost.has(a) ? 1 : 0));
-}
-
-// 코스당 소프트 상한 — 무제한이면 AI 프롬프트에 넘길 라벨이 산만해진다
-const MAX_PER_COURSE = 6;
-
-// 값은 서버(recommend.ts)·집계(groupAggregate BUDGET_ORDER)와 반드시 일치시켜야 검색 프리픽스/예산 반영이 작동한다
-const BUDGET_OPTIONS = [
-  { value: '~2만원',  label: '~2만원',  emoji: '💵', sub: '가성비' },
-  { value: '2~4만원', label: '2~4만원', emoji: '🍽️', sub: '적당히' },
-  { value: '4만원+',  label: '4만원+',  emoji: '💎', sub: '플렉스' },
-];
 
 interface Props {
   value: VibeState;
@@ -496,7 +326,7 @@ export default function VibeSelect({
               );
             })}
           </div>
-          <KeywordTagInput
+          <VibeKeywordTagInput
             keywords={keywords}
             onChange={onKeywordsChange}
             placeholder="키워드 입력 후 Enter (여러 개)"
@@ -554,64 +384,6 @@ export default function VibeSelect({
         </div>
       )}
 
-    </div>
-  );
-}
-
-// 키워드 태그 입력 — Enter/완료로 #태그 커밋, 여러 개. 1차/2차 분리가 사라져 색상 분기도 없앴다.
-function KeywordTagInput({
-  keywords,
-  onChange,
-  placeholder,
-}: {
-  keywords: string[];
-  onChange: (k: string[]) => void;
-  placeholder: string;
-}) {
-  const [text, setText] = useState('');
-
-  function commit() {
-    const t = text.trim().slice(0, 20);
-    if (!t) { setText(''); return; }
-    if (keywords.includes(t)) { setText(''); return; }
-    onChange([...keywords, t]);
-    setText('');
-  }
-
-  return (
-    <div>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); } }}
-          onBlur={commit}
-          placeholder={placeholder}
-          maxLength={20}
-          className="flex-1 min-w-0 border-2 rounded-xl px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none bg-white transition-colors border-[#3CDBC0]/50 focus:border-[#3CDBC0]"
-        />
-        <button
-          onClick={commit}
-          className="flex-shrink-0 px-4 rounded-xl text-white text-sm font-bold transition-all active:scale-95 bg-[#3CDBC0] hover:bg-[#2AB5A0]"
-        >
-          추가
-        </button>
-      </div>
-      {keywords.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-2.5">
-          {keywords.map((k) => (
-            <button
-              key={k}
-              onClick={() => onChange(keywords.filter((x) => x !== k))}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white border text-xs font-bold transition-all active:scale-95 border-[#3CDBC0]/50 text-[#2AB5A0]"
-            >
-              <span>#{k}</span>
-              <span className="opacity-60">×</span>
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

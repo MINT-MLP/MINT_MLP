@@ -1,20 +1,7 @@
-import type { PurposeValue } from '../components/PurposeSelect';
-import type { VibeState } from '../components/VibeSelect';
+import type { PurposeValue, VibeState, GroupMember } from '@/types';
 
 // 그룹 모드: 멤버들이 각자 제출한 조건을 하나의 추천 입력으로 집계
 
-export interface GroupMember {
-  member_name: string;
-  location_name: string | null;
-  // 임의 지역 모드 게스트는 출발지를 입력하지 않으므로 좌표가 null일 수 있다
-  location_lat: number | null;
-  location_lng: number | null;
-  purpose_first?: string | null;
-  purpose_second?: string | null;
-  vibe_atmosphere: string | null;
-  vibe_budget: string | null;
-  vibe_keywords?: string[];
-}
 
 // 편식·2차키워드·2차분위기 항목은 DB 스키마 변경 없이 vibe_keywords에 접두사로 실어 보낸다.
 export const EXCLUDE_FOOD_PREFIX = '안먹:';

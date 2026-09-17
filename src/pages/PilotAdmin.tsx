@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import { supabase } from '../utils/supabase';
+import { supabase } from '@/utils/supabase';
+import type { CoursePick, PilotPrize } from '@/types';
 
 interface PilotFeedback {
   id: string;
@@ -21,15 +22,10 @@ interface PilotFeedback {
   paymentImageUrls: string[];
 }
 interface Selections { purpose?: string | null; relation?: string | null; region?: string; vibes?: string[]; source?: string }
-interface CoursePick { course: string; rank: number; placeName: string; category?: string | null }
 interface RecSnapshot { conditions?: { purpose?: string | null; relation?: string | null; region?: string | null; vibes?: string[]; budget?: string | null }; coursePicks?: CoursePick[] }
 interface VisitedItem { course: string; choice: string; otherName?: string }
 interface QaAnswers { reason?: string[]; issues?: string[]; budget?: string | null; vibeFit?: number | null; reuse?: string | null }
 interface PilotSummary { count: number; avgFitRating: number | null; distribution: number[] }
-interface Prize {
-  id: string; title: string; tier: string; status: string; claimCode: string | null;
-  assignedFeedbackId: string | null; assignedAt: string | null; createdAt: string; imageUrl: string | null;
-}
 interface PrizeCounts { available: number; assigned: number; redeemed: number; void: number }
 
 type Tab = 'feedback' | 'stock' | 'status';
@@ -57,7 +53,7 @@ export default function PilotAdmin() {
 
   const [records, setRecords] = useState<PilotFeedback[]>([]);
   const [summary, setSummary] = useState<PilotSummary>(EMPTY_SUMMARY);
-  const [prizes, setPrizes] = useState<Prize[]>([]);
+  const [prizes, setPrizes] = useState<PilotPrize[]>([]);
   const [counts, setCounts] = useState<PrizeCounts>(EMPTY_COUNTS);
 
   const [loading, setLoading] = useState(false);
@@ -68,7 +64,7 @@ export default function PilotAdmin() {
     try {
       const [fb, pz] = await Promise.all([
         api<{ feedback: PilotFeedback[]; summary: PilotSummary }>({ action: 'admin-list', password: pw }),
-        api<{ prizes: Prize[]; counts: PrizeCounts }>({ action: 'admin-prize-list', password: pw }).catch(() => ({ prizes: [], counts: EMPTY_COUNTS })),
+        api<{ prizes: PilotPrize[]; counts: PrizeCounts }>({ action: 'admin-prize-list', password: pw }).catch(() => ({ prizes: [], counts: EMPTY_COUNTS })),
       ]);
       setRecords(Array.isArray(fb.feedback) ? fb.feedback : []);
       setSummary(fb.summary ?? EMPTY_SUMMARY);
@@ -80,7 +76,7 @@ export default function PilotAdmin() {
 
   async function reloadPrizes() {
     try {
-      const pz = await api<{ prizes: Prize[]; counts: PrizeCounts }>({ action: 'admin-prize-list', password });
+      const pz = await api<{ prizes: PilotPrize[]; counts: PrizeCounts }>({ action: 'admin-prize-list', password });
       setPrizes(pz.prizes ?? []); setCounts(pz.counts ?? EMPTY_COUNTS);
     } catch (e) { setError((e as Error).message); }
   }
@@ -262,7 +258,7 @@ function FeedbackTab({ records, summary }: { records: PilotFeedback[]; summary: 
 
 // ───────────────────────── 재고 등록 탭 ─────────────────────────
 interface Staged { file: File; title: string; tier: string; }
-function StockTab({ password, onDone, prizes, counts, onVoid }: { password: string; onDone: () => void; prizes: Prize[]; counts: PrizeCounts; onVoid: (id: string) => void }) {
+function StockTab({ password, onDone, prizes, counts, onVoid }: { password: string; onDone: () => void; prizes: PilotPrize[]; counts: PrizeCounts; onVoid: (id: string) => void }) {
   const [staged, setStaged] = useState<Staged[]>([]);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -335,7 +331,7 @@ function StockTab({ password, onDone, prizes, counts, onVoid }: { password: stri
 }
 
 // ───────────────────────── 지급 현황 탭 ─────────────────────────
-function StatusTab({ counts, prizes, onVoid }: { counts: PrizeCounts; prizes: Prize[]; onVoid: (id: string) => void }) {
+function StatusTab({ counts, prizes, onVoid }: { counts: PrizeCounts; prizes: PilotPrize[]; onVoid: (id: string) => void }) {
   const cards = [
     { label: '남은 재고', v: counts.available, color: 'text-[#2AB5A0]' },
     { label: '지급됨', v: counts.assigned, color: 'text-gray-700' },
@@ -357,7 +353,7 @@ function StatusTab({ counts, prizes, onVoid }: { counts: PrizeCounts; prizes: Pr
   );
 }
 
-function PrizeList({ prizes, onVoid, showAssigned }: { prizes: Prize[]; onVoid: (id: string) => void; showAssigned?: boolean }) {
+function PrizeList({ prizes, onVoid, showAssigned }: { prizes: PilotPrize[]; onVoid: (id: string) => void; showAssigned?: boolean }) {
   const list = showAssigned ? prizes.filter((p) => p.status !== 'available') : prizes;
   if (list.length === 0) return <div className="text-center py-12 bg-white rounded-2xl border border-gray-100 text-sm text-gray-400">{showAssigned ? '아직 지급 내역이 없어요.' : '등록된 재고가 없어요.'}</div>;
   const badge: Record<string, string> = { available: 'bg-[#E8F8F5] text-[#2AB5A0]', assigned: 'bg-amber-50 text-amber-600', redeemed: 'bg-gray-100 text-gray-400', void: 'bg-red-50 text-red-400' };

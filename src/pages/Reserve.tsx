@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { trackEvent } from '../utils/analytics';
+import { trackEvent } from '@/utils/analytics';
 
 export interface ReservationRecord {
   id: string;

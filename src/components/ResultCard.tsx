@@ -1,59 +1,16 @@
 import { useState, useCallback } from 'react';
-import type { PlaceRecommendation } from '../services/ai';
-import { congestionDotClass } from '../services/seoulData';
-import type { CongestionLevel } from '../services/seoulData';
-import MiniMap from './MiniMap';
-import type { MapPin } from './MiniMap';
-import { findCertifications } from '../data/certifications';
-import type { CertSource } from '../data/certifications';
-import { trackEvent } from '../utils/analytics';
-import WishlistButton from './WishlistButton';
-import VisitCertModal from './VisitCertModal';
-import TreasurerPlanSheet from './TreasurerPlanSheet';
-import { getPlanFrame, planPriceLabel, isPreregistered } from '../utils/plan';
-import { getDeviceId } from '../utils/points';
-import { GpsPin, hideOnError, parseOpenStatus, congestionInfo, FitScoreBar, kakaoUrl } from './placeCardBits';
-
-// 선택 신호(ground truth) — 노출된 후보 중 실제로 어떤 순위를 눌러 지도를 열었나.
-// recommend.ts가 이미 기록 중인 노출 순위(finalRank)와 대비하면 랭킹 튜닝 학습셋이 된다.
-type PlaceClickEvent = 'place_click_rank1' | 'place_click_second' | 'place_click_candidate' | 'place_click_third';
-function openPlace(url: string, type: PlaceClickEvent, place?: PlaceRecommendation) {
-  // payload: 어떤 장소를 실제 선택했나. session_key로 recommendation_log의 노출 순위와 대비하면 랭킹 정답 레이블.
-  trackEvent(type, place ? { placeName: place.placeName, address: place.address, priceRange: place.priceRange, fitScore: place.fitScore } : undefined);
-  window.open(url, '_blank');
-}
-
-// 출발지를 한 곳도 안 적은 경우(지역 직접 선택 모드)엔 뽑을 지명이 없다.
-// 그래도 '오늘의 총무' 버튼은 눌리는 버튼이어야 하므로, 데이터 없이도 성립하는 공정 규칙을 대신 뽑는다.
-const TREASURER_RULES = [
-  '가장 늦게 도착한 분이',
-  '가위바위보에서 진 분이',
-  '생일이 가장 빠른 분이',
-  '오늘 제일 배고픈 분이',
-  '이 링크를 처음 연 분이',
-];
-function rollTreasurerRule(prev?: string): string {
-  const pool = TREASURER_RULES.filter((r) => r !== prev);
-  return pool[Math.floor(Math.random() * pool.length)];
-}
-
-// 매칭된 인증 이모지(최대 2개)를 리스트 행 앞에 붙일 접두사로 — 대안/더보기 행의 인증 표식.
-function certPrefix(place: { placeName?: string; address?: string; area?: string }): string {
-  const c = findCertifications(place).slice(0, 2);
-  return c.length ? c.map((m) => m.source.emoji).join('') + ' ' : '';
-}
-
-interface TravelResult {
-  label: string;
-  formatted: string;
-  source?: string;
-  error?: boolean;
-}
-
-interface TravelTimeData {
-  first: { transit: TravelResult[]; driving: TravelResult[] };
-  second: { transit: TravelResult[]; driving: TravelResult[] } | null;
-}
+import type { PlaceRecommendation, MapPin, TravelTimeData } from '@/types';
+import MiniMap from '@/components/MiniMap';
+import ResultPlaceCard from '@/components/ResultPlaceCard';
+import ResultAltsSection from '@/components/ResultAltsSection';
+import WishlistButton from '@/components/WishlistButton';
+import VisitCertModal from '@/components/VisitCertModal';
+import TreasurerPlanSheet from '@/components/TreasurerPlanSheet';
+import { trackEvent } from '@/utils/analytics';
+import { getPlanFrame, planPriceLabel, isPreregistered } from '@/utils/plan';
+import { getDeviceId } from '@/utils/points';
+import { rollTreasurerRule } from '@/utils/treasurer';
+import { GpsPin, hideOnError, parseOpenStatus, congestionInfo, FitScoreBar, kakaoUrl, openPlace } from '@/components/placeCardBits';
 
 interface Props {
   results: PlaceRecommendation[];
@@ -73,287 +30,6 @@ interface Props {
   onReserve: () => void;
   onReject?: (reason: 'expensive' | 'far' | 'vibe') => void;
   onPointsChange?: (balance: number) => void;
-}
-
-interface CardProps {
-  place: PlaceRecommendation;
-  extraResults?: PlaceRecommendation[];
-  gradient: string;
-  shadowColor: string;
-  wishRank?: 'first' | 'second' | 'candidate';
-}
-
-// 대안 추천 카드 — 항상 펼쳐진 독립 카드
-function AltsSection({ alts, accentColor = '#3CDBC0', label }: { alts: PlaceRecommendation[]; accentColor?: string; label?: string }) {
-  if (!alts.length) return null;
-  return (
-    <div className="flex flex-col gap-2">
-      {label ? (
-        <span
-          className="self-start text-xs font-black text-white px-3 py-1 rounded-full"
-          style={{ background: accentColor }}
-        >
-          {label}
-        </span>
-      ) : (
-        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">다른 추천</p>
-      )}
-      {alts.map((p, idx) => (
-        <div
-          key={idx}
-          className="bg-white rounded-2xl border border-gray-100 border-l-4 p-3.5 shadow-sm cursor-pointer active:scale-[0.99] transition-transform"
-          style={{ borderLeftColor: accentColor }}
-          onClick={() => openPlace(kakaoUrl(p), 'place_click_candidate', p)}
-        >
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-[10px] font-black text-white px-2 py-0.5 rounded-full shrink-0" style={{ background: accentColor }}>
-                  #{idx + 2}
-                </span>
-                <p className="text-sm font-black text-gray-800 truncate">{certPrefix(p)}{p.placeName}</p>
-              </div>
-              <p className="text-xs text-gray-400">{p.category}</p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {p.fitScore != null && (
-                <span className="text-sm font-black" style={{ color: accentColor }}>{p.fitScore}점</span>
-              )}
-              <WishlistButton place={p} rank="candidate" source="result" tone="light" />
-              {p.imageUrl && (
-                <img
-                  src={p.imageUrl}
-                  alt={p.placeName}
-                  className="w-14 h-14 rounded-xl object-cover"
-                  loading="lazy"
-                  onError={hideOnError}
-                />
-              )}
-            </div>
-          </div>
-          <p className="text-xs text-gray-500 mb-2 leading-relaxed">{p.description}</p>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400">
-            <span>💰 {p.priceRange}</span>
-            {p.address && (
-              <span className="flex items-center gap-1 truncate">
-                <GpsPin className="opacity-50 text-gray-400" />{p.address}
-              </span>
-            )}
-          </div>
-          {p.vibeTags?.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {p.vibeTags.slice(0, 3).map((tag) => (
-                <span key={tag} className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">#{tag}</span>
-              ))}
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function PlaceCard({ place, extraResults = [], gradient, shadowColor, wishRank = 'first' }: CardProps) {
-  const [moreVisible, setMoreVisible] = useState(false);
-  const [openCertId, setOpenCertId] = useState<string | null>(null);
-  const openStatus = parseOpenStatus(place.openingHours);
-  const cong = congestionInfo(place.congestionLevel);
-  const url = kakaoUrl(place);
-  // 통과한 인증들(우슐랭·미쉐린·백년가게 …). 이름·시·도·구군 3중 게이트를 모두 넘긴 것만. 최대 2개 노출.
-  const certs = findCertifications(place).slice(0, 2);
-  const openCert = certs.find((c) => c.source.id === openCertId)?.source ?? null;
-
-  return (
-    <>
-    <div
-      role="link"
-      tabIndex={0}
-      aria-label={`${place.placeName} 카카오맵에서 열기`}
-      className={`rounded-2xl text-white overflow-hidden cursor-pointer active:scale-[0.99] transition-transform shadow-xl outline-none focus-visible:ring-2 focus-visible:ring-[#3CDBC0] focus-visible:ring-offset-2 ${shadowColor}`}
-      style={{ background: gradient }}
-      onClick={() => openPlace(url, 'place_click_rank1', place)}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPlace(url, 'place_click_rank1', place); } }}
-    >
-      {/* 대표 사진 — 카드 신뢰도의 절반 */}
-      {place.imageUrl && (
-        <img
-          src={place.imageUrl}
-          alt={place.placeName}
-          className="w-full h-36 object-cover"
-          loading="lazy"
-          onError={hideOnError}
-        />
-      )}
-      <div className="py-3 px-4">
-        {/* 카테고리 (+ 우슐랭 인증) + 혼잡도 */}
-        <div className="flex items-center justify-between gap-2 mb-1.5">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-xs font-black bg-white/30 text-white px-3 py-0.5 rounded-full border border-white/30 truncate">
-              {place.category}
-            </span>
-            {certs.map((c) => (
-              <button
-                key={c.source.id}
-                onClick={(e) => { e.stopPropagation(); trackEvent('cert_badge_open'); setOpenCertId(c.source.id); }}
-                className="text-[11px] font-black bg-white px-2.5 py-0.5 rounded-full shadow-sm shrink-0 active:scale-95 transition-transform"
-                style={{ color: c.source.badgeTextColor }}
-                aria-label={`${c.source.label} 인증 안내 열기`}
-              >
-                {c.source.emoji} {c.source.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {place.congestionLevel && (
-              <div className="flex items-center gap-1">
-                <span className={`${cong.dot} text-xs leading-none`}>●</span>
-                <span className="text-xs text-white/80">{cong.label}</span>
-              </div>
-            )}
-            <WishlistButton place={place} rank={wishRank} source="result" tone="onDark" />
-          </div>
-        </div>
-
-        {/* 장소명 */}
-        <h2 className="text-xl font-black leading-tight mb-1">{place.placeName}</h2>
-
-        {/* 추천 이유 — 큐레이션의 핵심 */}
-        {place.description && (
-          <p className="text-sm text-white/90 leading-snug mb-2 font-medium">{place.description}</p>
-        )}
-
-        {/* 적합도 점수 */}
-        <FitScoreBar score={place.fitScore} className="mb-2" />
-
-        {/* 해시태그 */}
-        <div className="flex flex-wrap gap-1 mb-2">
-          {place.vibeTags.slice(0, 3).map((tag) => (
-            <span key={tag} className="text-xs text-white/80 bg-white/15 px-2 py-0.5 rounded-full">
-              #{tag}
-            </span>
-          ))}
-        </div>
-
-        {/* 핵심 정보 */}
-        <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-1.5 text-xs text-white/80">
-            <GpsPin className="opacity-80 shrink-0" />
-            <span className="leading-tight">{place.address || place.area}</span>
-          </div>
-          <div className="flex items-center gap-3 text-xs text-white/80 flex-wrap">
-            {place.priceRange && (
-              <span className="flex items-center gap-1">
-                <span>💰</span>
-                <span>{place.priceRange}</span>
-              </span>
-            )}
-            {place.openingHours && (
-              <span className="flex items-center gap-1">
-                <span>🕐</span>
-                <span>{place.openingHours}</span>
-                {openStatus && (
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
-                    openStatus.isOpen ? 'bg-green-400 text-white' : 'bg-red-400/80 text-white'
-                  }`}>
-                    {openStatus.label}
-                  </span>
-                )}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* 더보기 버튼 */}
-        {extraResults.length > 0 && (
-          <button
-            onClick={(e) => { e.stopPropagation(); if (!moreVisible) trackEvent('candidates_expand'); setMoreVisible(!moreVisible); }}
-            className="w-full mt-3 text-white/70 text-sm font-bold flex items-center justify-center gap-1 active:scale-95 transition-all"
-          >
-            {moreVisible ? '접기 ▲' : `추천 더보기 (${extraResults.length}개 더) ▼`}
-          </button>
-        )}
-      </div>
-
-      {/* 더보기 펼침 */}
-      {moreVisible && extraResults.length > 0 && (
-        <div className="border-t border-white/20 px-4 pb-3 pt-3 flex flex-col gap-2 animate-fade-in-up">
-          {extraResults.map((p, idx) => (
-            <div
-              key={idx}
-              className="bg-white/15 rounded-xl p-3 cursor-pointer active:bg-white/25 transition-colors"
-              onClick={(e) => { e.stopPropagation(); openPlace(kakaoUrl(p), 'place_click_candidate', p); }}
-            >
-              <div className="flex items-start justify-between mb-1">
-                <div>
-                  <p className="text-sm font-black">{certPrefix(p)}{p.placeName}</p>
-                  <p className="text-xs text-white/70">{p.category}</p>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {p.fitScore != null && (
-                    <span className="text-xs font-black text-white/90 bg-white/20 px-1.5 py-0.5 rounded-full">
-                      {p.fitScore}점
-                    </span>
-                  )}
-                  {p.congestionLevel && (
-                    <>
-                      <div className={`w-1.5 h-1.5 rounded-full ${congestionDotClass(p.congestionLevel as CongestionLevel)}`} />
-                      <span className="text-xs text-white/60">{p.congestionLevel}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-              <p className="text-xs text-white/70 mb-1.5 leading-relaxed">{p.description}</p>
-              <div className="flex items-center gap-3 text-xs text-white/60">
-                <span>💰 {p.priceRange}</span>
-                {p.address && (
-                  <span className="flex items-center gap-1 truncate flex-1">
-                    <GpsPin className="opacity-60" /> {p.address}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-    {openCert && <CertSheet source={openCert} onClose={() => setOpenCertId(null)} />}
-    </>
-  );
-}
-
-// 인증 안내 바텀시트 — 소스별 문구를 그대로 렌더. 카드 루트가 overflow-hidden이라 카드 밖 형제로 띄운다(잘림 방지).
-function CertSheet({ source, onClose }: { source: CertSource; onClose: () => void }) {
-  return (
-    <div
-      className="fixed inset-0 z-50 bg-black/40"
-      onClick={(e) => { e.stopPropagation(); onClose(); }}
-    >
-      <div
-        className="fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto bg-white rounded-t-3xl px-6 pt-6 pb-[max(2rem,calc(env(safe-area-inset-bottom)+0.75rem))] animate-fade-in-up"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <p className="text-4xl text-center">{source.emoji}</p>
-        <h3 className="text-lg font-black text-gray-900 text-center mt-2">{source.sheetTitle}</h3>
-        <p className="text-sm text-gray-600 leading-relaxed text-center mt-2">
-          {source.sheetBody}
-        </p>
-        <p className="text-[11px] text-gray-400 text-center mt-3">
-          {source.sourceLine}
-        </p>
-        {source.disclaimer && (
-          <p className="text-[10px] text-gray-300 text-center mt-1.5 leading-relaxed">
-            {source.disclaimer}
-          </p>
-        )}
-        <button
-          onClick={onClose}
-          className="w-full mt-5 py-3.5 rounded-2xl bg-[#3CDBC0] text-white font-black active:scale-[0.98] transition-transform"
-        >
-          {source.ctaLabel}
-        </button>
-      </div>
-    </div>
-  );
 }
 
 export default function ResultCard({
@@ -498,7 +174,7 @@ export default function ResultCard({
       </div>
 
       {/* 1차 카드 */}
-      <PlaceCard
+      <ResultPlaceCard
         place={result}
         extraResults={[]}
         gradient="linear-gradient(135deg, #3CDBC0 0%, #2AB5A0 100%)"
@@ -528,9 +204,9 @@ export default function ResultCard({
       )}
 
       {/* 1차 대안 추천 — 1차 카드 바로 아래에 붙여 소속을 명확히 */}
-      {!hasSecond && <AltsSection alts={extraFirstResults} accentColor="#3CDBC0" />}
+      {!hasSecond && <ResultAltsSection alts={extraFirstResults} accentColor="#3CDBC0" />}
       {hasSecond && extraFirstResults.length > 0 && (
-        <AltsSection
+        <ResultAltsSection
           alts={extraFirstResults}
           accentColor="#3CDBC0"
           label={`1차 ${purpose!.first} · 다른 추천 ${extraFirstResults.length}곳`}
@@ -632,7 +308,7 @@ export default function ResultCard({
 
       {/* 2차 대안 추천 — 2차 카드 바로 아래 */}
       {hasSecond && extraSecondResults.length > 0 && (
-        <AltsSection
+        <ResultAltsSection
           alts={extraSecondResults}
           accentColor="#1A7A6E"
           label={`2차 ${purpose!.second} · 다른 추천 ${extraSecondResults.length}곳`}

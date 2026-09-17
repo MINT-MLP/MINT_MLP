@@ -1,14 +1,14 @@
 import { Component, lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
-import { requestAppFullscreen } from './utils/fullscreen';
+import { requestAppFullscreen } from '@/utils/fullscreen';
 
 // 페이지별 코드 스플리팅 — 랜딩만 보는 방문자가 Home/Admin 번들까지 받지 않도록
-const AppShell = lazy(() => import('./pages/AppShell'));
-const Landing = lazy(() => import('./pages/Landing'));
-const SharedResult = lazy(() => import('./pages/SharedResult'));
-const Admin = lazy(() => import('./pages/Admin'));
-const MemberInput = lazy(() => import('./pages/MemberInput'));
-const Pilot = lazy(() => import('./pages/Pilot'));
-const PilotAdmin = lazy(() => import('./pages/PilotAdmin'));
+const AppShell = lazy(() => import('@/pages/AppShell'));
+const Landing = lazy(() => import('@/pages/Landing'));
+const SharedResult = lazy(() => import('@/pages/SharedResult'));
+const Admin = lazy(() => import('@/pages/Admin'));
+const MemberInput = lazy(() => import('@/pages/MemberInput'));
+const Pilot = lazy(() => import('@/pages/Pilot'));
+const PilotAdmin = lazy(() => import('@/pages/PilotAdmin'));
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null };

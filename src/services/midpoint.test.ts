@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findBalancedAreas, findNearestAreas, calcMidpoint } from './midpoint';
+import { findBalancedAreas, findNearestAreas, calcMidpoint } from '@/services/midpoint';
 
 const GANGNAM = { lat: 37.4979, lng: 127.0276 };
 const HONGDAE = { lat: 37.5573, lng: 126.9243 };

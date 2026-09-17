@@ -4,8 +4,9 @@
 // 그 다음에야 네트워크를 탄다. 네트워크는 전송 수단일 뿐 진실의 원본이 아니다 —
 // 그래서 화면은 전송 결과를 기다리지 않고 즉시 성공으로 넘어가도 거짓말이 아니다.
 
-import { getDeviceId } from './points';
-import { getSessionKey, trackEvent } from './analytics';
+import { getDeviceId } from '@/utils/points';
+import { getSessionKey, trackEvent } from '@/utils/analytics';
+import type { FeedbackCategory, FeedbackDraft, FeedbackPayload, FeedbackInput } from '@/types';
 
 const DRAFT_KEY = 'mint_feedback_draft';
 const OUTBOX_KEY = 'mint_feedback_outbox';
@@ -32,8 +33,6 @@ export const FEEDBACK_MAX_LEN = 500;
 // 카운터를 처음부터 보여주면 "길게 써야 하나?" 압박이 된다. 한계가 가까워질 때만 켠다.
 export const FEEDBACK_COUNTER_FROM = 400;
 
-export type FeedbackCategory = 'bug' | 'pain' | 'idea' | 'praise';
-
 // 미선택 허용 — 자동 추론은 오분류 시 어드민 데이터만 오염시킨다. 어차피 원문은 사람이 읽는다.
 export const CATEGORY_OPTIONS: { value: FeedbackCategory; emoji: string; label: string }[] = [
   { value: 'bug', emoji: '🐞', label: '버그' },
@@ -41,27 +40,6 @@ export const CATEGORY_OPTIONS: { value: FeedbackCategory; emoji: string; label: 
   { value: 'idea', emoji: '💡', label: '아이디어' },
   { value: 'praise', emoji: '💚', label: '칭찬' },
 ];
-
-export interface FeedbackDraft {
-  text: string;
-  category: FeedbackCategory | null;
-  contact: string;
-  savedAt: number;
-}
-
-interface FeedbackPayload {
-  id: string;
-  text: string;
-  category: FeedbackCategory | null;
-  contact: string | null;
-  context: {
-    route: string;
-    tab: string;
-    sessionKey: string | null;
-    deviceId: string;
-    viewport: string;
-  };
-}
 
 function isCategory(v: unknown): v is FeedbackCategory {
   return v === 'bug' || v === 'pain' || v === 'idea' || v === 'praise';
@@ -254,13 +232,6 @@ export function bindOutboxExitFlush(): void {
 }
 
 /* ── 제출 ── */
-
-export interface FeedbackInput {
-  text: string;
-  category: FeedbackCategory | null;
-  contact: string | null;
-  tab: string;
-}
 
 /**
  * 제출 — 아웃박스에 먼저 쓰고 전송을 시작한다(결과를 기다리지 않는다).
