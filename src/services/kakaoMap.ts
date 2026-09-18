@@ -1,4 +1,4 @@
-import { ensureKakaoMaps } from '@/utils/kakaoLoader';
+import { ensureKakaoMaps } from '@/services/kakaoLoader';
 import { HOTPLACES } from '@/constants/hotplaces';
 import type { KakaoPlace, Neighborhood, RegionSuggestion } from '@/types';
 

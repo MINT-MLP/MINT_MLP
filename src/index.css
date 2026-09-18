@@ -99,7 +99,7 @@ body {
 }
 
 .shimmer {
-  background: linear-gradient(90deg, rgb(var(--mint-100)) 25%, #C8F0E8 50%, rgb(var(--mint-100)) 75%);
+  background: linear-gradient(90deg, rgb(var(--mint-100)) 25%, rgb(var(--mint-200)) 50%, rgb(var(--mint-100)) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
@@ -113,10 +113,6 @@ body {
 
 .vibe-card:active {
   transform: scale(0.97);
-}
-
-.result-gradient {
-  background: linear-gradient(135deg, rgb(var(--mint-500)) 0%, rgb(var(--mint-600)) 100%);
 }
 
 ::-webkit-scrollbar {
@@ -161,14 +157,19 @@ body {
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
 }
 .card-hover:hover {
-  box-shadow: 0 4px 24px rgba(42,181,160,0.14);
+  box-shadow: 0 4px 24px rgb(var(--mint-600) / 0.14);
 }
 .card-hover:active {
   transform: scale(0.985);
 }
 
 .cta-glow-mint {
-  box-shadow: 0 10px 32px rgba(42,181,160,0.35);
+  box-shadow: 0 10px 32px rgb(var(--mint-600) / 0.35);
+}
+
+/* 히어로 폰 목업 그림자 (Landing) */
+.hero-glow-mint {
+  box-shadow: 0 35px 70px -20px rgb(var(--mint-600) / 0.5);
 }
 
 /* 가로 스냅 스크롤 (그룹 모드 갤러리) */

@@ -4,8 +4,8 @@
 //   ALTER TABLE events ADD COLUMN IF NOT EXISTS payload JSONB;      -- 이벤트 맥락(place_key/priceRange/query 등)
 // ⚠️ 아직 실행 안 됐어도 안전: 새 컬럼 insert가 실패하면 자동으로 {type}만 재삽입(폴백)해 수집이 끊기지 않는다.
 
-import { supabase } from '@/utils/supabase';
-import { getAttr } from '@/utils/attribution';
+import { supabase } from '@/services/supabase';
+import { getAttr } from '@/services/attribution';
 
 type EventType = 'landing_view' | 'cta_click' | 'reservation_attempt' | 'session_duration' | 'kakao_share' | 'kakao_share_fallback' | 'pwa_install_click' | 'landing_demo_place_click'
   | 'retry_fresh' | 'retry_adjust' | 'reject_expensive' | 'reject_far' | 'reject_vibe'

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect } from 'react';
 import type { Step } from '@/types';
-import { trackEvent } from '@/utils/analytics';
+import { trackEvent } from '@/services/analytics';
 import type { RecommendFlow } from '@/hooks/useRecommendFlow';
 import type { RecommendInput } from '@/hooks/useRecommendInput';
 import type { GroupSession } from '@/hooks/useGroupSession';

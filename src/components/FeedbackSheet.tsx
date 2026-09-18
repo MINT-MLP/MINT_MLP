@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { getDeviceId } from '@/utils/points';
-import { trackEvent } from '@/utils/analytics';
+import { getDeviceId } from '@/storage/device';
+import { trackEvent } from '@/services/analytics';
 import {
   CATEGORY_OPTIONS, FEEDBACK_COUNTER_FROM, FEEDBACK_MAX_LEN, FEEDBACK_MIN_LEN,
   flushOutbox, loadDraft, saveDraftDebounced, submitFeedback, textLength,
-} from '@/utils/feedback';
+} from '@/storage/feedback';
 import type { FeedbackCategory } from '@/types';
 
 interface Props {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { isTrackingPaused, setTrackingPaused } from '@/utils/analytics';
+import { isTrackingPaused, setTrackingPaused } from '@/services/analytics';
 import type { ReservationRecord } from '@/pages/Reserve';
 import { AdminPasswordGate, AdminStatCard, AdminBarRow, AdminMiniStat, AdminFunnelStep } from '@/components';
 import { pct, pctLabel, formatDuration, formatDate, formatRelative } from '@/utils/format';
@@ -53,12 +53,12 @@ interface UserFeedbackRow {
 }
 
 // 미분류(null)까지 한 자리를 준다 — 안 고르고 보낸 사람이 제일 많을 수 있다
-const FEEDBACK_CATEGORIES: { key: string; label: string; badge: string; color: string }[] = [
-  { key: 'bug', label: '🐞 버그', badge: 'bg-red-50 text-red-500', color: '#EF4444' },
-  { key: 'pain', label: '😣 불편', badge: 'bg-amber-50 text-amber-600', color: '#F59E0B' },
-  { key: 'idea', label: '💡 아이디어', badge: 'bg-blue-50 text-blue-500', color: '#3B82F6' },
-  { key: 'praise', label: '💚 칭찬', badge: 'bg-mint-100 text-mint-600', color: 'rgb(var(--mint-500))' },
-  { key: '', label: '미분류', badge: 'bg-gray-100 text-gray-400', color: '#94A3B8' },
+const FEEDBACK_CATEGORIES: { key: string; label: string; badge: string; bar: `bg-${string}` }[] = [
+  { key: 'bug', label: '🐞 버그', badge: 'bg-red-50 text-red-500', bar: 'bg-red-500' },
+  { key: 'pain', label: '😣 불편', badge: 'bg-amber-50 text-amber-600', bar: 'bg-amber-500' },
+  { key: 'idea', label: '💡 아이디어', badge: 'bg-blue-50 text-blue-500', bar: 'bg-blue-500' },
+  { key: 'praise', label: '💚 칭찬', badge: 'bg-mint-100 text-mint-600', bar: 'bg-mint-500' },
+  { key: '', label: '미분류', badge: 'bg-gray-100 text-gray-400', bar: 'bg-slate-400' },
 ];
 
 interface AdminAnalytics {
@@ -631,9 +631,9 @@ export default function Admin() {
               <p className="text-xs text-gray-400 text-center py-3">아직 거절 기록이 없어요.</p>
             ) : (
               <div className="flex flex-col gap-2">
-                <AdminBarRow label="비쌈" count={a.rejectExpensive} total={rejectTotal} color="#F59E0B" />
-                <AdminBarRow label="멀어요" count={a.rejectFar} total={rejectTotal} color="#EF4444" />
-                <AdminBarRow label="분위기" count={a.rejectVibe} total={rejectTotal} color="#8B5CF6" />
+                <AdminBarRow label="비쌈" count={a.rejectExpensive} total={rejectTotal} bar="bg-amber-500" />
+                <AdminBarRow label="멀어요" count={a.rejectFar} total={rejectTotal} bar="bg-red-500" />
+                <AdminBarRow label="분위기" count={a.rejectVibe} total={rejectTotal} bar="bg-violet-500" />
                 <div className="text-[11px] text-gray-400 mt-1 pt-2 border-t border-gray-50">총 {rejectTotal}건 거절</div>
               </div>
             )}
@@ -650,7 +650,7 @@ export default function Admin() {
               ) : (
                 <div className="flex flex-col gap-2">
                   <AdminBarRow label="새로" count={a.retryFresh} total={retryTotal} />
-                  <AdminBarRow label="조정" count={a.retryAdjust} total={retryTotal} color="#0EA5E9" />
+                  <AdminBarRow label="조정" count={a.retryAdjust} total={retryTotal} bar="bg-sky-500" />
                 </div>
               )}
             </div>
@@ -663,8 +663,8 @@ export default function Admin() {
               ) : (
                 <div className="flex flex-col gap-2">
                   <AdminBarRow label="캐치" count={a.deeplinkCatchtable} total={deeplinkTotal} />
-                  <AdminBarRow label="네이버" count={a.deeplinkNaver} total={deeplinkTotal} color="#22C55E" />
-                  <AdminBarRow label="카카오맵" count={a.deeplinkKakaomap} total={deeplinkTotal} color="#EAB308" />
+                  <AdminBarRow label="네이버" count={a.deeplinkNaver} total={deeplinkTotal} bar="bg-green-500" />
+                  <AdminBarRow label="카카오맵" count={a.deeplinkKakaomap} total={deeplinkTotal} bar="bg-yellow-500" />
                 </div>
               )}
             </div>
@@ -685,9 +685,9 @@ export default function Admin() {
             ) : (
               <div className="flex flex-col gap-2">
                 <AdminBarRow label="1순위" count={a.placeClickRank1} total={placeClickTotal} />
-                <AdminBarRow label="2차" count={a.placeClickSecond} total={placeClickTotal} color="rgb(var(--mint-800))" />
-                <AdminBarRow label="대안" count={a.placeClickCandidate} total={placeClickTotal} color="#0EA5E9" />
-                <AdminBarRow label="3차" count={a.placeClickThird} total={placeClickTotal} color="#8B5CF6" />
+                <AdminBarRow label="2차" count={a.placeClickSecond} total={placeClickTotal} bar="bg-mint-800" />
+                <AdminBarRow label="대안" count={a.placeClickCandidate} total={placeClickTotal} bar="bg-sky-500" />
+                <AdminBarRow label="3차" count={a.placeClickThird} total={placeClickTotal} bar="bg-violet-500" />
                 <div className="text-[11px] text-gray-400 mt-1 pt-2 border-t border-gray-50">
                   후보 펼침 {a.candidatesExpand}회 · 인증 뱃지 열람 {a.certBadgeOpen}회
                 </div>
@@ -728,10 +728,10 @@ export default function Admin() {
             ) : (
               <div className="flex flex-col gap-2">
                 <AdminBarRow label={TAB_LABELS.home} count={tabCounts.home ?? 0} total={tabTotal} />
-                <AdminBarRow label={TAB_LABELS.meetings} count={tabCounts.meetings ?? 0} total={tabTotal} color="#0EA5E9" />
-                <AdminBarRow label={TAB_LABELS.discover} count={tabCounts.discover ?? 0} total={tabTotal} color="#8B5CF6" />
-                <AdminBarRow label={TAB_LABELS.shop} count={tabCounts.shop ?? 0} total={tabTotal} color="#F59E0B" />
-                <AdminBarRow label={TAB_LABELS.profile} count={tabCounts.profile ?? 0} total={tabTotal} color="#94A3B8" />
+                <AdminBarRow label={TAB_LABELS.meetings} count={tabCounts.meetings ?? 0} total={tabTotal} bar="bg-sky-500" />
+                <AdminBarRow label={TAB_LABELS.discover} count={tabCounts.discover ?? 0} total={tabTotal} bar="bg-violet-500" />
+                <AdminBarRow label={TAB_LABELS.shop} count={tabCounts.shop ?? 0} total={tabTotal} bar="bg-amber-500" />
+                <AdminBarRow label={TAB_LABELS.profile} count={tabCounts.profile ?? 0} total={tabTotal} bar="bg-slate-400" />
                 <div className="text-[11px] text-gray-400 mt-1 pt-2 border-t border-gray-50">
                   총 {a.tabClicksTotal || tabTotal}회 이동 · 빈 모임 CTA 클릭 {a.meetingsEmptyCtaClicks}회
                 </div>
@@ -757,7 +757,7 @@ export default function Admin() {
             ) : (
               <div className="flex flex-col gap-2">
                 {shopFilterEntries.map(([key, count]) => (
-                  <AdminBarRow key={key} label={SHOP_FILTER_LABELS[key] ?? key} count={count} total={shopFilterTotal} color="#F59E0B" />
+                  <AdminBarRow key={key} label={SHOP_FILTER_LABELS[key] ?? key} count={count} total={shopFilterTotal} bar="bg-amber-500" />
                 ))}
                 <div className="text-[11px] text-gray-400 mt-1 pt-2 border-t border-gray-50">총 {a.shopFilterClicksTotal || shopFilterTotal}회 필터</div>
               </div>
@@ -835,9 +835,9 @@ export default function Admin() {
               <p className="text-xs text-gray-400 text-center py-3">아직 참석 응답이 없어요.</p>
             ) : (
               <div className="flex flex-col gap-2">
-                <AdminBarRow label="가요" count={a.rsvpGoing} total={rsvpTotal} color="#22C55E" />
-                <AdminBarRow label="못가요" count={a.rsvpNotGoing} total={rsvpTotal} color="#EF4444" />
-                <AdminBarRow label="미정" count={a.rsvpUndecided} total={rsvpTotal} color="#94A3B8" />
+                <AdminBarRow label="가요" count={a.rsvpGoing} total={rsvpTotal} bar="bg-green-500" />
+                <AdminBarRow label="못가요" count={a.rsvpNotGoing} total={rsvpTotal} bar="bg-red-500" />
+                <AdminBarRow label="미정" count={a.rsvpUndecided} total={rsvpTotal} bar="bg-slate-400" />
                 <div className="text-[11px] text-gray-400 mt-1 pt-2 border-t border-gray-50">총 {a.rsvpSubmitTotal || rsvpTotal}건 응답</div>
               </div>
             )}
@@ -896,7 +896,7 @@ export default function Admin() {
               {/* 집계는 카드 하나로 족하다 — 검색·필터·상태관리는 만들지 않는다 */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 flex flex-col gap-2">
                 {feedbackCounts.map((cat) => (
-                  <AdminBarRow key={cat.key || 'none'} label={cat.label} count={cat.count} total={feedback.length} color={cat.color} />
+                  <AdminBarRow key={cat.key || 'none'} label={cat.label} count={cat.count} total={feedback.length} bar={cat.bar} />
                 ))}
               </div>
               <div className="flex flex-col gap-2">

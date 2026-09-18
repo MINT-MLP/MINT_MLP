@@ -6,11 +6,13 @@ import ResultAltsSection from '@/components/ResultAltsSection';
 import WishlistButton from '@/components/WishlistButton';
 import VisitCertModal from '@/components/VisitCertModal';
 import TreasurerPlanSheet from '@/components/TreasurerPlanSheet';
-import { trackEvent } from '@/utils/analytics';
-import { getPlanFrame, planPriceLabel, isPreregistered } from '@/utils/plan';
-import { getDeviceId } from '@/utils/points';
+import { trackEvent } from '@/services/analytics';
+import { getPlanFrame, planPriceLabel, isPreregistered } from '@/storage/treasurerPlan';
+import { getDeviceId } from '@/storage/device';
 import { rollTreasurerRule } from '@/utils/treasurer';
 import { GpsPin, hideOnError, parseOpenStatus, congestionInfo, FitScoreBar, kakaoUrl, openPlace } from '@/components/placeCardBits';
+import { COURSE_TONE } from '@/constants/colors';
+import { cn } from '@/utils/cn';
 
 interface Props {
   results: PlaceRecommendation[];
@@ -166,7 +168,7 @@ export default function ResultCard({
       {/* 1차 라벨 + 힌트 */}
       <div className="flex items-center justify-between -mt-1">
         {hasSecond ? (
-          <span className="text-xs font-black bg-mint-500 text-white px-3 py-1 rounded-full">
+          <span className={cn('text-xs font-black text-white px-3 py-1 rounded-full', COURSE_TONE.first.solid)}>
             1차 추천 {purpose!.first}
           </span>
         ) : <span />}
@@ -177,8 +179,7 @@ export default function ResultCard({
       <ResultPlaceCard
         place={result}
         extraResults={[]}
-        gradient="linear-gradient(135deg, rgb(var(--mint-500)) 0%, rgb(var(--mint-600)) 100%)"
-        shadowColor="shadow-mint-500/25"
+        tone="first"
       />
 
       {/* 코스 지도 — 1차·2차·대안 위치를 한 장에 (대안은 회색 점) */}
@@ -204,11 +205,11 @@ export default function ResultCard({
       )}
 
       {/* 1차 대안 추천 — 1차 카드 바로 아래에 붙여 소속을 명확히 */}
-      {!hasSecond && <ResultAltsSection alts={extraFirstResults} accentColor="rgb(var(--mint-500))" />}
+      {!hasSecond && <ResultAltsSection alts={extraFirstResults} tone="first" />}
       {hasSecond && extraFirstResults.length > 0 && (
         <ResultAltsSection
           alts={extraFirstResults}
-          accentColor="rgb(var(--mint-500))"
+          tone="first"
           label={`1차 ${purpose!.first} · 다른 추천 ${extraFirstResults.length}곳`}
         />
       )}
@@ -216,7 +217,7 @@ export default function ResultCard({
       {/* 도보 정중앙 + 2차 배지 왼쪽 */}
       {hasSecond && secondResult && (
         <div className="relative flex items-center py-1">
-          <span className="text-xs font-black bg-mint-800 text-white px-3 py-1 rounded-full">
+          <span className={cn('text-xs font-black text-white px-3 py-1 rounded-full', COURSE_TONE.second.solid)}>
             2차 추천 {purpose!.second}
           </span>
           <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 text-xs text-gray-400 font-medium pointer-events-none">
@@ -235,8 +236,7 @@ export default function ResultCard({
             role="link"
             tabIndex={0}
             aria-label={`${secondResult.placeName} 카카오맵에서 열기`}
-            className="rounded-2xl text-white shadow-xl shadow-mint-800/25 overflow-hidden cursor-pointer active:scale-[0.99] transition-transform outline-none focus-visible:ring-2 focus-visible:ring-mint-500 focus-visible:ring-offset-2"
-            style={{ background: 'linear-gradient(135deg, rgb(var(--mint-800)) 0%, #155E54 100%)' }}
+            className={cn('rounded-2xl text-white shadow-xl overflow-hidden cursor-pointer active:scale-[0.99] transition-transform outline-none focus-visible:ring-2 focus-visible:ring-mint-500 focus-visible:ring-offset-2', COURSE_TONE.second.card)}
             onClick={() => openPlace(kakaoUrl(secondResult), 'place_click_second', secondResult)}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPlace(kakaoUrl(secondResult), 'place_click_second', secondResult); } }}
           >
@@ -310,7 +310,7 @@ export default function ResultCard({
       {hasSecond && extraSecondResults.length > 0 && (
         <ResultAltsSection
           alts={extraSecondResults}
-          accentColor="rgb(var(--mint-800))"
+          tone="second"
           label={`2차 ${purpose!.second} · 다른 추천 ${extraSecondResults.length}곳`}
         />
       )}
@@ -319,7 +319,7 @@ export default function ResultCard({
       {thirdResult && (
         <>
           <div className="relative flex items-center py-1">
-            <span className="text-xs font-black bg-mint-900 text-white px-3 py-1 rounded-full">
+            <span className={cn('text-xs font-black text-white px-3 py-1 rounded-full', COURSE_TONE.third.solid)}>
               3차 · {thirdLabel ?? '이어서 가기'}
             </span>
             {(() => {
@@ -339,7 +339,7 @@ export default function ResultCard({
             rel="noreferrer"
             onClick={() => trackEvent('place_click_third', { placeName: thirdResult.placeName, address: thirdResult.address })}
             aria-label={`${thirdResult.placeName} 카카오맵에서 열기`}
-            className="block rounded-2xl bg-white border border-gray-200 border-l-4 border-l-mint-900 p-3.5 shadow-sm active:scale-[0.99] transition-transform outline-none focus-visible:ring-2 focus-visible:ring-mint-900 focus-visible:ring-offset-2"
+            className={cn('block rounded-2xl bg-white border border-gray-200 border-l-4 p-3.5 shadow-sm active:scale-[0.99] transition-transform outline-none focus-visible:ring-2 focus-visible:ring-mint-900 focus-visible:ring-offset-2', COURSE_TONE.third.borderL)}
           >
             <div className="flex items-start gap-3">
               {thirdResult.imageUrl && (
@@ -352,7 +352,7 @@ export default function ResultCard({
                 />
               )}
               <div className="min-w-0 flex-1">
-                <span className="inline-block text-[11px] font-bold text-mint-900 bg-mint-900/10 px-2 py-0.5 rounded-full mb-1">{thirdResult.category}</span>
+                <span className={cn('inline-block text-[11px] font-bold px-2 py-0.5 rounded-full mb-1', COURSE_TONE.third.text, COURSE_TONE.third.tint)}>{thirdResult.category}</span>
                 <p className="text-base font-black text-gray-800 leading-tight">{thirdResult.placeName}</p>
                 {thirdResult.description && (
                   <p className="text-xs text-gray-500 leading-snug mt-0.5 break-keep">{thirdResult.description}</p>

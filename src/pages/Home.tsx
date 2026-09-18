@@ -1,7 +1,7 @@
 import { LoadingScreen, HomeResultView, HomeStepsView } from '@/components';
 import Reserve from '@/pages/Reserve';
 import { cancelGroupSessionOnServer } from '@/services/session';
-import { clearResultSnapshot, INPUT_DRAFT_KEY, GROUP_SESSION_KEY } from '@/utils/history';
+import { clearResultSnapshot, INPUT_DRAFT_KEY, GROUP_SESSION_KEY } from '@/storage/history';
 import { getLoadingMessages, LOADING_SLOW_MS, LOADING_SLOW_MESSAGE } from '@/utils/loadingCopy';
 import {
   useRecommendFlow, useRecommendInput, useGroupSession, useResultState, useRequestState,

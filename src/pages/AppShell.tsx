@@ -5,9 +5,9 @@ import MyMeetings from '@/pages/mock/MyMeetings';
 import Discover from '@/pages/mock/Discover';
 import MintShop from '@/pages/mock/MintShop';
 import Profile from '@/pages/Profile';
-import { clearRecommendSession, loadResultSummary } from '@/utils/history';
-import { trackEvent } from '@/utils/analytics';
-import { bindOutboxExitFlush, flushOutbox } from '@/utils/feedback';
+import { clearRecommendSession, loadResultSummary } from '@/storage/history';
+import { trackEvent } from '@/services/analytics';
+import { bindOutboxExitFlush, flushOutbox } from '@/storage/feedback';
 import type { TabKey, ResultSummary } from '@/types';
 
 // /app 셸 — 홈 탭의 콘텐츠는 항상 추천 플로우(Home)다.

@@ -4,8 +4,10 @@ import MiniMap from '@/components/MiniMap';
 import VisitCertModal from '@/components/VisitCertModal';
 import GuestPlaceCard from '@/components/GuestPlaceCard';
 import { GpsPin, hideOnError, kakaoUrl } from '@/components/placeCardBits';
-import { trackEvent } from '@/utils/analytics';
-import { getDeviceId } from '@/utils/points';
+import { COURSE_TONE } from '@/constants/colors';
+import { cn } from '@/utils/cn';
+import { trackEvent } from '@/services/analytics';
+import { getDeviceId } from '@/storage/device';
 import { computeTravelTimes } from '@/services/travelTime';
 import { downloadMeetingIcs } from '@/utils/ics';
 
@@ -136,7 +138,7 @@ export default function GroupResultView({
         {/* 1차 라벨 */}
         <div className="flex items-center justify-between mt-1">
           {hasSecond ? (
-            <span className="text-xs font-black bg-mint-500 text-white px-3 py-1 rounded-full">
+            <span className={cn('text-xs font-black text-white px-3 py-1 rounded-full', COURSE_TONE.first.solid)}>
               1차 추천{result.purposeFirst ? ` ${result.purposeFirst}` : ''}
             </span>
           ) : <span />}
@@ -146,8 +148,7 @@ export default function GroupResultView({
         {/* 1차 카드 — 호스트와 동일한 신뢰 요소 */}
         <GuestPlaceCard
           place={f}
-          gradient="linear-gradient(135deg, rgb(var(--mint-500)) 0%, rgb(var(--mint-600)) 100%)"
-          shadowColor="shadow-mint-500/25"
+          tone="first"
           wishRank="first"
         />
 
@@ -160,7 +161,7 @@ export default function GroupResultView({
         {result.second && (
           <>
             <div className="relative flex items-center py-1">
-              <span className="text-xs font-black bg-mint-800 text-white px-3 py-1 rounded-full">
+              <span className={cn('text-xs font-black text-white px-3 py-1 rounded-full', COURSE_TONE.second.solid)}>
                 2차 추천{result.purposeSecond ? ` ${result.purposeSecond}` : ''}
               </span>
               <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 text-xs text-gray-400 font-medium pointer-events-none">
@@ -170,8 +171,7 @@ export default function GroupResultView({
             </div>
             <GuestPlaceCard
               place={result.second}
-              gradient="linear-gradient(135deg, rgb(var(--mint-800)) 0%, #155E54 100%)"
-              shadowColor="shadow-mint-800/25"
+              tone="second"
               wishRank="second"
             />
           </>
@@ -181,7 +181,7 @@ export default function GroupResultView({
         {result.third && (
           <>
             <div className="relative flex items-center py-1">
-              <span className="text-xs font-black bg-mint-900 text-white px-3 py-1 rounded-full">
+              <span className={cn('text-xs font-black text-white px-3 py-1 rounded-full', COURSE_TONE.third.solid)}>
                 3차 · {result.thirdLabel ?? '이어서 가기'}
               </span>
               <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 text-xs text-gray-400 font-medium pointer-events-none">
@@ -193,14 +193,14 @@ export default function GroupResultView({
               href={kakaoUrl(result.third)}
               target="_blank"
               rel="noreferrer"
-              className="block rounded-2xl bg-white border border-gray-200 border-l-4 border-l-mint-900 p-3.5 shadow-sm active:scale-[0.99] transition-transform"
+              className={cn('block rounded-2xl bg-white border border-gray-200 border-l-4 p-3.5 shadow-sm active:scale-[0.99] transition-transform', COURSE_TONE.third.borderL)}
             >
               <div className="flex items-start gap-3">
                 {result.third.imageUrl && (
                   <img src={result.third.imageUrl} alt={result.third.placeName} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" loading="lazy" onError={hideOnError} />
                 )}
                 <div className="min-w-0 flex-1">
-                  <span className="inline-block text-[11px] font-bold text-mint-900 bg-mint-900/10 px-2 py-0.5 rounded-full mb-1">{result.third.category}</span>
+                  <span className={cn('inline-block text-[11px] font-bold px-2 py-0.5 rounded-full mb-1', COURSE_TONE.third.text, COURSE_TONE.third.tint)}>{result.third.category}</span>
                   <p className="text-base font-black text-gray-800 leading-tight">{result.third.placeName}</p>
                   {result.third.description && (
                     <p className="text-xs text-gray-500 leading-snug mt-0.5 break-keep">{result.third.description}</p>

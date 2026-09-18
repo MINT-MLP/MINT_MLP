@@ -1,9 +1,7 @@
 import { useRef, useState } from 'react';
-import {
-  getDeviceId, placeKey, haversineMeters, creditVisit,
-  VISIT_POINTS, CERT_RADIUS_M,
-} from '@/utils/points';
-import { trackEvent } from '@/utils/analytics';
+import { getDeviceId } from '@/storage/device';
+import { placeKey, haversineMeters, creditVisit, VISIT_POINTS, CERT_RADIUS_M } from '@/storage/points';
+import { trackEvent } from '@/services/analytics';
 
 interface CertPlace {
   placeName?: string;

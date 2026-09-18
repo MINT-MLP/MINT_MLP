@@ -1,15 +1,16 @@
 import type { GroupResultPlace } from '@/types';
 import WishlistButton from '@/components/WishlistButton';
 import { GpsPin, hideOnError, parseOpenStatus, congestionInfo, FitScoreBar, kakaoUrl } from '@/components/placeCardBits';
+import { COURSE_TONE, type CourseTone } from '@/constants/colors';
+import { cn } from '@/utils/cn';
 
 // 게스트용 리치 장소 카드 — 호스트 PlaceCard와 같은 신뢰 요소(사진·카테고리·이유·적합도·해시태그·영업)를 담는다.
 // 카드 탭 = 카카오맵 이동. 찜은 카드 위에 얹되 stopPropagation으로 지도 이동과 분리(호스트와 동일 패턴).
 export default function GuestPlaceCard({
-  place, gradient, shadowColor, wishRank,
+  place, tone, wishRank,
 }: {
   place: GroupResultPlace;
-  gradient: string;
-  shadowColor: string;
+  tone: CourseTone;
   wishRank: 'first' | 'second';
 }) {
   const openStatus = parseOpenStatus(place.openingHours ?? undefined);
@@ -20,8 +21,7 @@ export default function GuestPlaceCard({
       role="link"
       tabIndex={0}
       aria-label={`${place.placeName} 카카오맵에서 열기`}
-      className={`rounded-2xl text-white overflow-hidden cursor-pointer active:scale-[0.99] transition-transform shadow-xl outline-none ${shadowColor}`}
-      style={{ background: gradient }}
+      className={cn('rounded-2xl text-white overflow-hidden cursor-pointer active:scale-[0.99] transition-transform shadow-xl outline-none', COURSE_TONE[tone].card)}
       onClick={open}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } }}
     >

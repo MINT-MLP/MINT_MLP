@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { Coordinates, MeetingLocation, PlaceRecommendation, PurposeValue, Step, TravelTimeData, VibeState, WeatherSummary } from '@/types';
 import { OCCASION_BY_RELATION } from '@/constants/occasion';
-import { saveResultSnapshot, loadResultSnapshot, saveHistory, INPUT_DRAFT_KEY, GROUP_SESSION_KEY, INPUT_DRAFT_TTL_MS, GROUP_SESSION_TTL_MS } from '@/utils/history';
-import { trackSessionDuration } from '@/utils/analytics';
-import { logActivityIfSignedIn } from '@/utils/auth';
+import { saveResultSnapshot, loadResultSnapshot, saveHistory, INPUT_DRAFT_KEY, GROUP_SESSION_KEY, INPUT_DRAFT_TTL_MS, GROUP_SESSION_TTL_MS } from '@/storage/history';
+import { trackSessionDuration } from '@/services/analytics';
+import { logActivityIfSignedIn } from '@/services/auth';
 import { migrateVibeState } from '@/utils/vibeMigrate';
 import type { RecommendFlow } from '@/hooks/useRecommendFlow';
 import type { RecommendInput } from '@/hooks/useRecommendInput';

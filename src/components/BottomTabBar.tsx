@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
-import { trackEvent } from '@/utils/analytics';
-import { getDeviceId } from '@/utils/points';
+import { trackEvent } from '@/services/analytics';
+import { getDeviceId } from '@/storage/device';
 import type { TabKey } from '@/types';
 
 interface Props {

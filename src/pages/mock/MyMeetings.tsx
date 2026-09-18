@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { MOCK_MEETINGS, type MockMeeting } from '@/pages/mock/data/meetings';
-import { getPlanFrame, isPreregistered, planPriceLabel } from '@/utils/plan';
-import { getDeviceId } from '@/utils/points';
-import { trackEvent } from '@/utils/analytics';
+import { getPlanFrame, isPreregistered, planPriceLabel } from '@/storage/treasurerPlan';
+import { getDeviceId } from '@/storage/device';
+import { trackEvent } from '@/services/analytics';
 import { TreasurerPlanSheet, IconCalendar, IconMapPin, IconChevronDown, IconUserCircle } from '@/components';
-import { buildMapLink } from '@/utils/wishlist';
+import { buildMapLink } from '@/storage/wishlist';
 
 // 배지는 카드당 1개만 둔다. 색은 "지금 내 응답이 필요한 상태"(취합 중)에만 민트를 쓰고
 // 나머지는 회색조 — 우상단이 알록달록한 라벨 뭉치가 되지 않게 하는 게 목적이다.

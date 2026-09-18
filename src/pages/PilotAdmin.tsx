@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { supabase } from '@/utils/supabase';
+import { supabase } from '@/services/supabase';
 import type { CoursePick, PilotPrize } from '@/types';
 
 interface PilotFeedback {
@@ -297,7 +297,7 @@ function StockTab({ password, onDone, prizes, counts, onVoid }: { password: stri
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
         <p className="text-sm font-black text-gray-800 mb-1">기프티콘 재고 등록</p>
         <p className="text-xs text-gray-400 mb-3 leading-relaxed">카카오톡 선물하기에서 산 기프티콘 <strong>스크린샷</strong>을 올리세요. 비공개 버킷에 저장되고, 당첨자에게만 서명 URL로 노출돼요. 남은 재고 <strong className="text-mint-600">{counts.available}개</strong>.</p>
-        <label className="block border-2 border-dashed border-mint-500/60 rounded-2xl bg-[#F0FDF9] px-4 py-6 text-center cursor-pointer active:scale-[0.99] transition-all">
+        <label className="block border-2 border-dashed border-mint-500/60 rounded-2xl bg-mint-50 px-4 py-6 text-center cursor-pointer active:scale-[0.99] transition-all">
           <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { addFiles(Array.from(e.target.files ?? [])); e.currentTarget.value = ''; }} />
           <span className="block text-2xl mb-1">＋</span>
           <span className="block text-sm font-black text-mint-600">기프티콘 스크린샷 선택 (여러 장)</span>

@@ -1,5 +1,5 @@
 import type { PlaceRecommendation } from '@/types';
-import { trackEvent } from '@/utils/analytics';
+import { trackEvent } from '@/services/analytics';
 import { newShareId, saveShareSnapshot, shareViaKakaoOrFallback } from '@/services/share';
 import type { RecommendInput } from '@/hooks/useRecommendInput';
 import type { ResultState } from '@/hooks/useResultState';

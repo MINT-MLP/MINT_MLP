@@ -1,7 +1,7 @@
 import type { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/utils/supabase';
-import { getDeviceId } from '@/utils/points';
-import { loadHistory } from '@/utils/history';
+import { supabase } from '@/services/supabase';
+import { getDeviceId } from '@/storage/device';
+import { loadHistory } from '@/storage/history';
 import type { ActivityPayload, ActivityRow } from '@/types';
 
 // 카카오 기본 로그인 — 로그인은 어디까지나 '선택'이다.

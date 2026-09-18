@@ -8,7 +8,7 @@ import type { OccChip } from '@/types';
 import { VIBE_KEY_TO_LABEL } from '@/constants/vibeOptions';
 import { OCCASION_BY_RELATION, OCCASION_PREVIEW } from '@/constants/occasion';
 import { cancelGroupSessionOnServer } from '@/services/session';
-import { GROUP_SESSION_KEY } from '@/utils/history';
+import { GROUP_SESSION_KEY } from '@/storage/history';
 import type { RecommendFlow, RecommendInput, GroupSession, RequestState, GroupActions, RecommendActions, StepNavigation } from '@/hooks';
 
 // 입력 플로우(스텝 0~3) 화면. Home이 훅 결과 객체를 그대로 넘기고, 여기서 같은 이름으로 풀어 쓴다 — JSX는 분리 전 Home과 동일.

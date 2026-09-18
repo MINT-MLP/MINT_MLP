@@ -1,7 +1,8 @@
 import { useState, type ComponentType } from 'react';
-import { getWishlist, removeWish, wishMapLink, buildMapLink, isWished } from '@/utils/wishlist';
-import { placeKey, getDeviceId } from '@/utils/points';
-import { trackEvent } from '@/utils/analytics';
+import { getWishlist, removeWish, wishMapLink, buildMapLink, isWished } from '@/storage/wishlist';
+import { getDeviceId } from '@/storage/device';
+import { placeKey } from '@/storage/points';
+import { trackEvent } from '@/services/analytics';
 import { MOCK_GEMS } from '@/pages/mock/data/gems';
 import { WishlistButton, IconCompass, IconMapPin, IconCheck, IconChevronDown, IconCup, IconUtensils } from '@/components';
 import type { WishItem } from '@/types';

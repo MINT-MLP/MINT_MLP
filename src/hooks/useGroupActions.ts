@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import type { LocationEntry } from '@/types';
-import { trackEvent } from '@/utils/analytics';
+import { trackEvent } from '@/services/analytics';
 import { encodeHostContext } from '@/utils/groupLink';
 import { aggregateVibe, aggregateBudget, splitMemberKeywords } from '@/utils/groupAggregate';
-import { GROUP_SESSION_KEY } from '@/utils/history';
+import { GROUP_SESSION_KEY } from '@/storage/history';
 import { cancelGroupSessionOnServer } from '@/services/session';
 import { shareViaKakaoOrFallback } from '@/services/share';
 import type { RecommendFlow } from '@/hooks/useRecommendFlow';

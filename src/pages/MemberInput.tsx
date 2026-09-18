@@ -9,8 +9,8 @@ import { VIBE_KEY_TO_LABEL } from '@/constants/vibeOptions';
 import { EXCLUDE_FOOD_PREFIX, SECOND_VIBE_PREFIX } from '@/utils/groupAggregate';
 import { decodeHostContext } from '@/utils/groupLink';
 import type { HostContext } from '@/utils/groupLink';
-import { trackEvent } from '@/utils/analytics';
-import { getDeviceId } from '@/utils/points';
+import { trackEvent } from '@/services/analytics';
+import { getDeviceId } from '@/storage/device';
 
 type Phase = 'step0' | 'step1' | 'step2' | 'done';
 

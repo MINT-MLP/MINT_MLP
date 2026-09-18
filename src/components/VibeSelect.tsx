@@ -176,7 +176,7 @@ export default function VibeSelect({
                     onClick={() => setCourseTab('first')}
                     aria-pressed={activeCourse === 'first'}
                     className={`h-10 rounded-xl text-xs font-black transition-all active:scale-[0.97] ${
-                      activeCourse === 'first' ? 'bg-[#1E9E8C] text-white shadow-sm' : 'bg-white border-2 border-gray-200 text-gray-500'
+                      activeCourse === 'first' ? 'bg-mint-600 text-white shadow-sm' : 'bg-white border-2 border-gray-200 text-gray-500'
                     }`}
                   >
                     🍀 1차{purpose?.first ? ` · ${purpose.first}` : ''}

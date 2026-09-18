@@ -1,4 +1,4 @@
-import { supabase } from '@/utils/supabase';
+import { supabase } from '@/services/supabase';
 
 // 경량 클라이언트 에러 로깅 — 외부 서비스 없이 Supabase client_errors 테이블로 수집.
 // "조용한 고장"(혼잡도 프록시가 프로덕션에서 죽어 있던 것 같은)을 조기에 발견하기 위한 장치.

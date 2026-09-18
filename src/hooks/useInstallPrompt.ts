@@ -1,6 +1,6 @@
 // PWA 설치 프롬프트 — Android는 beforeinstallprompt, iOS는 수동 안내. index.html이 먼저 잡아둔 이벤트를 이어받는다.
 import { useEffect, useState } from 'react';
-import { trackEvent } from '@/utils/analytics';
+import { trackEvent } from '@/services/analytics';
 import { exitAppFullscreen } from '@/utils/fullscreen';
 
 interface BeforeInstallPromptEvent extends Event {

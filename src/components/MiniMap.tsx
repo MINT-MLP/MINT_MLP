@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { ensureKakaoMaps } from '@/utils/kakaoLoader';
+import { ensureKakaoMaps } from '@/services/kakaoLoader';
 import type { MapPin } from '@/types';
 import { MINT_HEX } from '@/constants/colors';
 

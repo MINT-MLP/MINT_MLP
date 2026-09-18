@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { IconFeedback } from '@/components/icons';
-import { trackEvent } from '@/utils/analytics';
-import { getDeviceId } from '@/utils/points';
+import { trackEvent } from '@/services/analytics';
+import { getDeviceId } from '@/storage/device';
 
 interface Props {
   hidden: boolean;      // 피드백 시트가 열려 있는 동안엔 비운다(언마운트는 하지 않는다 — 아래 주석)

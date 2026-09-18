@@ -1,8 +1,7 @@
-// 방문 인증·포인트·기기 식별 공용 헬퍼 (전부 클라이언트/localStorage — 신규 API 0개).
+// 방문 인증·포인트 공용 헬퍼 (기기 식별은 storage/device.ts) (전부 클라이언트/localStorage — 신규 API 0개).
 // 포인트 잔액/원장은 localStorage에 두되, 모든 적립·인증 이벤트는 events 테이블에도 남긴다(analytics).
 // localStorage가 유실돼도 events 원장으로 소급 복구할 수 있도록 payload에 device_id를 항상 싣는다.
 
-const DEVICE_KEY = 'mint_device_id';
 const BALANCE_KEY = 'mint_points_balance';
 const LEDGER_KEY = 'mint_points_ledger';
 const CERTIFIED_KEY = 'mint_certified_places';
@@ -13,22 +12,6 @@ export const VISIT_POINTS = 500;
 export const CERT_WINDOW_DAYS = 7;
 // GPS 인증 성공 반경(m)
 export const CERT_RADIUS_M = 300;
-
-// 기기 영구 식별자 — 로그인 없는 서비스에서 "누가"를 잇는 유일한 열쇠(발굴 소급·포인트 복구용)
-export function getDeviceId(): string {
-  try {
-    let id = localStorage.getItem(DEVICE_KEY);
-    if (!id) {
-      id = (typeof crypto !== 'undefined' && crypto.randomUUID)
-        ? crypto.randomUUID()
-        : `d_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
-      localStorage.setItem(DEVICE_KEY, id);
-    }
-    return id;
-  } catch {
-    return 'd_anon';
-  }
-}
 
 // 장소 표준 키 — place ID가 없으므로 이름+주소로 통일(찜·인증 중복 판정·조인 기준)
 export function placeKey(place: { placeName?: string; address?: string; area?: string }): string {

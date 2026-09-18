@@ -34,7 +34,7 @@ export default function CertShowcase() {
 
         {/* 결과 카드 미리보기 — 실제 카드에 뜨는 뱃지 모양 미러링 */}
         <div className="max-w-xs mx-auto mb-8 lg:mb-12">
-          <div className="rounded-2xl result-gradient shadow-lg shadow-teal-200 p-4 text-white">
+          <div className="rounded-2xl bg-course-first shadow-lg shadow-mint-500/30 p-4 text-white">
             <div className="flex items-center gap-1.5 mb-2">
               <span className="text-[11px] font-black bg-white/30 px-3 py-0.5 rounded-full border border-white/30">
                 한식

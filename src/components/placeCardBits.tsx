@@ -2,8 +2,9 @@
 // 같은 신뢰 요소(사진·적합도·영업중·혼잡도)를 '한 벌'로 공유하기 위한 순수 표현 헬퍼.
 // 액션(재추천·예약·총무)은 각 화면이 카드 바깥에서 조립한다 — 여긴 표현만.
 import type React from 'react';
+import { cn } from '@/utils/cn';
 import type { PlaceRecommendation } from '@/types';
-import { trackEvent } from '@/utils/analytics';
+import { trackEvent } from '@/services/analytics';
 import { findCertifications } from '@/constants/certifications';
 
 // 깨진 이미지는 흔적 없이 숨긴다 (네이버 썸네일 만료 대응)
@@ -11,11 +12,11 @@ export function hideOnError(e: React.SyntheticEvent<HTMLImageElement>) {
   e.currentTarget.style.display = 'none';
 }
 
-export function GpsPin({ className = '' }: { className?: string }) {
+export function GpsPin({ className }: { className?: string }) {
   return (
     <svg
       width="13" height="13" viewBox="0 0 24 24" fill="currentColor"
-      className={`shrink-0 ${className}`}
+      className={cn('shrink-0', className)}
     >
       <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
     </svg>
@@ -50,7 +51,7 @@ export function fitScoreReason(score: number): string {
   return '차선책이에요';
 }
 
-export function FitScoreBar({ score, className = '' }: { score?: number; className?: string }) {
+export function FitScoreBar({ score, className }: { score?: number; className?: string }) {
   if (score == null) return null;
   const pct = Math.min(100, Math.max(0, score));
   const color = pct >= 80 ? 'bg-white' : pct >= 60 ? 'bg-white/75' : 'bg-white/50';
@@ -59,7 +60,7 @@ export function FitScoreBar({ score, className = '' }: { score?: number; classNa
       <div className="flex items-center gap-2">
         <span className="text-[10px] text-white/60 font-bold shrink-0">적합도</span>
         <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-          <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
+          <div className={cn('h-full rounded-full transition-all', color)} style={{ width: `${pct}%` }} />
         </div>
         <span className="text-xs font-black text-white shrink-0">{score}점</span>
       </div>

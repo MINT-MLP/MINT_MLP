@@ -1,17 +1,17 @@
 import type { PlaceRecommendation } from '@/types';
 import WishlistButton from '@/components/WishlistButton';
 import { GpsPin, hideOnError, kakaoUrl, openPlace, certPrefix } from '@/components/placeCardBits';
+import { COURSE_TONE, type CourseTone } from '@/constants/colors';
+import { cn } from '@/utils/cn';
 
-// 대안 추천 카드 — 항상 펼쳐진 독립 카드
-export default function ResultAltsSection({ alts, accentColor = 'rgb(var(--mint-500))', label }: { alts: PlaceRecommendation[]; accentColor?: string; label?: string }) {
+// 대안 추천 카드 — 항상 펼쳐진 독립 카드. 색은 코스 톤(first/second/third)으로 받고 클래스는 COURSE_TONE에서 고른다
+export default function ResultAltsSection({ alts, tone = 'first', label }: { alts: PlaceRecommendation[]; tone?: CourseTone; label?: string }) {
   if (!alts.length) return null;
+  const t = COURSE_TONE[tone];
   return (
     <div className="flex flex-col gap-2">
       {label ? (
-        <span
-          className="self-start text-xs font-black text-white px-3 py-1 rounded-full"
-          style={{ background: accentColor }}
-        >
+        <span className={cn('self-start text-xs font-black text-white px-3 py-1 rounded-full', t.solid)}>
           {label}
         </span>
       ) : (
@@ -20,14 +20,13 @@ export default function ResultAltsSection({ alts, accentColor = 'rgb(var(--mint-
       {alts.map((p, idx) => (
         <div
           key={idx}
-          className="bg-white rounded-2xl border border-gray-100 border-l-4 p-3.5 shadow-sm cursor-pointer active:scale-[0.99] transition-transform"
-          style={{ borderLeftColor: accentColor }}
+          className={cn('bg-white rounded-2xl border border-gray-100 border-l-4 p-3.5 shadow-sm cursor-pointer active:scale-[0.99] transition-transform', t.borderL)}
           onClick={() => openPlace(kakaoUrl(p), 'place_click_candidate', p)}
         >
           <div className="flex items-start justify-between gap-2 mb-1">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-[10px] font-black text-white px-2 py-0.5 rounded-full shrink-0" style={{ background: accentColor }}>
+                <span className={cn('text-[10px] font-black text-white px-2 py-0.5 rounded-full shrink-0', t.solid)}>
                   #{idx + 2}
                 </span>
                 <p className="text-sm font-black text-gray-800 truncate">{certPrefix(p)}{p.placeName}</p>
@@ -36,7 +35,7 @@ export default function ResultAltsSection({ alts, accentColor = 'rgb(var(--mint-
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {p.fitScore != null && (
-                <span className="text-sm font-black" style={{ color: accentColor }}>{p.fitScore}점</span>
+                <span className={cn('text-sm font-black', t.text)}>{p.fitScore}점</span>
               )}
               <WishlistButton place={p} rank="candidate" source="result" tone="light" />
               {p.imageUrl && (

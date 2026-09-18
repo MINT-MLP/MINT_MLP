@@ -22,6 +22,12 @@ export default {
         kakao: '#FEE500',
         naver: '#03C75A',
       },
+      // 코스 카드 그라데이션. 135deg 고정(bg-gradient-to-br는 요소 비율 따라 각도가 변해 동일하지 않음)
+      // 키를 추가하면 src/utils/cn.ts의 twMerge 그룹(bg-course)에도 등록할 것
+      backgroundImage: {
+        'course-first':  'linear-gradient(135deg, rgb(var(--mint-500)) 0%, rgb(var(--mint-600)) 100%)',
+        'course-second': 'linear-gradient(135deg, rgb(var(--mint-800)) 0%, rgb(var(--mint-900)) 100%)',
+      },
     },
   },
   plugins: [],

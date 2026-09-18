@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import type { User } from '@supabase/supabase-js';
-import { getBalance, getLedger, getDeviceId } from '@/utils/points';
-import { loadHistory, openHistoryEntry } from '@/utils/history';
+import { getDeviceId } from '@/storage/device';
+import { getBalance, getLedger } from '@/storage/points';
+import { loadHistory, openHistoryEntry } from '@/storage/history';
 import {
   getSession, onAuthChange, signInWithKakao, signOut, syncProfile, deleteAccount,
   getNickname, getAvatarUrl, backfillHistoryIfNeeded, getActivityHistory, clearActivityCache,
-} from '@/utils/auth';
+} from '@/services/auth';
 import { IconUserCircle, IconGift, PointsBadge } from '@/components';
 import type { HistoryEntry, ActivityRow } from '@/types';
 

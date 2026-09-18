@@ -1,5 +1,5 @@
 // 총무 플랜 가격 프레임(A/B)·사전등록 상태 — 컴포넌트와 분리해 fast-refresh 안전.
-import { getDeviceId } from '@/utils/points';
+import { getDeviceId } from '@/storage/device';
 
 export type PlanFrame = 'monthly' | 'perhead';
 const FRAME_KEY = 'mint_plan_frame';

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { searchRegions, matchHotplaces } from '@/services/kakaoMap';
 import type { RegionSuggestion, RegionLevel, MeetingLocation } from '@/types';
-import { ensureKakaoMaps } from '@/utils/kakaoLoader';
+import { ensureKakaoMaps } from '@/services/kakaoLoader';
 
 interface Props {
   value: MeetingLocation | null;
@@ -212,7 +212,7 @@ export default function MeetingLocationSelect({ value, onSelect }: Props) {
                 onClick={() => selectPreset(r.id, r.label)}
                 className={`rounded-xl border-2 px-3 py-2.5 text-center active:scale-[0.97] transition-all ${
                   isManualSelected(r.id)
-                    ? 'border-mint-500 bg-teal-50'
+                    ? 'border-mint-500 bg-mint-100'
                     : 'border-gray-200 bg-white hover:border-mint-500'
                 }`}
               >
@@ -238,7 +238,7 @@ export default function MeetingLocationSelect({ value, onSelect }: Props) {
                 onClick={() => selectPreset(r.id, r.label)}
                 className={`rounded-xl border-2 px-3 py-2.5 text-center active:scale-[0.97] transition-all ${
                   isManualSelected(r.id)
-                    ? 'border-mint-500 bg-teal-50'
+                    ? 'border-mint-500 bg-mint-100'
                     : 'border-gray-200 bg-white hover:border-mint-500'
                 }`}
               >

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react';
-import { getBalance, getDeviceId } from '@/utils/points';
-import { trackEvent } from '@/utils/analytics';
+import { getDeviceId } from '@/storage/device';
+import { getBalance } from '@/storage/points';
+import { trackEvent } from '@/services/analytics';
 import { MOCK_COUPONS, type CouponBenefitType, type MintCoupon } from '@/pages/mock/data/coupons';
 import { getNotifyList, toggleNotify } from '@/pages/mock/couponNotify';
 import { PointsBadge } from '@/components';

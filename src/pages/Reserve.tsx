@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { trackEvent } from '@/utils/analytics';
+import { trackEvent } from '@/services/analytics';
 
 export interface ReservationRecord {
   id: string;
@@ -50,7 +50,7 @@ export default function Reserve({ placeName, address, openingHours, onBack }: Pr
 
         {/* 장소 정보 */}
         <div className="bg-white rounded-2xl border-2 border-gray-100 p-4 mb-4">
-          <span className="text-xs font-bold text-mint-500 bg-teal-50 px-2 py-0.5 rounded-full">예약 장소</span>
+          <span className="text-xs font-bold text-mint-500 bg-mint-100 px-2 py-0.5 rounded-full">예약 장소</span>
           <div className="mt-2 font-black text-gray-800 text-lg">{placeName}</div>
           {address && <div className="text-sm text-gray-500 mt-1">📍 {address}</div>}
           {openingHours && <div className="text-sm text-gray-500 mt-0.5">🕐 {openingHours}</div>}

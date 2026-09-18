@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { supabase } from '@/utils/supabase';
+import { supabase } from '@/services/supabase';
 import {
   getPilotHandoffs, markPilotHandoffUsed, summaryLine, topPlaceName, relativeTime,
-} from '@/utils/pilotHandoff';
+} from '@/storage/pilotHandoff';
 import type { PilotHandoff, CoursePick, PilotPrizeReward } from '@/types';
 
 type Phase = 'detect' | 'form-auto' | 'form-manual' | 'spinning' | 'reward' | 'soldout' | 'reclaim' | 'done';
@@ -378,7 +378,7 @@ function PaymentBox({ files, onChange }: { files: File[]; onChange: (f: File[]) 
         </div>
         <span className="text-[10px] font-bold text-red-400 bg-red-50 px-2 py-0.5 rounded-full shrink-0">필수</span>
       </div>
-      <label className="block border-2 border-dashed border-mint-500/60 rounded-2xl bg-[#F0FDF9] px-4 py-5 text-center active:scale-[0.99] transition-all cursor-pointer">
+      <label className="block border-2 border-dashed border-mint-500/60 rounded-2xl bg-mint-50 px-4 py-5 text-center active:scale-[0.99] transition-all cursor-pointer">
         <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => onChange(Array.from(e.target.files ?? []))} />
         <span className="block text-2xl mb-1">＋</span>
         <span className="block text-sm font-black text-mint-600 truncate">{fileLabel(files)}</span>

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { congestionDotClass } from '@/services/seoulData';
 import { MiniMap, WishlistButton, VisitCertModal } from '@/components';
-import { trackEvent } from '@/utils/analytics';
-import { getDeviceId } from '@/utils/points';
+import { trackEvent } from '@/services/analytics';
+import { getDeviceId } from '@/storage/device';
 import type { VoteCandidate, SlimPlace, SnapshotPayload } from '@/types';
+import { COURSE_TONE, type CourseTone } from '@/constants/colors';
+import { cn } from '@/utils/cn';
 
 // 공유 URL에 실려오는 투표 후보 (슬림 포맷: n=이름, c=카테고리, s=적합도)
 
@@ -198,7 +200,7 @@ export default function SharedResult() {
         )}
 
         {/* 메인 카드(1차) */}
-        <div className="result-gradient rounded-3xl overflow-hidden text-white shadow-xl shadow-mint-500/30 mb-4 animate-fade-in-up">
+        <div className="bg-course-first rounded-3xl overflow-hidden text-white shadow-xl shadow-mint-500/30 mb-4 animate-fade-in-up">
           {f.imageUrl && (
             <img src={f.imageUrl} alt={f.placeName} className="w-full h-40 object-cover" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           )}
@@ -255,10 +257,10 @@ export default function SharedResult() {
 
         {/* 2차·3차 코스 — 스냅샷 공유에만 존재(레거시 링크에선 자동 미표시) */}
         {result.second && (
-          <CourseCard place={result.second} label={`2차${result.purposeSecond ? ` · ${result.purposeSecond}` : ''}`} accent={800} mapLink={mapLink} />
+          <CourseCard place={result.second} label={`2차${result.purposeSecond ? ` · ${result.purposeSecond}` : ''}`} tone="second" mapLink={mapLink} />
         )}
         {result.third && (
-          <CourseCard place={result.third} label={`3차 · ${result.thirdLabel ?? '이어서'}`} accent={900} mapLink={mapLink} />
+          <CourseCard place={result.third} label={`3차 · ${result.thirdLabel ?? '이어서'}`} tone="third" mapLink={mapLink} />
         )}
 
         {f.lat && f.lng && (
@@ -299,18 +301,15 @@ export default function SharedResult() {
   );
 }
 
-// 2·3차 코스 요약 카드 — 흰 카드 + 코스 색 좌측 보더(결과 화면 3차 카드와 동일 문법)
-function CourseCard({ place, label, accent, mapLink }: { place: SlimPlace; label: string; accent: 800 | 900; mapLink: (p: SlimPlace) => string }) {
-  // 코스 색은 민트 토큰 단계(800=2차, 900=3차)로 받는다. 배지 배경의 0.102는 원래 헥스 알파 `1a`(=26/255)와 같은 값.
-  const accentColor = `rgb(var(--mint-${accent}))`;
-  const accentBg = `rgb(var(--mint-${accent}) / 0.102)`;
+// 2·3차 코스 요약 카드 — 흰 카드 + 코스 색 좌측 보더(결과 화면 3차 카드와 동일 문법). 색은 코스 톤(second/third)으로 받는다
+function CourseCard({ place, label, tone, mapLink }: { place: SlimPlace; label: string; tone: Extract<CourseTone, 'second' | 'third'>; mapLink: (p: SlimPlace) => string }) {
+  const t = COURSE_TONE[tone];
   return (
     <a
       href={mapLink(place)}
       target="_blank"
       rel="noreferrer"
-      className="relative block bg-white rounded-2xl border border-gray-200 border-l-4 p-4 mb-4 shadow-sm active:scale-[0.99] transition-transform"
-      style={{ borderLeftColor: accentColor }}
+      className={cn('relative block bg-white rounded-2xl border border-gray-200 border-l-4 p-4 mb-4 shadow-sm active:scale-[0.99] transition-transform', t.borderL)}
     >
       <div className="absolute top-3 right-3">
         <WishlistButton place={place} rank="candidate" source="shared" tone="light" />
@@ -320,7 +319,7 @@ function CourseCard({ place, label, accent, mapLink }: { place: SlimPlace; label
           <img src={place.imageUrl} alt={place.placeName} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         )}
         <div className="min-w-0 flex-1 pr-8">
-          <span className="inline-block text-[11px] font-bold px-2 py-0.5 rounded-full mb-1" style={{ color: accentColor, background: accentBg }}>{label}</span>
+          <span className={cn('inline-block text-[11px] font-bold px-2 py-0.5 rounded-full mb-1', t.text, t.tint)}>{label}</span>
           <p className="text-base font-black text-gray-800 leading-tight">{place.placeName}</p>
           {place.description && <p className="text-xs text-gray-500 leading-snug mt-0.5">{place.description}</p>}
           <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1.5">

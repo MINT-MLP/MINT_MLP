@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Coordinates, PlaceRecommendation, RegionScope, TravelTimeData, WeatherSummary } from '@/types';
-import { getBalance } from '@/utils/points';
+import { getBalance } from '@/storage/points';
 
 // 추천 결과 상태 — 장소·중간지점·소요시간·날씨·총무·결과 화면 UI 토글. 상태만 갖는다.
 export function useResultState() {

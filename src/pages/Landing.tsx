@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { trackEvent } from '@/utils/analytics';
+import { trackEvent } from '@/services/analytics';
 import { navigateInApp, requestAppFullscreen } from '@/utils/fullscreen';
 import { CertShowcase, LandingPhoneMockup, LandingHeroPhone, LandingKakaoBubble } from '@/components';
 import { useInstallPrompt } from '@/hooks';
@@ -58,7 +58,7 @@ export default function Landing() {
   const installButton = canInstall && (
     <button
       onClick={triggerInstall}
-      className="w-full flex items-center justify-center gap-2 bg-white border-2 border-mint-500 text-mint-600 font-bold text-base py-4 rounded-xl active:scale-95 transition-all hover:bg-teal-50"
+      className="w-full flex items-center justify-center gap-2 bg-white border-2 border-mint-500 text-mint-600 font-bold text-base py-4 rounded-xl active:scale-95 transition-all hover:bg-mint-100"
     >
       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -70,14 +70,14 @@ export default function Landing() {
   );
 
   return (
-    <div className="landing-root min-h-screen bg-[#F0FDF9]">
+    <div className="landing-root min-h-screen bg-mint-50">
 
       {/* ── NAV ── */}
-      <nav className="sticky top-0 z-50 bg-[#F0FDF9]/90 backdrop-blur border-b border-teal-100">
+      <nav className="sticky top-0 z-50 bg-mint-50/90 backdrop-blur border-b border-mint-200">
         <div className="max-w-lg lg:max-w-7xl mx-auto px-5 lg:px-8 py-3 flex items-center justify-between">
           <span className="flex items-baseline gap-1.5">
             <span className="text-xl lg:text-2xl font-black text-mint-500 tracking-tight">MINT</span>
-            <span className="hidden sm:inline text-[10px] lg:text-[11px] font-semibold text-[#8BD3C7] tracking-tight">Meet in one tap</span>
+            <span className="hidden sm:inline text-[10px] lg:text-[11px] font-semibold text-mint-500/70 tracking-tight">Meet in one tap</span>
           </span>
           <button
             onClick={goToApp}
@@ -96,7 +96,7 @@ export default function Landing() {
         <div className="max-w-lg lg:max-w-7xl mx-auto lg:w-full lg:px-8 lg:grid lg:grid-cols-[minmax(0,1fr)_560px] lg:gap-16 lg:items-center lg:-translate-y-8">
           {/* 좌: 카피 + CTA + 통계 */}
           <div className="text-center lg:text-left lg:w-full lg:justify-self-start">
-            <div className="inline-flex items-center gap-1.5 bg-teal-50 border border-teal-200 text-mint-600 text-xs font-bold px-4 py-1.5 rounded-full mb-6 lg:mb-7 lg:self-start">
+            <div className="inline-flex items-center gap-1.5 bg-mint-100 border border-mint-200 text-mint-600 text-xs font-bold px-4 py-1.5 rounded-full mb-6 lg:mb-7 lg:self-start">
               ✦ 그룹 만남 장소 큐레이션
             </div>
             <h1 className="text-4xl lg:text-6xl font-black text-gray-800 leading-tight mb-3 lg:mb-5">
@@ -108,7 +108,7 @@ export default function Landing() {
               이 모임에 <strong className="text-gray-800">딱 맞는 장소 3곳</strong>, 30초 안에 나옵니다.
             </p>
 
-            <div className="lg:hidden w-full max-w-xs mx-auto bg-white border border-teal-100 rounded-3xl p-4 shadow-sm mb-7 min-h-[104px] flex flex-col justify-center">
+            <div className="lg:hidden w-full max-w-xs mx-auto bg-white border border-mint-200 rounded-3xl p-4 shadow-sm mb-7 min-h-[104px] flex flex-col justify-center">
               <div key={comboIdx} className="animate-fade-in">
                 <div className="flex items-center justify-center gap-1.5 flex-wrap mb-2.5">
                   {combo.chips.map((c) => (
@@ -158,7 +158,7 @@ export default function Landing() {
                 { v: '딱 3곳', d: '선택 피로 제로' },
                 { v: '79만 곳', d: '전국 실존 장소 검증' },
               ].map((s, i) => (
-                <div key={s.v} className={`flex-1 flex flex-col items-center ${i > 0 ? 'border-l border-teal-100' : ''}`}>
+                <div key={s.v} className={`flex-1 flex flex-col items-center ${i > 0 ? 'border-l border-mint-200' : ''}`}>
                   <div className="text-2xl lg:text-3xl font-black text-mint-500 whitespace-nowrap">{s.v}</div>
                   <div className="text-xs lg:text-sm text-gray-500 mt-1 leading-tight">{s.d}</div>
                 </div>
@@ -171,7 +171,7 @@ export default function Landing() {
             {/* 배경 글로우 */}
             <div aria-hidden className="absolute inset-0 pointer-events-none">
               <div className="absolute top-6 right-8 h-72 w-72 rounded-full bg-mint-500/25 blur-3xl" />
-              <div className="absolute bottom-2 left-0 h-64 w-64 rounded-full bg-[#8FEAD9]/30 blur-3xl" />
+              <div className="absolute bottom-2 left-0 h-64 w-64 rounded-full bg-mint-500/20 blur-3xl" />
             </div>
 
             {/* 뒤: 입력(조건 선택) 화면 */}
@@ -186,7 +186,7 @@ export default function Landing() {
               src="/image/landing/hero-result.webp"
               alt="MINT 첫 추천 결과 예시"
               featured
-              className="absolute right-0 bottom-0 w-[298px] rotate-[3deg] z-20 shadow-[0_35px_70px_-20px_rgba(42,181,160,0.5)]"
+              className="absolute right-0 bottom-0 w-[298px] rotate-[3deg] z-20 hero-glow-mint"
             />
 
             {/* 플로팅: 상단 배지 — 입력→결과를 잇는 위치 */}
@@ -195,7 +195,7 @@ export default function Landing() {
             </div>
 
             {/* 플로팅: 하단 스탯 카드 */}
-            <div className="absolute left-1 bottom-9 z-30 flex items-center gap-2.5 rounded-2xl bg-white/95 px-4 py-3 shadow-xl shadow-teal-900/10 ring-1 ring-black/5 backdrop-blur rotate-[-3deg]">
+            <div className="absolute left-1 bottom-9 z-30 flex items-center gap-2.5 rounded-2xl bg-white/95 px-4 py-3 shadow-xl shadow-mint-900/10 ring-1 ring-black/5 backdrop-blur rotate-[-3deg]">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-mint-100 text-lg">⚡</span>
               <span className="text-left">
                 <span className="block text-sm font-black leading-none text-gray-800">30초 만에 완성</span>
@@ -220,7 +220,7 @@ export default function Landing() {
             <p className="text-base lg:text-lg text-gray-500 mb-6 leading-relaxed">
               장소 하나 정하는 데 30분. 결국 아무도 안 정해서 맨날 같은 곳.
             </p>
-            <div className="hidden lg:block bg-teal-50 border border-teal-100 rounded-2xl p-7 max-w-sm">
+            <div className="hidden lg:block bg-mint-100 border border-mint-200 rounded-2xl p-7 max-w-sm">
               <div className="text-base font-bold text-gray-500 mb-5">모임 장소 정하는 데 걸리는 시간</div>
               <div className="flex items-center gap-5">
                 <div>
@@ -266,7 +266,7 @@ export default function Landing() {
               </div>
             </div>
 
-            <div className="mt-6 lg:hidden bg-teal-50 border border-teal-100 rounded-2xl p-5">
+            <div className="mt-6 lg:hidden bg-mint-100 border border-mint-200 rounded-2xl p-5">
               <div className="text-sm font-bold text-gray-500 mb-3 text-center">모임 장소 정하는 데 걸리는 시간</div>
               <div className="flex items-center justify-center gap-4">
                 <div className="text-center">
@@ -400,7 +400,7 @@ export default function Landing() {
               </div>
 
               {/* 메뉴 콕 */}
-              <div className="rounded-2xl border-2 border-mint-500 bg-teal-50 p-5 lg:p-6">
+              <div className="rounded-2xl border-2 border-mint-500 bg-mint-100 p-5 lg:p-6">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-2xl">🎯</span>
                   <p className="text-lg font-bold text-gray-800">이건 꼭 먹고 싶어요</p>
@@ -527,7 +527,7 @@ export default function Landing() {
         })()}
 
         <div className="max-w-lg lg:max-w-2xl mx-auto px-6 mt-10 lg:mt-16">
-          <div className="bg-teal-50 border border-teal-100 rounded-2xl p-4 lg:p-6 text-center">
+          <div className="bg-mint-100 border border-mint-200 rounded-2xl p-4 lg:p-6 text-center">
             <p className="text-base lg:text-lg text-gray-600 leading-relaxed">
               "난 아무데나 괜찮아"가 진짜였는지,<br />
               <strong className="text-mint-600">몰래 고른 취향이 전부 반영</strong>됩니다. 눈치 게임 없이, 공평하게.
@@ -567,7 +567,7 @@ export default function Landing() {
                 ))}
               </ul>
             </div>
-            <div className="lg:flex-1 rounded-2xl border-2 border-mint-500 bg-teal-50 p-5 lg:p-7">
+            <div className="lg:flex-1 rounded-2xl border-2 border-mint-500 bg-mint-100 p-5 lg:p-7">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-6 h-6 rounded-md bg-mint-500 flex items-center justify-center flex-shrink-0">
                   <span className="text-white text-[10px] font-black leading-none">M</span>
@@ -597,7 +597,7 @@ export default function Landing() {
       ══════════════════════════════════════ */}
       <section className="fade-section">
         <div className="max-w-lg lg:max-w-5xl mx-auto px-6 py-14 lg:py-24">
-          <div className="rounded-3xl overflow-hidden p-6 lg:p-12 result-gradient shadow-xl shadow-teal-200">
+          <div className="rounded-3xl overflow-hidden p-6 lg:p-12 bg-course-first shadow-xl shadow-mint-500/30">
             <div className="lg:text-center">
               <p className="text-xs font-bold tracking-widest text-white/70 mb-3">REAL PICK</p>
               <h2 className="text-2xl lg:text-4xl font-bold text-white leading-tight mb-3">
@@ -695,11 +695,11 @@ export default function Landing() {
             결과 나오면 버튼 하나로 단톡방에 공유.<br />'여기 어때?' 한 줄이면 약속 끝.
           </p>
           <div className="flex items-center justify-center gap-2 flex-nowrap">
-            <span className="bg-teal-50 border border-teal-200 text-mint-600 text-sm lg:text-base font-bold px-4 lg:px-5 py-2 lg:py-2.5 rounded-full whitespace-nowrap">🍃 조건 선택</span>
+            <span className="bg-mint-100 border border-mint-200 text-mint-600 text-sm lg:text-base font-bold px-4 lg:px-5 py-2 lg:py-2.5 rounded-full whitespace-nowrap">🍃 조건 선택</span>
             <span className="text-mint-500 font-bold flex-shrink-0">→</span>
-            <span className="bg-teal-50 border border-teal-200 text-mint-600 text-sm lg:text-base font-bold px-4 lg:px-5 py-2 lg:py-2.5 rounded-full whitespace-nowrap">✨ 장소 추천</span>
+            <span className="bg-mint-100 border border-mint-200 text-mint-600 text-sm lg:text-base font-bold px-4 lg:px-5 py-2 lg:py-2.5 rounded-full whitespace-nowrap">✨ 장소 추천</span>
             <span className="text-mint-500 font-bold flex-shrink-0">→</span>
-            <div className="flex items-center gap-1.5 bg-teal-50 border border-teal-200 text-mint-600 text-sm lg:text-base font-bold px-3 lg:px-4 py-2 lg:py-2.5 rounded-full whitespace-nowrap flex-shrink-0">
+            <div className="flex items-center gap-1.5 bg-mint-100 border border-mint-200 text-mint-600 text-sm lg:text-base font-bold px-3 lg:px-4 py-2 lg:py-2.5 rounded-full whitespace-nowrap flex-shrink-0">
               <LandingKakaoBubble className="w-4 h-4" />
               카톡 공유
             </div>
@@ -778,14 +778,14 @@ export default function Landing() {
       {/* ══════════════════════════════════════
           FINAL CTA
       ══════════════════════════════════════ */}
-      <section className="bg-gradient-to-b from-[#F0FDF9] to-[#E8FBF3] fade-section">
+      <section className="bg-gradient-to-b from-mint-50 to-mint-100 fade-section">
         <div className="max-w-lg lg:max-w-3xl mx-auto px-6 py-14 lg:pt-20 lg:pb-28 text-center">
           <h2 className="text-3xl lg:text-6xl font-black text-gray-800 leading-tight mb-1">어디서 만나지?</h2>
           <h2 className="text-3xl lg:text-6xl font-black text-mint-500 leading-tight mb-3 lg:mb-4">MINT 하지, 뭐.</h2>
           <div className="flex items-center justify-center gap-2.5 mb-4 lg:mb-6">
-            <span className="h-px w-6 bg-teal-200" />
+            <span className="h-px w-6 bg-mint-200" />
             <span className="text-xs lg:text-sm font-bold text-mint-600 tracking-wide">MINT · Meet in one tap</span>
-            <span className="h-px w-6 bg-teal-200" />
+            <span className="h-px w-6 bg-mint-200" />
           </div>
           <p className="text-base lg:text-lg text-gray-500 mb-8">무료로 시작하세요. 회원가입도 없어요.</p>
           <div className="flex flex-col gap-3 w-full max-w-xs mb-6 mx-auto">
