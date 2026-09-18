@@ -201,9 +201,13 @@ export function validateNewPassword(
   if (value.length < PASSWORD_MIN) return { ok: false, error: '비밀번호는 8자 이상이어야 해요.' };
   if (value.length > PASSWORD_MAX) return { ok: false, error: '비밀번호는 64자 이하여야 해요.' };
   // 제어문자는 붙여넣기 사고(개행 포함)로만 들어온다 — 본인도 다시 못 치는 비밀번호가 된다.
-  // (제어문자를 "찾는" 것이 목적이라 no-control-regex는 여기선 정확히 의도한 바다)
-  // eslint-disable-next-line no-control-regex
-  if (/[ -]/.test(value)) {
+  // 정규식 이스케이프(\u0000 등)는 편집 도구를 거치며 실제 제어문자로 치환돼 소스에 NUL이 박히는
+  // 사고가 있었다. 그래서 정규식 대신 코드포인트를 직접 본다 — 동작은 같고 소스는 순수 ASCII다.
+  const hasControlChar = Array.from(value).some((ch) => {
+    const code = ch.charCodeAt(0);
+    return code < 0x20 || code === 0x7f;
+  });
+  if (hasControlChar) {
     return { ok: false, error: '비밀번호에 쓸 수 없는 문자가 있어요.' };
   }
   if (value === (current ?? '').trim()) {
