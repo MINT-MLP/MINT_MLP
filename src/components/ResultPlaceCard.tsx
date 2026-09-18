@@ -3,21 +3,22 @@ import type { PlaceRecommendation } from '@/types';
 import { congestionDotClass } from '@/services/seoulData';
 import type { CongestionLevel } from '@/services/seoulData';
 import { findCertifications } from '@/constants/certifications';
-import { trackEvent } from '@/utils/analytics';
+import { trackEvent } from '@/services/analytics';
 import WishlistButton from '@/components/WishlistButton';
 import ResultCertSheet from '@/components/ResultCertSheet';
 import { GpsPin, hideOnError, parseOpenStatus, congestionInfo, FitScoreBar, kakaoUrl, openPlace, certPrefix } from '@/components/placeCardBits';
+import { COURSE_TONE, type CourseTone } from '@/constants/colors';
+import { cn } from '@/utils/cn';
 
 // 메인(1차) 장소 카드 — 사진·인증 뱃지·추천 이유·적합도·영업 상태·더보기. 카드 탭 = 카카오맵.
 interface Props {
   place: PlaceRecommendation;
   extraResults?: PlaceRecommendation[];
-  gradient: string;
-  shadowColor: string;
+  tone: CourseTone;
   wishRank?: 'first' | 'second' | 'candidate';
 }
 
-export default function ResultPlaceCard({ place, extraResults = [], gradient, shadowColor, wishRank = 'first' }: Props) {
+export default function ResultPlaceCard({ place, extraResults = [], tone, wishRank = 'first' }: Props) {
   const [moreVisible, setMoreVisible] = useState(false);
   const [openCertId, setOpenCertId] = useState<string | null>(null);
   const openStatus = parseOpenStatus(place.openingHours);
@@ -33,8 +34,7 @@ export default function ResultPlaceCard({ place, extraResults = [], gradient, sh
       role="link"
       tabIndex={0}
       aria-label={`${place.placeName} 카카오맵에서 열기`}
-      className={`rounded-2xl text-white overflow-hidden cursor-pointer active:scale-[0.99] transition-transform shadow-xl outline-none focus-visible:ring-2 focus-visible:ring-[#3CDBC0] focus-visible:ring-offset-2 ${shadowColor}`}
-      style={{ background: gradient }}
+      className={cn('rounded-2xl text-white overflow-hidden cursor-pointer active:scale-[0.99] transition-transform shadow-xl outline-none focus-visible:ring-2 focus-visible:ring-mint-500 focus-visible:ring-offset-2', COURSE_TONE[tone].card)}
       onClick={() => openPlace(url, 'place_click_rank1', place)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPlace(url, 'place_click_rank1', place); } }}
     >

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { getDeviceId } from '@/utils/points';
-import { trackEvent } from '@/utils/analytics';
-import { isPreregistered, markPreregistered, type PlanFrame } from '@/utils/plan';
+import { getDeviceId } from '@/storage/device';
+import { trackEvent } from '@/services/analytics';
+import { isPreregistered, markPreregistered, type PlanFrame } from '@/storage/treasurerPlan';
 
 // 총무 플랜 '자세히 알아보기' 상세 시트 — 구독하면 어떤 서비스가 실현되는지 보여준다.
 // 결제·기능은 없다(가짜 문). 순수 가격 검증 + 사전등록. 가격 프레임은 기기별 A/B 고정.
@@ -49,7 +49,7 @@ export default function TreasurerPlanSheet({ frame, onClose }: { frame: PlanFram
   return (
     <div className="fixed inset-0 z-50 bg-black/50" onClick={close}>
       <div
-        className="fixed inset-x-0 bottom-0 z-50 max-w-md mx-auto bg-[#F5FBF8] rounded-t-3xl max-h-[85dvh] flex flex-col animate-fade-in-up"
+        className="fixed inset-x-0 bottom-0 z-50 max-w-md mx-auto bg-mint-50 rounded-t-3xl max-h-[85dvh] flex flex-col animate-fade-in-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}
@@ -63,7 +63,7 @@ export default function TreasurerPlanSheet({ frame, onClose }: { frame: PlanFram
           <div className="pt-1 pb-4">
             <h2 className="text-[22px] font-black text-gray-900 leading-snug break-keep">
               정산은 모임통장이 해요.<br />
-              그럼 <span className="text-[#2AB5A0]">장소</span>는 누가 정하죠?
+              그럼 <span className="text-mint-600">장소</span>는 누가 정하죠?
             </h2>
             <p className="text-sm text-gray-500 mt-2 leading-relaxed break-keep">
               — 아직도 총무님이잖아요. MINT가 그 '장소 독박'을 대신 풀어드릴게요.
@@ -82,7 +82,7 @@ export default function TreasurerPlanSheet({ frame, onClose }: { frame: PlanFram
           </div>
 
           {/* 섹션 2 — MINT가 대신 하는 일 */}
-          <p className="text-[11px] font-bold text-[#2AB5A0] uppercase tracking-widest px-1 mb-2">MINT가 대신 하는 일</p>
+          <p className="text-[11px] font-bold text-mint-600 uppercase tracking-widest px-1 mb-2">MINT가 대신 하는 일</p>
           <div className="flex flex-col gap-2 mb-4">
             {DOISS.map((d) => (
               <div key={d.pain} className="bg-white rounded-2xl border border-gray-100 p-3.5">
@@ -93,7 +93,7 @@ export default function TreasurerPlanSheet({ frame, onClose }: { frame: PlanFram
                     <p className="text-sm font-bold text-gray-800 leading-snug mt-0.5 break-keep">{d.solve}</p>
                   </div>
                   <span className={`shrink-0 text-[10px] font-black px-2 py-1 rounded-full ${
-                    d.live ? 'bg-[#E8F8F5] text-[#2AB5A0]' : 'bg-amber-50 text-amber-600'
+                    d.live ? 'bg-mint-100 text-mint-600' : 'bg-amber-50 text-amber-600'
                   }`}>
                     {d.live ? '지금도 돼요' : '플랜에서 열려요'}
                   </span>
@@ -103,7 +103,7 @@ export default function TreasurerPlanSheet({ frame, onClose }: { frame: PlanFram
           </div>
 
           {/* 섹션 3 — 가격 */}
-          <div className="bg-gradient-to-br from-[#3CDBC0] to-[#2AB5A0] rounded-2xl p-5 text-white text-center mb-3">
+          <div className="bg-gradient-to-br from-mint-500 to-mint-600 rounded-2xl p-5 text-white text-center mb-3">
             <p className="text-3xl font-black">{priceHero.big}</p>
             <p className="text-sm opacity-90 mt-1 break-keep">{priceHero.sub}</p>
           </div>
@@ -114,7 +114,7 @@ export default function TreasurerPlanSheet({ frame, onClose }: { frame: PlanFram
         <div className="shrink-0 px-5 pt-3 pb-[max(2rem,calc(env(safe-area-inset-bottom)+0.75rem))] bg-white border-t border-gray-100">
           {prereg ? (
             <div className="text-center py-2">
-              <p className="text-sm font-black text-[#2AB5A0]">✓ 사전등록 완료!</p>
+              <p className="text-sm font-black text-mint-600">✓ 사전등록 완료!</p>
               <p className="text-xs text-gray-400 mt-0.5">출시되면 제일 먼저 알려드릴게요.</p>
             </div>
           ) : showEmail ? (
@@ -125,7 +125,7 @@ export default function TreasurerPlanSheet({ frame, onClose }: { frame: PlanFram
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="이메일 (얼리버드 혜택용 · 선택)"
-                className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 bg-white text-sm outline-none focus:border-[#3CDBC0]"
+                className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 bg-white text-sm outline-none focus:border-mint-500"
               />
               <p className="text-[10px] text-gray-400 px-1 -mt-0.5">출시 알림 용도로만 써요</p>
               <div className="flex gap-2">
@@ -136,7 +136,7 @@ export default function TreasurerPlanSheet({ frame, onClose }: { frame: PlanFram
                   onClick={() => preregister(true)}
                   disabled={!/^\S+@\S+\.\S+$/.test(email.trim())}
                   className={`flex-1 py-3 rounded-2xl font-black text-sm transition-all active:scale-95 ${
-                    /^\S+@\S+\.\S+$/.test(email.trim()) ? 'bg-[#3CDBC0] text-white' : 'bg-gray-200 text-gray-400'
+                    /^\S+@\S+\.\S+$/.test(email.trim()) ? 'bg-mint-500 text-white' : 'bg-gray-200 text-gray-400'
                   }`}
                 >
                   등록
@@ -146,7 +146,7 @@ export default function TreasurerPlanSheet({ frame, onClose }: { frame: PlanFram
           ) : (
             <button
               onClick={() => setShowEmail(true)}
-              className="w-full py-4 rounded-2xl bg-[#3CDBC0] text-white font-black text-base shadow-lg shadow-[#3CDBC0]/30 active:scale-95 transition-transform"
+              className="w-full py-4 rounded-2xl bg-mint-500 text-white font-black text-base shadow-lg shadow-mint-500/30 active:scale-95 transition-transform"
             >
               출시되면 제일 먼저 알려주세요 🔔
             </button>

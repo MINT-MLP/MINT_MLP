@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
 import { clientIp, checkRateLimit } from './_lib/guard.js';
+import { verifyAdminPassword } from './_lib/adminAuth.js';
 
 const FEEDBACK_BUCKET = 'pilot-feedback'; // 인증 이미지(공개)
 const PRIZE_BUCKET = 'pilot-prizes';       // 기프티콘(비공개 — 서명 URL로만)
@@ -98,11 +99,12 @@ async function claimPrize(
   return null;
 }
 
-function requireAdmin(rawBody: Record<string, unknown>): string | null {
-  const adminPassword = (process.env.ADMIN_PASSWORD ?? '').trim();
-  if (!adminPassword) return 'ADMIN_PASSWORD 환경변수가 설정되지 않았어요.';
-  if (rawBody.password !== adminPassword) return '__unauth__';
-  return null;
+// 어드민 인증 — admin-data와 같은 헬퍼(Supabase admin_credentials, 없으면 env ADMIN_PASSWORD 폴백).
+// 반환 계약은 그대로 유지: null(통과) | '__unauth__'(401) | 설정오류 메시지(500)
+async function requireAdmin(supabase: SupabaseClient, rawBody: Record<string, unknown>): Promise<string | null> {
+  const auth = await verifyAdminPassword(supabase, rawBody.password);
+  if (auth.ok) return null;
+  return auth.reason === 'unauth' ? '__unauth__' : '어드민 비밀번호가 설정되지 않았어요.';
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -116,7 +118,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // ───────────────────────── 어드민: 제출 데이터 조회 ─────────────────────────
   if (action === 'admin-list') {
-    const authErr = requireAdmin(rawBody);
+    const authErr = await requireAdmin(supabase, rawBody);
     if (authErr === '__unauth__') return res.status(401).json({ error: '비밀번호가 틀렸어요' });
     if (authErr) return res.status(500).json({ error: authErr });
 
@@ -165,7 +167,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // ─────────────── 어드민: 기프티콘 업로드용 서명 URL 발급 ───────────────
   if (action === 'admin-prize-upload-url') {
-    const authErr = requireAdmin(rawBody);
+    const authErr = await requireAdmin(supabase, rawBody);
     if (authErr === '__unauth__') return res.status(401).json({ error: '비밀번호가 틀렸어요' });
     if (authErr) return res.status(500).json({ error: authErr });
 
@@ -187,7 +189,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // ─────────────── 어드민: 업로드된 기프티콘을 재고로 등록 ───────────────
   if (action === 'admin-prize-register') {
-    const authErr = requireAdmin(rawBody);
+    const authErr = await requireAdmin(supabase, rawBody);
     if (authErr === '__unauth__') return res.status(401).json({ error: '비밀번호가 틀렸어요' });
     if (authErr) return res.status(500).json({ error: authErr });
 
@@ -219,7 +221,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // ─────────────── 어드민: 재고/지급 현황 조회 ───────────────
   if (action === 'admin-prize-list') {
-    const authErr = requireAdmin(rawBody);
+    const authErr = await requireAdmin(supabase, rawBody);
     if (authErr === '__unauth__') return res.status(401).json({ error: '비밀번호가 틀렸어요' });
     if (authErr) return res.status(500).json({ error: authErr });
 
@@ -253,7 +255,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // ─────────────── 어드민: 재고 void(무효화) ───────────────
   if (action === 'admin-prize-void') {
-    const authErr = requireAdmin(rawBody);
+    const authErr = await requireAdmin(supabase, rawBody);
     if (authErr === '__unauth__') return res.status(401).json({ error: '비밀번호가 틀렸어요' });
     if (authErr) return res.status(500).json({ error: authErr });
 

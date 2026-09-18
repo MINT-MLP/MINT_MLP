@@ -26,7 +26,7 @@ export default function ResultCertSheet({ source, onClose }: { source: CertSourc
         )}
         <button
           onClick={onClose}
-          className="w-full mt-5 py-3.5 rounded-2xl bg-[#3CDBC0] text-white font-black active:scale-[0.98] transition-transform"
+          className="w-full mt-5 py-3.5 rounded-2xl bg-mint-500 text-white font-black active:scale-[0.98] transition-transform"
         >
           {source.ctaLabel}
         </button>

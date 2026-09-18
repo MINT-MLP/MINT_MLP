@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
-import { trackEvent } from '@/utils/analytics';
-import { getDeviceId } from '@/utils/points';
+import { trackEvent } from '@/services/analytics';
+import { getDeviceId } from '@/storage/device';
 import type { TabKey } from '@/types';
 
 interface Props {
@@ -102,9 +102,9 @@ function TabButton({ tab, active, onClick }: { tab: Tab; active: boolean; onClic
       onClick={onClick}
       aria-label={tab.label}
       aria-current={active ? 'page' : undefined}
-      className={`flex flex-col items-center justify-center gap-0.5 py-1 active:scale-95 transition-transform ${active ? 'text-[#2AB5A0]' : 'text-gray-400'}`}
+      className={`flex flex-col items-center justify-center gap-0.5 py-1 active:scale-95 transition-transform ${active ? 'text-mint-600' : 'text-gray-400'}`}
     >
-      <span className={`flex items-center justify-center rounded-xl px-2.5 py-1 transition-colors duration-200 ${active ? 'bg-[#E8F8F5]' : 'bg-transparent'}`}>
+      <span className={`flex items-center justify-center rounded-xl px-2.5 py-1 transition-colors duration-200 ${active ? 'bg-mint-100' : 'bg-transparent'}`}>
         <tab.Icon active={active} />
       </span>
       <span className="text-[11px] font-bold">{tab.label}</span>

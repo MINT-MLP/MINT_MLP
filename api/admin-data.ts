@@ -1,7 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
+import { verifyAdminPassword, validateNewPassword, setAdminPassword } from './_lib/adminAuth.js';
+import { clientIp, checkRateLimit } from './_lib/guard.js';
 
-// 어드민 데이터 API — 비밀번호는 서버 env(ADMIN_PASSWORD)에서만 검증.
+// 어드민 데이터 API — 비밀번호는 Supabase admin_credentials(없으면 env ADMIN_PASSWORD 폴백)로 검증
+// — api/_lib/adminAuth.ts.
 // 기존에는 클라이언트 하드코딩 비밀번호 + anon 키 직접 select였다(누구나 예약자 명단 열람 가능).
 // 이 엔드포인트 + RLS 차단(sql/security.sql)으로 이전.
 //
@@ -134,21 +137,40 @@ function toIso(v: unknown): string | null {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const adminPassword = (process.env.ADMIN_PASSWORD ?? '').trim();
-  if (!adminPassword) {
-    return res.status(500).json({ error: 'ADMIN_PASSWORD 환경변수가 설정되지 않았어요. Vercel 대시보드에서 설정해주세요.' });
+  const supabase = getSupabaseAdmin();   // 인증보다 먼저 — DB 해시를 읽어야 하므로
+  const body = (req.body ?? {}) as {
+    password?: unknown; action?: string; id?: string; from?: string; to?: string; newPassword?: unknown;
+  };
+
+  // 비밀번호가 사용자 변경 가능해졌으니 브루트포스를 막아둔다. 어드민은 하루 수십 번뿐이라
+  // 분당 30회면 사람 사용에는 절대 안 걸리고, 자동 대입은 바로 걸린다.
+  // 일일 상한은 IP 단위 — 엔드포인트 합계로 재면 운영자끼리 서로를 막게 된다.
+  const gate = await checkRateLimit(supabase, 'admin-auth', clientIp(req), 30, 1000, 'ip');
+  if (!gate.allowed) {
+    return res.status(429).json({ error: '요청이 너무 잦아요. 잠시 후 다시 시도해주세요.' });
   }
 
-  const body = (req.body ?? {}) as { password?: string; action?: string; id?: string; from?: string; to?: string };
-  if (body.password !== adminPassword) {
+  const auth = await verifyAdminPassword(supabase, body.password);
+  if (!auth.ok) {
+    if (auth.reason === 'unconfigured') {
+      return res.status(500).json({ error: '어드민 비밀번호가 설정되지 않았어요. ADMIN_PASSWORD 환경변수 또는 admin_credentials 행이 필요해요.' });
+    }
     return res.status(401).json({ error: '비밀번호가 틀렸어요' });
   }
-
-  const supabase = getSupabaseAdmin();
   if (!supabase) return res.status(500).json({ error: 'Supabase 설정이 없습니다.' });
 
   try {
     switch (body.action) {
+      case 'change_password': {
+        // 현재 비밀번호는 위에서 이미 검증됐다(body.password). 여기선 새 비밀번호만 본다.
+        const current = typeof body.password === 'string' ? body.password : '';
+        const checked = validateNewPassword(body.newPassword, current);
+        if (!checked.ok) return res.status(400).json({ error: checked.error });
+        const saved = await setAdminPassword(supabase, checked.value);
+        if (!saved.ok) return res.status(500).json({ error: saved.error });
+        console.info('[admin-data] 어드민 비밀번호 변경됨');   // 값은 절대 로그에 남기지 않는다
+        return res.status(200).json({ ok: true });
+      }
       case 'delete_reservation': {
         if (!body.id) return res.status(400).json({ error: 'id가 필요해요.' });
         await supabase.from('reservations').delete().eq('id', body.id);
@@ -502,7 +524,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           eventsTruncated,
         };
 
-        return res.status(200).json({ analytics, reservations, userFeedback });
+        // passwordSource: 비밀번호가 아직 env에 있는지(= 운영자가 직접 못 바꾸는 상태인지) 어드민에 알린다.
+        return res.status(200).json({ analytics, reservations, userFeedback, passwordSource: auth.source });
       }
     }
   } catch (e) {

@@ -25,9 +25,9 @@ export default function StepProgress({ current, total, labels, onStepClick, isSt
                 <div
                   className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
                     i < current
-                      ? 'bg-[#3CDBC0] text-white'
+                      ? 'bg-mint-500 text-white'
                       : i === current
-                      ? 'bg-[#3CDBC0] text-white shadow-lg shadow-[#3CDBC0]/40'
+                      ? 'bg-mint-500 text-white shadow-lg shadow-mint-500/40'
                       : 'bg-gray-200 text-gray-400'
                   }`}
                 >
@@ -35,7 +35,7 @@ export default function StepProgress({ current, total, labels, onStepClick, isSt
                 </div>
                 <span
                   className={`text-[10px] font-medium ${
-                    i <= current ? 'text-[#2AB5A0]' : 'text-gray-400'
+                    i <= current ? 'text-mint-600' : 'text-gray-400'
                   }`}
                 >
                   {label}
@@ -65,7 +65,7 @@ export default function StepProgress({ current, total, labels, onStepClick, isSt
         </div>
         <div className="relative h-1.5 bg-gray-200 rounded-full overflow-hidden">
           <div
-            className="absolute inset-y-0 left-0 bg-[#3CDBC0] rounded-full transition-all duration-500 ease-in-out"
+            className="absolute inset-y-0 left-0 bg-mint-500 rounded-full transition-all duration-500 ease-in-out"
             style={{ width: `${progress * 100}%` }}
           />
         </div>

@@ -31,11 +31,11 @@ export default function VibeKeywordTagInput({
           onBlur={commit}
           placeholder={placeholder}
           maxLength={20}
-          className="flex-1 min-w-0 border-2 rounded-xl px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none bg-white transition-colors border-[#3CDBC0]/50 focus:border-[#3CDBC0]"
+          className="flex-1 min-w-0 border-2 rounded-xl px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none bg-white transition-colors border-mint-500/50 focus:border-mint-500"
         />
         <button
           onClick={commit}
-          className="flex-shrink-0 px-4 rounded-xl text-white text-sm font-bold transition-all active:scale-95 bg-[#3CDBC0] hover:bg-[#2AB5A0]"
+          className="flex-shrink-0 px-4 rounded-xl text-white text-sm font-bold transition-all active:scale-95 bg-mint-500 hover:bg-mint-600"
         >
           추가
         </button>
@@ -46,7 +46,7 @@ export default function VibeKeywordTagInput({
             <button
               key={k}
               onClick={() => onChange(keywords.filter((x) => x !== k))}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white border text-xs font-bold transition-all active:scale-95 border-[#3CDBC0]/50 text-[#2AB5A0]"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white border text-xs font-bold transition-all active:scale-95 border-mint-500/50 text-mint-600"
             >
               <span>#{k}</span>
               <span className="opacity-60">×</span>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { getWishlist, removeWish, wishMapLink } from '@/utils/wishlist';
-import { getDeviceId } from '@/utils/points';
-import { trackEvent } from '@/utils/analytics';
+import { getWishlist, removeWish, wishMapLink } from '@/storage/wishlist';
+import { getDeviceId } from '@/storage/device';
+import { trackEvent } from '@/services/analytics';
 import type { WishItem } from '@/types';
 
 // 내 찜 목록 바텀시트 — 저장한 곳을 모아 보고 지도로 바로 열기.
@@ -42,7 +42,7 @@ export default function WishlistSheet({ onClose }: { onClose: () => void }) {
             {items.map((w) => (
               <div
                 key={w.place_key}
-                className="flex items-center gap-3 bg-[#F5FBF8] border border-gray-100 rounded-2xl px-3.5 py-3"
+                className="flex items-center gap-3 bg-mint-50 border border-gray-100 rounded-2xl px-3.5 py-3"
               >
                 <a
                   href={wishMapLink(w)}

@@ -15,7 +15,7 @@ export const GOODPRICE: CertSource = {
   id: 'goodprice',
   label: '착한가격',
   emoji: '🪙',
-  badgeTextColor: '#2AB5A0',
+  badgeTextColor: 'rgb(var(--mint-600))',
   priority: 3,
   sheetTitle: '착한가격업소',
   sheetBody:

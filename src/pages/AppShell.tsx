@@ -5,9 +5,9 @@ import MyMeetings from '@/pages/mock/MyMeetings';
 import Discover from '@/pages/mock/Discover';
 import MintShop from '@/pages/mock/MintShop';
 import Profile from '@/pages/Profile';
-import { clearRecommendSession, loadResultSummary } from '@/utils/history';
-import { trackEvent } from '@/utils/analytics';
-import { bindOutboxExitFlush, flushOutbox } from '@/utils/feedback';
+import { clearRecommendSession, loadResultSummary } from '@/storage/history';
+import { trackEvent } from '@/services/analytics';
+import { bindOutboxExitFlush, flushOutbox } from '@/storage/feedback';
 import type { TabKey, ResultSummary } from '@/types';
 
 // /app 셸 — 홈 탭의 콘텐츠는 항상 추천 플로우(Home)다.
@@ -59,7 +59,7 @@ export default function AppShell() {
   }, []);
 
   return (
-    <div className="bg-[#F5FBF8]" style={{ minHeight: 'var(--mint-app-height, 100dvh)' }}>
+    <div className="bg-mint-50" style={{ minHeight: 'var(--mint-app-height, 100dvh)' }}>
       {/* 탭 전환 crossfade — key로 재마운트해 150ms opacity 페이드인만 준다.
           가로 슬라이드는 넣지 않는다(과함). 기존 index.css의 fadeIn을 재사용하되
           .animate-fade-in이 animation 단축 속성(0.45s)이라 유틸리티 클래스로는

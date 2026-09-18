@@ -17,10 +17,12 @@
     "@supabase/supabase-js": "^2.105.0",
     "autoprefixer": "^10.5.0",
     "axios": "^1.15.2",
+    "clsx": "^2.1.1",
     "postcss": "^8.5.15",
     "proj4": "^2.20.9",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "tailwind-merge": "^2.6.1",
     "tailwindcss": "^3.4.19"
   },
   "devDependencies": {

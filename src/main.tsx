@@ -2,9 +2,9 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from '@/App'
-import { initErrorLogging } from '@/utils/errorLog'
-import { captureAttribution } from '@/utils/attribution'
-import { trackEvent } from '@/utils/analytics'
+import { initErrorLogging } from '@/services/errorLog'
+import { captureAttribution } from '@/services/attribution'
+import { trackEvent } from '@/services/analytics'
 
 initErrorLogging()
 

@@ -4,8 +4,8 @@
 // 그 다음에야 네트워크를 탄다. 네트워크는 전송 수단일 뿐 진실의 원본이 아니다 —
 // 그래서 화면은 전송 결과를 기다리지 않고 즉시 성공으로 넘어가도 거짓말이 아니다.
 
-import { getDeviceId } from '@/utils/points';
-import { getSessionKey, trackEvent } from '@/utils/analytics';
+import { getDeviceId } from '@/storage/device';
+import { getSessionKey, trackEvent } from '@/services/analytics';
 import type { FeedbackCategory, FeedbackDraft, FeedbackPayload, FeedbackInput } from '@/types';
 
 const DRAFT_KEY = 'mint_feedback_draft';

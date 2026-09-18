@@ -8,6 +8,7 @@ import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
 import { placeKey } from './_lib/placeKey.js';
 import { computeFinalScores } from './_lib/scoring.js';
 import { fetchCongestion } from './_lib/congestion.js';
+import { safeEqualStr } from './_lib/adminAuth.js';
 
 interface NaverPlace {
   name: string;
@@ -1237,9 +1238,14 @@ ${fitScoreGuide}
     // 파이널리스트 12곳 JSON이 잘리지 않도록 넉넉하게. non-streaming이라 timeout 여유 안에서 8192.
     const MAX_TOKENS = 8192;
     // 모델 A/B 실험용 오버라이드 — 관리자 키 일치 시에만 (일반 사용자 요청에는 영향 없음)
+    // 사람용 어드민 비밀번호(Supabase admin_credentials)와 별개인 기계용 키다 — curl로 수동
+    // A/B할 때만 쓴다. ADMIN_BENCH_KEY 우선, 없으면 종전대로 ADMIN_PASSWORD.
+    const benchKey = (process.env.ADMIN_BENCH_KEY ?? process.env.ADMIN_PASSWORD ?? '').trim();
+    const headerKey = req.headers['x-admin-key'];
     const benchModel = typeof req.body._benchModel === 'string'
-      && !!process.env.ADMIN_PASSWORD
-      && req.headers['x-admin-key'] === process.env.ADMIN_PASSWORD
+      && !!benchKey
+      && typeof headerKey === 'string'
+      && safeEqualStr(headerKey, benchKey)
       ? req.body._benchModel : null;
     // 후보 선별+L3 재정렬 구조라 모델 상한에 둔감 → 로딩 최적화를 위해 가장 빠른 haiku-4.5로.
     // (Claude는 서버가 준 실존 후보에서 '선택·채점'만 하므로 저지연 모델로도 품질 유지)

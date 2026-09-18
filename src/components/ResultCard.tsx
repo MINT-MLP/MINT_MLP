@@ -6,11 +6,13 @@ import ResultAltsSection from '@/components/ResultAltsSection';
 import WishlistButton from '@/components/WishlistButton';
 import VisitCertModal from '@/components/VisitCertModal';
 import TreasurerPlanSheet from '@/components/TreasurerPlanSheet';
-import { trackEvent } from '@/utils/analytics';
-import { getPlanFrame, planPriceLabel, isPreregistered } from '@/utils/plan';
-import { getDeviceId } from '@/utils/points';
+import { trackEvent } from '@/services/analytics';
+import { getPlanFrame, planPriceLabel, isPreregistered } from '@/storage/treasurerPlan';
+import { getDeviceId } from '@/storage/device';
 import { rollTreasurerRule } from '@/utils/treasurer';
 import { GpsPin, hideOnError, parseOpenStatus, congestionInfo, FitScoreBar, kakaoUrl, openPlace } from '@/components/placeCardBits';
+import { COURSE_TONE } from '@/constants/colors';
+import { cn } from '@/utils/cn';
 
 interface Props {
   results: PlaceRecommendation[];
@@ -94,19 +96,19 @@ export default function ResultCard({
 
       {/* 개인화 설득 배너 — "내 취향을 반영했다"는 체감 */}
       {(matchChips.length > 0 || excludeFoods.length > 0) && (
-        <div className="bg-[#E8F8F5] border border-[#3CDBC0]/30 rounded-2xl px-4 py-3 flex flex-col gap-1">
+        <div className="bg-mint-100 border border-mint-500/30 rounded-2xl px-4 py-3 flex flex-col gap-1">
           {matchChips.length > 0 && (
-            <p className="text-xs text-[#2AB5A0] leading-relaxed">
+            <p className="text-xs text-mint-600 leading-relaxed">
               <span className="font-black">
                 {matchChips.map((c) => `#${c}`).join(' ')}
               </span>
-              <span className="text-[#2AB5A0]/80"> 취향에 딱 맞는 곳으로 골랐어요</span>
+              <span className="text-mint-600/80"> 취향에 딱 맞는 곳으로 골랐어요</span>
             </p>
           )}
           {excludeFoods.length > 0 && (
-            <p className="text-xs text-[#2AB5A0] leading-relaxed">
+            <p className="text-xs text-mint-600 leading-relaxed">
               <span className="font-black">🚫 {excludeFoods.join(', ')}</span>
-              <span className="text-[#2AB5A0]/80"> 못 드시는 건 빼고 골랐어요</span>
+              <span className="text-mint-600/80"> 못 드시는 건 빼고 골랐어요</span>
             </p>
           )}
         </div>
@@ -119,11 +121,11 @@ export default function ResultCard({
             {/* 왼쪽: 목적지 토글 */}
             <button
               onClick={toggleDest}
-              className={`flex items-center gap-1 text-xs font-black px-2 py-0.5 rounded-full transition-colors ${canToggleDest ? 'text-[#2AB5A0] bg-[#E8F8F5] active:bg-[#3CDBC0]/20' : 'text-gray-700'}`}
+              className={`flex items-center gap-1 text-xs font-black px-2 py-0.5 rounded-full transition-colors ${canToggleDest ? 'text-mint-600 bg-mint-100 active:bg-mint-500/20' : 'text-gray-700'}`}
             >
-              <GpsPin className="text-[#3CDBC0]" />
+              <GpsPin className="text-mint-500" />
               <span className="truncate max-w-[140px]">{destLabel}까지</span>
-              {canToggleDest && <span className="text-[#3CDBC0] text-[10px]">⇅</span>}
+              {canToggleDest && <span className="text-mint-500 text-[10px]">⇅</span>}
             </button>
             {/* 오른쪽: 교통수단 토글 */}
             <button
@@ -136,7 +138,7 @@ export default function ResultCard({
           </div>
           {activeTimes === null ? (
             <div className="flex items-center gap-2 text-sm text-gray-400">
-              <div className="w-3.5 h-3.5 border-2 border-[#3CDBC0] border-t-transparent rounded-full animate-spin-slow" />
+              <div className="w-3.5 h-3.5 border-2 border-mint-500 border-t-transparent rounded-full animate-spin-slow" />
               계산 중...
             </div>
           ) : activeTimes.length === 0 ? (
@@ -148,7 +150,7 @@ export default function ResultCard({
                   <div key={i} className="flex items-center gap-1 text-xs">
                     <span className="text-gray-500 truncate max-w-[80px]">{t.label}</span>
                     <span className="text-gray-400">→ 약</span>
-                    <span className={`font-black ${t.error ? 'text-gray-400' : 'text-[#3CDBC0]'}`}>
+                    <span className={`font-black ${t.error ? 'text-gray-400' : 'text-mint-500'}`}>
                       {t.formatted}
                     </span>
                   </div>
@@ -166,7 +168,7 @@ export default function ResultCard({
       {/* 1차 라벨 + 힌트 */}
       <div className="flex items-center justify-between -mt-1">
         {hasSecond ? (
-          <span className="text-xs font-black bg-[#3CDBC0] text-white px-3 py-1 rounded-full">
+          <span className={cn('text-xs font-black text-white px-3 py-1 rounded-full', COURSE_TONE.first.solid)}>
             1차 추천 {purpose!.first}
           </span>
         ) : <span />}
@@ -177,8 +179,7 @@ export default function ResultCard({
       <ResultPlaceCard
         place={result}
         extraResults={[]}
-        gradient="linear-gradient(135deg, #3CDBC0 0%, #2AB5A0 100%)"
-        shadowColor="shadow-[#3CDBC0]/25"
+        tone="first"
       />
 
       {/* 코스 지도 — 1차·2차·대안 위치를 한 장에 (대안은 회색 점) */}
@@ -204,11 +205,11 @@ export default function ResultCard({
       )}
 
       {/* 1차 대안 추천 — 1차 카드 바로 아래에 붙여 소속을 명확히 */}
-      {!hasSecond && <ResultAltsSection alts={extraFirstResults} accentColor="#3CDBC0" />}
+      {!hasSecond && <ResultAltsSection alts={extraFirstResults} tone="first" />}
       {hasSecond && extraFirstResults.length > 0 && (
         <ResultAltsSection
           alts={extraFirstResults}
-          accentColor="#3CDBC0"
+          tone="first"
           label={`1차 ${purpose!.first} · 다른 추천 ${extraFirstResults.length}곳`}
         />
       )}
@@ -216,11 +217,11 @@ export default function ResultCard({
       {/* 도보 정중앙 + 2차 배지 왼쪽 */}
       {hasSecond && secondResult && (
         <div className="relative flex items-center py-1">
-          <span className="text-xs font-black bg-[#1A7A6E] text-white px-3 py-1 rounded-full">
+          <span className={cn('text-xs font-black text-white px-3 py-1 rounded-full', COURSE_TONE.second.solid)}>
             2차 추천 {purpose!.second}
           </span>
           <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 text-xs text-gray-400 font-medium pointer-events-none">
-            <span className="text-[#3CDBC0] text-base leading-none">↓</span>
+            <span className="text-mint-500 text-base leading-none">↓</span>
             <span>도보 약 {result.walkingToNext ? `${result.walkingToNext}분` : '10~15분'}</span>
           </div>
         </div>
@@ -235,8 +236,7 @@ export default function ResultCard({
             role="link"
             tabIndex={0}
             aria-label={`${secondResult.placeName} 카카오맵에서 열기`}
-            className="rounded-2xl text-white shadow-xl shadow-[#1A7A6E]/25 overflow-hidden cursor-pointer active:scale-[0.99] transition-transform outline-none focus-visible:ring-2 focus-visible:ring-[#3CDBC0] focus-visible:ring-offset-2"
-            style={{ background: 'linear-gradient(135deg, #1A7A6E 0%, #155E54 100%)' }}
+            className={cn('rounded-2xl text-white shadow-xl overflow-hidden cursor-pointer active:scale-[0.99] transition-transform outline-none focus-visible:ring-2 focus-visible:ring-mint-500 focus-visible:ring-offset-2', COURSE_TONE.second.card)}
             onClick={() => openPlace(kakaoUrl(secondResult), 'place_click_second', secondResult)}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPlace(kakaoUrl(secondResult), 'place_click_second', secondResult); } }}
           >
@@ -310,7 +310,7 @@ export default function ResultCard({
       {hasSecond && extraSecondResults.length > 0 && (
         <ResultAltsSection
           alts={extraSecondResults}
-          accentColor="#1A7A6E"
+          tone="second"
           label={`2차 ${purpose!.second} · 다른 추천 ${extraSecondResults.length}곳`}
         />
       )}
@@ -319,14 +319,14 @@ export default function ResultCard({
       {thirdResult && (
         <>
           <div className="relative flex items-center py-1">
-            <span className="text-xs font-black bg-[#0F4E46] text-white px-3 py-1 rounded-full">
+            <span className={cn('text-xs font-black text-white px-3 py-1 rounded-full', COURSE_TONE.third.solid)}>
               3차 · {thirdLabel ?? '이어서 가기'}
             </span>
             {(() => {
               const walk = hasSecond ? secondResult?.walkingToNext : result.walkingToNext;
               return (
                 <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 text-xs text-gray-400 font-medium pointer-events-none">
-                  <span className="text-[#3CDBC0] text-base leading-none">↓</span>
+                  <span className="text-mint-500 text-base leading-none">↓</span>
                   <span>도보 약 {walk ? `${walk}분` : '5~10분'}</span>
                 </div>
               );
@@ -339,7 +339,7 @@ export default function ResultCard({
             rel="noreferrer"
             onClick={() => trackEvent('place_click_third', { placeName: thirdResult.placeName, address: thirdResult.address })}
             aria-label={`${thirdResult.placeName} 카카오맵에서 열기`}
-            className="block rounded-2xl bg-white border border-gray-200 border-l-4 border-l-[#0F4E46] p-3.5 shadow-sm active:scale-[0.99] transition-transform outline-none focus-visible:ring-2 focus-visible:ring-[#0F4E46] focus-visible:ring-offset-2"
+            className={cn('block rounded-2xl bg-white border border-gray-200 border-l-4 p-3.5 shadow-sm active:scale-[0.99] transition-transform outline-none focus-visible:ring-2 focus-visible:ring-mint-900 focus-visible:ring-offset-2', COURSE_TONE.third.borderL)}
           >
             <div className="flex items-start gap-3">
               {thirdResult.imageUrl && (
@@ -352,7 +352,7 @@ export default function ResultCard({
                 />
               )}
               <div className="min-w-0 flex-1">
-                <span className="inline-block text-[11px] font-bold text-[#0F4E46] bg-[#0F4E46]/10 px-2 py-0.5 rounded-full mb-1">{thirdResult.category}</span>
+                <span className={cn('inline-block text-[11px] font-bold px-2 py-0.5 rounded-full mb-1', COURSE_TONE.third.text, COURSE_TONE.third.tint)}>{thirdResult.category}</span>
                 <p className="text-base font-black text-gray-800 leading-tight">{thirdResult.placeName}</p>
                 {thirdResult.description && (
                   <p className="text-xs text-gray-500 leading-snug mt-0.5 break-keep">{thirdResult.description}</p>
@@ -383,7 +383,7 @@ export default function ResultCard({
                 <button
                   key={reason}
                   onClick={() => onReject(reason)}
-                  className="flex flex-col items-center justify-center gap-0.5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs font-bold hover:border-[#3CDBC0] hover:text-[#2AB5A0] hover:bg-[#E8F8F5] transition-all active:scale-95"
+                  className="flex flex-col items-center justify-center gap-0.5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs font-bold hover:border-mint-500 hover:text-mint-600 hover:bg-mint-100 transition-all active:scale-95"
                 >
                   <span className="text-base leading-none">{emoji}</span>
                   <span>{label}</span>
@@ -397,7 +397,7 @@ export default function ResultCard({
         <div className="flex gap-2 pt-1 border-t border-gray-100">
           <button
             onClick={onRetry}
-            className="flex-1 py-2.5 rounded-xl bg-[#E8F8F5] text-[#2AB5A0] font-black text-sm flex items-center justify-center gap-1.5 hover:bg-[#d4f3ee] transition-all active:scale-95"
+            className="flex-1 py-2.5 rounded-xl bg-mint-100 text-mint-600 font-black text-sm flex items-center justify-center gap-1.5 hover:bg-mint-200 transition-all active:scale-95"
           >
             <span className="text-base">🔄</span>
             <span>다른 곳 보기</span>
@@ -405,7 +405,7 @@ export default function ResultCard({
           {onAdjust && (
             <button
               onClick={onAdjust}
-              className="flex-1 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-500 font-bold text-sm flex items-center justify-center gap-1.5 hover:border-[#3CDBC0] hover:text-[#2AB5A0] transition-all active:scale-95"
+              className="flex-1 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-500 font-bold text-sm flex items-center justify-center gap-1.5 hover:border-mint-500 hover:text-mint-600 transition-all active:scale-95"
             >
               <span className="text-base">🎚️</span>
               <span>취향 조절</span>
@@ -417,7 +417,7 @@ export default function ResultCard({
       {/* ── 방문 인증 → 포인트 (추천→실제 방문 전환율 씨앗) ── */}
       <button
         onClick={() => { trackEvent('visit_cert_open', { device_id: getDeviceId(), place_key: `${result.placeName}|${result.address ?? ''}`, source: 'result' }); setShowVisitCert(true); }}
-        className="w-full py-3 rounded-2xl bg-[#E8F8F5] border-2 border-[#3CDBC0]/40 text-[#2AB5A0] font-black text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
+        className="w-full py-3 rounded-2xl bg-mint-100 border-2 border-mint-500/40 text-mint-600 font-black text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
       >
         <span className="text-lg">📍</span>
         <span>여기 방문 인증하고 500P 받기</span>
@@ -440,7 +440,7 @@ export default function ResultCard({
         </button>
         <button
           onClick={onReserve}
-          className="flex-1 py-2.5 rounded-2xl border border-gray-200 bg-white text-gray-500 font-bold text-sm flex items-center justify-center gap-2 hover:border-[#3CDBC0] hover:text-[#2AB5A0] transition-all active:scale-95"
+          className="flex-1 py-2.5 rounded-2xl border border-gray-200 bg-white text-gray-500 font-bold text-sm flex items-center justify-center gap-2 hover:border-mint-500 hover:text-mint-600 transition-all active:scale-95"
         >
           <span className="text-lg">📋</span>
           <span>예약 문의</span>
@@ -511,7 +511,7 @@ export default function ResultCard({
               )}
               <button
                 onClick={() => setShowTreasurerPopup(false)}
-                className="flex-1 py-3 rounded-2xl bg-[#3CDBC0] text-white font-black text-base active:scale-95 transition-transform"
+                className="flex-1 py-3 rounded-2xl bg-mint-500 text-white font-black text-base active:scale-95 transition-transform"
               >
                 확인
               </button>

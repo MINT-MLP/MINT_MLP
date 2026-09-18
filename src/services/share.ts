@@ -1,5 +1,5 @@
 // 결과 공유 — 스냅샷 저장(짧은 링크) + 카카오톡 공유 시트 + 폴백(네이티브 공유/클립보드)
-import { trackEvent } from '@/utils/analytics';
+import { trackEvent } from '@/services/analytics';
 
 // 공유 투표용 ID (세션 아님 — 공유 클릭마다 새로 발급)
 const SHARE_ID_CHARS = 'abcdefghijkmnpqrstuvwxyz23456789';

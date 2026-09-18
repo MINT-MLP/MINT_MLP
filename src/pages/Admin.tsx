@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { isTrackingPaused, setTrackingPaused } from '@/utils/analytics';
+import { isTrackingPaused, setTrackingPaused } from '@/services/analytics';
 import type { ReservationRecord } from '@/pages/Reserve';
-import { AdminPasswordGate, AdminStatCard, AdminBarRow, AdminMiniStat, AdminFunnelStep } from '@/components';
+import { AdminPasswordGate, AdminPasswordChangeCard, AdminStatCard, AdminBarRow, AdminMiniStat, AdminFunnelStep } from '@/components';
 import { pct, pctLabel, formatDuration, formatDate, formatRelative } from '@/utils/format';
 import { downloadCsv } from '@/utils/csv';
 import { callAdmin } from '@/services/admin';
@@ -53,12 +53,12 @@ interface UserFeedbackRow {
 }
 
 // 미분류(null)까지 한 자리를 준다 — 안 고르고 보낸 사람이 제일 많을 수 있다
-const FEEDBACK_CATEGORIES: { key: string; label: string; badge: string; color: string }[] = [
-  { key: 'bug', label: '🐞 버그', badge: 'bg-red-50 text-red-500', color: '#EF4444' },
-  { key: 'pain', label: '😣 불편', badge: 'bg-amber-50 text-amber-600', color: '#F59E0B' },
-  { key: 'idea', label: '💡 아이디어', badge: 'bg-blue-50 text-blue-500', color: '#3B82F6' },
-  { key: 'praise', label: '💚 칭찬', badge: 'bg-[#E8F8F5] text-[#2AB5A0]', color: '#36CFA0' },
-  { key: '', label: '미분류', badge: 'bg-gray-100 text-gray-400', color: '#94A3B8' },
+const FEEDBACK_CATEGORIES: { key: string; label: string; badge: string; bar: `bg-${string}` }[] = [
+  { key: 'bug', label: '🐞 버그', badge: 'bg-red-50 text-red-500', bar: 'bg-red-500' },
+  { key: 'pain', label: '😣 불편', badge: 'bg-amber-50 text-amber-600', bar: 'bg-amber-500' },
+  { key: 'idea', label: '💡 아이디어', badge: 'bg-blue-50 text-blue-500', bar: 'bg-blue-500' },
+  { key: 'praise', label: '💚 칭찬', badge: 'bg-mint-100 text-mint-600', bar: 'bg-mint-500' },
+  { key: '', label: '미분류', badge: 'bg-gray-100 text-gray-400', bar: 'bg-slate-400' },
 ];
 
 interface AdminAnalytics {
@@ -222,6 +222,8 @@ export default function Admin() {
   const [paused, setPaused] = useState(() => isTrackingPaused());
   const [dbError, setDbError] = useState<string | null>(null);
   const [range, setRange] = useState<RangeKey>('all');
+  // 지금 로그인에 쓰인 비밀번호가 어디서 왔는지 — 'env'면 아직 한 번도 안 바꾼 상태다
+  const [passwordSource, setPasswordSource] = useState<'db' | 'env' | null>(null);
 
   const a = analytics;
   const rejectTotal = a.rejectExpensive + a.rejectFar + a.rejectVibe;
@@ -247,11 +249,13 @@ export default function Admin() {
     analytics?: Partial<AdminAnalytics>;
     reservations?: ReservationRecord[];
     userFeedback?: UserFeedbackRow[];
+    passwordSource?: 'db' | 'env';
   }) {
     // 서버가 아직 새 필드를 안 보내는 배포 시점에도 기본값으로 안전하게 렌더된다.
     setAnalytics({ ...EMPTY_ANALYTICS, ...(data.analytics ?? {}) });
     setRecords(Array.isArray(data.reservations) ? data.reservations : []);
     setFeedback(Array.isArray(data.userFeedback) ? data.userFeedback : []);
+    setPasswordSource(data.passwordSource ?? null);
   }
 
   async function loadData(pw: string, r: RangeKey = range) {
@@ -434,42 +438,57 @@ export default function Admin() {
     setPaused(next);
   }
 
+  // 비밀번호 변경. 현재 비밀번호는 password state를 재사용하지 않고 사용자가 방금 친 값을 쓴다
+  // (방치된 탭을 남이 잡아 비밀번호를 바꿔버리는 걸 막는다).
+  async function handleChangePassword(current: string, next: string) {
+    await callAdmin(current, { action: 'change_password', newPassword: next });
+    // 저장이 끝났으면 새 비밀번호가 실제로 통하는지 바로 확인한다 — 여기서 실패하면
+    // 화면을 새로고침한 순간 아무도 못 들어가는 상태이므로 복구 방법까지 알려줘야 한다.
+    try {
+      const data = await callAdmin(next, { from: rangeToFrom(range) });
+      setPassword(next);
+      applyData(data);
+    } catch {
+      throw new Error('저장은 됐는데 새 비밀번호로 확인 로그인이 실패했어요. 새로고침 후 새 비밀번호로 다시 시도하고, 그래도 안 되면 Supabase에서 admin_credentials 행을 삭제하면 기존 환경변수 비밀번호로 돌아가요.');
+    }
+  }
+
   if (!password) return <AdminPasswordGate onUnlock={handleUnlock} verifying={verifying} error={gateError} />;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F5FBF8] flex items-center justify-center">
+      <div className="min-h-screen bg-mint-50 flex items-center justify-center">
         <p className="text-gray-400">불러오는 중...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F5FBF8]">
+    <div className="min-h-screen bg-mint-50">
       <div className="max-w-3xl mx-auto px-4 pt-8 pb-16">
 
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-black text-[#2AB5A0]">MINT 어드민</h1>
+            <h1 className="text-2xl font-black text-mint-600">MINT 어드민</h1>
             <p className="text-sm text-gray-400">데이터 대시보드</p>
           </div>
           <div className="flex items-center gap-2">
             <a
               href="/pilot-admin"
-              className="text-xs bg-white border border-gray-200 text-gray-500 px-2.5 py-1 rounded-full hover:border-[#36CFA0] hover:text-[#36CFA0] transition-colors"
+              className="text-xs bg-white border border-gray-200 text-gray-500 px-2.5 py-1 rounded-full hover:border-mint-500 hover:text-mint-500 transition-colors"
             >
               선발대 피드백 →
             </a>
             <button
               onClick={() => loadData(password)}
-              className="text-xs bg-white border border-gray-200 text-gray-500 px-2.5 py-1 rounded-full hover:border-[#36CFA0] hover:text-[#36CFA0] transition-colors"
+              className="text-xs bg-white border border-gray-200 text-gray-500 px-2.5 py-1 rounded-full hover:border-mint-500 hover:text-mint-500 transition-colors"
             >
               새로고침
             </button>
             <button
               onClick={handleExport}
-              className="text-xs bg-white border border-gray-200 text-gray-500 px-2.5 py-1 rounded-full hover:border-[#36CFA0] hover:text-[#36CFA0] transition-colors"
+              className="text-xs bg-white border border-gray-200 text-gray-500 px-2.5 py-1 rounded-full hover:border-mint-500 hover:text-mint-500 transition-colors"
             >
               CSV
             </button>
@@ -483,7 +502,7 @@ export default function Admin() {
               key={key}
               onClick={() => handleRange(key)}
               className={`text-xs font-bold px-3 py-1.5 rounded-full transition-all ${
-                range === key ? 'bg-[#36CFA0] text-white' : 'bg-white border border-gray-200 text-gray-400 hover:text-gray-600'
+                range === key ? 'bg-mint-500 text-white' : 'bg-white border border-gray-200 text-gray-400 hover:text-gray-600'
               }`}
             >
               {label}
@@ -512,6 +531,16 @@ export default function Admin() {
           </div>
         )}
 
+        {/* 비밀번호가 아직 env에 있으면 운영자는 스스로 바꿀 수 없다 — 한 번 바꾸라고 계속 알린다. */}
+        {passwordSource === 'env' && (
+          <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <div className="text-sm font-bold text-amber-700 mb-1">⚠️ 비밀번호가 아직 Vercel 환경변수에 있어요</div>
+            <div className="text-xs text-amber-600">
+              아래 "어드민 비밀번호"에서 한 번 바꾸면 이후엔 여기서 직접 관리할 수 있어요.
+            </div>
+          </div>
+        )}
+
         {/* 데이터 수집 일시정지 토글 */}
         <div className="mb-6">
           <button
@@ -531,7 +560,7 @@ export default function Admin() {
                 </div>
               </div>
             </div>
-            <div className={`w-10 h-6 rounded-full transition-colors relative ${paused ? 'bg-orange-400' : 'bg-[#3CDBC0]'}`}>
+            <div className={`w-10 h-6 rounded-full transition-colors relative ${paused ? 'bg-orange-400' : 'bg-mint-500'}`}>
               <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${paused ? 'left-1' : 'left-5'}`} />
             </div>
           </button>
@@ -592,7 +621,7 @@ export default function Admin() {
                       </span>
                     </span>
                     <span className="text-right shrink-0">
-                      <span className="block font-black text-[#36CFA0]">유입 {row.entries}</span>
+                      <span className="block font-black text-mint-500">유입 {row.entries}</span>
                       {/* 비율의 분자는 recommend_shown이다. recommend_request는 재추천·조정마다 다시 쏘여서
                           한 명이 "다시 추천"을 세 번 누르면 400%가 나오고, 재시도가 많다는 부정 신호가
                           화면에선 성과처럼 보인다. 요청 수는 절대수로만 남긴다. */}
@@ -631,9 +660,9 @@ export default function Admin() {
               <p className="text-xs text-gray-400 text-center py-3">아직 거절 기록이 없어요.</p>
             ) : (
               <div className="flex flex-col gap-2">
-                <AdminBarRow label="비쌈" count={a.rejectExpensive} total={rejectTotal} color="#F59E0B" />
-                <AdminBarRow label="멀어요" count={a.rejectFar} total={rejectTotal} color="#EF4444" />
-                <AdminBarRow label="분위기" count={a.rejectVibe} total={rejectTotal} color="#8B5CF6" />
+                <AdminBarRow label="비쌈" count={a.rejectExpensive} total={rejectTotal} bar="bg-amber-500" />
+                <AdminBarRow label="멀어요" count={a.rejectFar} total={rejectTotal} bar="bg-red-500" />
+                <AdminBarRow label="분위기" count={a.rejectVibe} total={rejectTotal} bar="bg-violet-500" />
                 <div className="text-[11px] text-gray-400 mt-1 pt-2 border-t border-gray-50">총 {rejectTotal}건 거절</div>
               </div>
             )}
@@ -650,7 +679,7 @@ export default function Admin() {
               ) : (
                 <div className="flex flex-col gap-2">
                   <AdminBarRow label="새로" count={a.retryFresh} total={retryTotal} />
-                  <AdminBarRow label="조정" count={a.retryAdjust} total={retryTotal} color="#0EA5E9" />
+                  <AdminBarRow label="조정" count={a.retryAdjust} total={retryTotal} bar="bg-sky-500" />
                 </div>
               )}
             </div>
@@ -663,8 +692,8 @@ export default function Admin() {
               ) : (
                 <div className="flex flex-col gap-2">
                   <AdminBarRow label="캐치" count={a.deeplinkCatchtable} total={deeplinkTotal} />
-                  <AdminBarRow label="네이버" count={a.deeplinkNaver} total={deeplinkTotal} color="#22C55E" />
-                  <AdminBarRow label="카카오맵" count={a.deeplinkKakaomap} total={deeplinkTotal} color="#EAB308" />
+                  <AdminBarRow label="네이버" count={a.deeplinkNaver} total={deeplinkTotal} bar="bg-green-500" />
+                  <AdminBarRow label="카카오맵" count={a.deeplinkKakaomap} total={deeplinkTotal} bar="bg-yellow-500" />
                 </div>
               )}
             </div>
@@ -685,9 +714,9 @@ export default function Admin() {
             ) : (
               <div className="flex flex-col gap-2">
                 <AdminBarRow label="1순위" count={a.placeClickRank1} total={placeClickTotal} />
-                <AdminBarRow label="2차" count={a.placeClickSecond} total={placeClickTotal} color="#1A7A6E" />
-                <AdminBarRow label="대안" count={a.placeClickCandidate} total={placeClickTotal} color="#0EA5E9" />
-                <AdminBarRow label="3차" count={a.placeClickThird} total={placeClickTotal} color="#8B5CF6" />
+                <AdminBarRow label="2차" count={a.placeClickSecond} total={placeClickTotal} bar="bg-mint-800" />
+                <AdminBarRow label="대안" count={a.placeClickCandidate} total={placeClickTotal} bar="bg-sky-500" />
+                <AdminBarRow label="3차" count={a.placeClickThird} total={placeClickTotal} bar="bg-violet-500" />
                 <div className="text-[11px] text-gray-400 mt-1 pt-2 border-t border-gray-50">
                   후보 펼침 {a.candidatesExpand}회 · 인증 뱃지 열람 {a.certBadgeOpen}회
                 </div>
@@ -728,10 +757,10 @@ export default function Admin() {
             ) : (
               <div className="flex flex-col gap-2">
                 <AdminBarRow label={TAB_LABELS.home} count={tabCounts.home ?? 0} total={tabTotal} />
-                <AdminBarRow label={TAB_LABELS.meetings} count={tabCounts.meetings ?? 0} total={tabTotal} color="#0EA5E9" />
-                <AdminBarRow label={TAB_LABELS.discover} count={tabCounts.discover ?? 0} total={tabTotal} color="#8B5CF6" />
-                <AdminBarRow label={TAB_LABELS.shop} count={tabCounts.shop ?? 0} total={tabTotal} color="#F59E0B" />
-                <AdminBarRow label={TAB_LABELS.profile} count={tabCounts.profile ?? 0} total={tabTotal} color="#94A3B8" />
+                <AdminBarRow label={TAB_LABELS.meetings} count={tabCounts.meetings ?? 0} total={tabTotal} bar="bg-sky-500" />
+                <AdminBarRow label={TAB_LABELS.discover} count={tabCounts.discover ?? 0} total={tabTotal} bar="bg-violet-500" />
+                <AdminBarRow label={TAB_LABELS.shop} count={tabCounts.shop ?? 0} total={tabTotal} bar="bg-amber-500" />
+                <AdminBarRow label={TAB_LABELS.profile} count={tabCounts.profile ?? 0} total={tabTotal} bar="bg-slate-400" />
                 <div className="text-[11px] text-gray-400 mt-1 pt-2 border-t border-gray-50">
                   총 {a.tabClicksTotal || tabTotal}회 이동 · 빈 모임 CTA 클릭 {a.meetingsEmptyCtaClicks}회
                 </div>
@@ -757,7 +786,7 @@ export default function Admin() {
             ) : (
               <div className="flex flex-col gap-2">
                 {shopFilterEntries.map(([key, count]) => (
-                  <AdminBarRow key={key} label={SHOP_FILTER_LABELS[key] ?? key} count={count} total={shopFilterTotal} color="#F59E0B" />
+                  <AdminBarRow key={key} label={SHOP_FILTER_LABELS[key] ?? key} count={count} total={shopFilterTotal} bar="bg-amber-500" />
                 ))}
                 <div className="text-[11px] text-gray-400 mt-1 pt-2 border-t border-gray-50">총 {a.shopFilterClicksTotal || shopFilterTotal}회 필터</div>
               </div>
@@ -779,7 +808,7 @@ export default function Admin() {
                       </span>
                     </span>
                     <span className="text-right shrink-0">
-                      <span className="block font-black text-[#36CFA0]">{cp.net}건</span>
+                      <span className="block font-black text-mint-500">{cp.net}건</span>
                       {cp.removes > 0 && <span className="block text-[11px] text-gray-300">취소 {cp.removes}</span>}
                     </span>
                   </div>
@@ -835,9 +864,9 @@ export default function Admin() {
               <p className="text-xs text-gray-400 text-center py-3">아직 참석 응답이 없어요.</p>
             ) : (
               <div className="flex flex-col gap-2">
-                <AdminBarRow label="가요" count={a.rsvpGoing} total={rsvpTotal} color="#22C55E" />
-                <AdminBarRow label="못가요" count={a.rsvpNotGoing} total={rsvpTotal} color="#EF4444" />
-                <AdminBarRow label="미정" count={a.rsvpUndecided} total={rsvpTotal} color="#94A3B8" />
+                <AdminBarRow label="가요" count={a.rsvpGoing} total={rsvpTotal} bar="bg-green-500" />
+                <AdminBarRow label="못가요" count={a.rsvpNotGoing} total={rsvpTotal} bar="bg-red-500" />
+                <AdminBarRow label="미정" count={a.rsvpUndecided} total={rsvpTotal} bar="bg-slate-400" />
                 <div className="text-[11px] text-gray-400 mt-1 pt-2 border-t border-gray-50">총 {a.rsvpSubmitTotal || rsvpTotal}건 응답</div>
               </div>
             )}
@@ -865,7 +894,7 @@ export default function Admin() {
         {/* ── 상시 유저 피드백 ── */}
         <section className="mb-8">
           <h2 className="text-sm font-black text-gray-600 mb-3">
-            💬 유저 피드백 <span className="text-[#2AB5A0]">{feedback.length}건</span>
+            💬 유저 피드백 <span className="text-mint-600">{feedback.length}건</span>
           </h2>
           {/* 퍼널을 원문 목록과 한 섹션에 둔다 — 목적이 "어제 만든 피드백 기능이 살아 있나"의 확인이라
               원문이 0건일 때 열림/제출 숫자가 바로 옆에 있어야 원인을 가릴 수 있다. */}
@@ -896,7 +925,7 @@ export default function Admin() {
               {/* 집계는 카드 하나로 족하다 — 검색·필터·상태관리는 만들지 않는다 */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 flex flex-col gap-2">
                 {feedbackCounts.map((cat) => (
-                  <AdminBarRow key={cat.key || 'none'} label={cat.label} count={cat.count} total={feedback.length} color={cat.color} />
+                  <AdminBarRow key={cat.key || 'none'} label={cat.label} count={cat.count} total={feedback.length} bar={cat.bar} />
                 ))}
               </div>
               <div className="flex flex-col gap-2">
@@ -916,7 +945,7 @@ export default function Admin() {
                       </div>
                       {f.contact && (
                         // 연락처를 남겼다는 건 답을 기다린다는 뜻이다 — 목록에서 눈에 띄어야 한다
-                        <div className="mt-1.5 text-xs font-bold text-[#2AB5A0] bg-[#E8F8F5] rounded-lg px-2.5 py-1.5">
+                        <div className="mt-1.5 text-xs font-bold text-mint-600 bg-mint-100 rounded-lg px-2.5 py-1.5">
                           ✉️ 답장 대상 · {f.contact}
                         </div>
                       )}
@@ -930,7 +959,7 @@ export default function Admin() {
 
         {/* ── 예약 목록 ── */}
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-black text-gray-600">📋 예약 요청 <span className="text-[#2AB5A0]">{records.length}건</span></h2>
+          <h2 className="text-sm font-black text-gray-600">📋 예약 요청 <span className="text-mint-600">{records.length}건</span></h2>
           {records.length > 0 && (
             <button
               onClick={handleClear}
@@ -944,7 +973,7 @@ export default function Admin() {
           <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
             <div className="text-4xl mb-3">📋</div>
             <p className="text-gray-400">이 기간에 예약 요청이 없어요.</p>
-            <a href="/app" className="inline-block mt-4 text-sm text-[#3CDBC0] underline">
+            <a href="/app" className="inline-block mt-4 text-sm text-mint-500 underline">
               MINT로 장소 추천받기 →
             </a>
           </div>
@@ -985,12 +1014,12 @@ export default function Admin() {
             <div className="hidden md:block bg-white rounded-2xl border-2 border-gray-100 overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-[#E8F8F5] text-left">
-                    <th className="px-4 py-3 font-bold text-[#2AB5A0]">장소명</th>
-                    <th className="px-4 py-3 font-bold text-[#2AB5A0]">주소</th>
-                    <th className="px-4 py-3 font-bold text-[#2AB5A0]">예약자</th>
-                    <th className="px-4 py-3 font-bold text-[#2AB5A0]">인원</th>
-                    <th className="px-4 py-3 font-bold text-[#2AB5A0]">요청시간</th>
+                  <tr className="bg-mint-100 text-left">
+                    <th className="px-4 py-3 font-bold text-mint-600">장소명</th>
+                    <th className="px-4 py-3 font-bold text-mint-600">주소</th>
+                    <th className="px-4 py-3 font-bold text-mint-600">예약자</th>
+                    <th className="px-4 py-3 font-bold text-mint-600">인원</th>
+                    <th className="px-4 py-3 font-bold text-mint-600">요청시간</th>
                     <th className="px-4 py-3"></th>
                   </tr>
                 </thead>
@@ -1004,7 +1033,7 @@ export default function Admin() {
                       <td className="px-4 py-3 text-gray-500 text-xs max-w-[160px] truncate">{r.address}</td>
                       <td className="px-4 py-3 font-medium text-gray-700">{r.guestName}</td>
                       <td className="px-4 py-3">
-                        <span className="bg-[#E8F8F5] text-[#2AB5A0] font-bold px-2 py-0.5 rounded-full text-xs">
+                        <span className="bg-mint-100 text-mint-600 font-bold px-2 py-0.5 rounded-full text-xs">
                           {r.people}명
                         </span>
                       </td>
@@ -1024,6 +1053,13 @@ export default function Admin() {
             </div>
           </>
         )}
+
+        {/* ── 어드민 비밀번호 ── */}
+        {/* 예약/피드백이 한 건도 없어도 보여야 하므로 목록 조건 밖(상시)에 둔다. */}
+        <section className="mt-8">
+          <h2 className="text-sm font-black text-gray-600 mb-3">🔐 어드민 비밀번호</h2>
+          <AdminPasswordChangeCard onChange={handleChangePassword} source={passwordSource} />
+        </section>
       </div>
     </div>
   );

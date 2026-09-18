@@ -21,11 +21,11 @@ export default function CouponDetailSheet({
   return (
     <div className="fixed inset-0 z-50 bg-black/40" onClick={onClose}>
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 mx-auto flex max-h-[85dvh] max-w-md flex-col rounded-t-3xl bg-[#F5FBF8] animate-fade-in-up"
+        className="fixed bottom-0 left-0 right-0 z-50 mx-auto flex max-h-[85dvh] max-w-md flex-col rounded-t-3xl bg-mint-50 animate-fade-in-up"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 items-center justify-between px-5 pb-2 pt-4">
-          <span className="rounded-full bg-[#E8F8F5] px-3 py-1 text-xs font-black text-[#2AB5A0]">
+          <span className="rounded-full bg-mint-100 px-3 py-1 text-xs font-black text-mint-600">
             {coupon.category}
           </span>
           <button onClick={onClose} className="px-2 text-sm font-bold text-gray-400 active:scale-95">닫기</button>
@@ -42,9 +42,9 @@ export default function CouponDetailSheet({
             <InfoRow icon={<IconUtensils className="h-4 w-4" />} label="대표메뉴" value={coupon.signatureMenu.join(' · ')} />
           </div>
 
-          <div className="mt-3 rounded-2xl border border-[#3CDBC0]/30 bg-white p-4">
+          <div className="mt-3 rounded-2xl border border-mint-500/30 bg-white p-4">
             <div className="flex items-start gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#E8F8F5] text-[#2AB5A0]">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-mint-100 text-mint-600">
                 <BenefitIcon className="h-5 w-5" />
               </span>
               <div className="min-w-0 flex-1">
@@ -53,9 +53,9 @@ export default function CouponDetailSheet({
               </div>
             </div>
             <div className="mt-3 flex items-center justify-between">
-              <span className="text-sm font-black text-[#2AB5A0]">{coupon.pointCost.toLocaleString()}P</span>
+              <span className="text-sm font-black text-mint-600">{coupon.pointCost.toLocaleString()}P</span>
               {applied && (
-                <span className="flex items-center gap-0.5 text-[11px] font-bold text-[#2AB5A0]">
+                <span className="flex items-center gap-0.5 text-[11px] font-bold text-mint-600">
                   <IconCheck className="h-3 w-3" strokeWidth={2.6} />
                   신청됨
                 </span>
@@ -68,7 +68,7 @@ export default function CouponDetailSheet({
             onClick={onToggleNotify}
             aria-pressed={applied}
             className={`mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl border py-3 text-sm font-bold transition-colors active:scale-[0.98] ${
-              applied ? 'border-[#3CDBC0] bg-[#E8F8F5] text-[#2AB5A0]' : 'border-gray-200 bg-white text-gray-600'
+              applied ? 'border-mint-500 bg-mint-100 text-mint-600' : 'border-gray-200 bg-white text-gray-600'
             }`}
           >
             <IconBell className="h-4 w-4" />
@@ -80,13 +80,13 @@ export default function CouponDetailSheet({
         <div className="flex shrink-0 gap-2 border-t border-gray-100 bg-white px-5 pt-3 pb-[max(1.5rem,calc(env(safe-area-inset-bottom)+0.75rem))]">
           <button
             onClick={onReserve}
-            className="flex-1 rounded-2xl bg-[#3CDBC0] py-3.5 text-sm font-black text-white shadow-lg shadow-[#3CDBC0]/25 transition-transform active:scale-95"
+            className="flex-1 rounded-2xl bg-mint-500 py-3.5 text-sm font-black text-white shadow-lg shadow-mint-500/25 transition-transform active:scale-95"
           >
             예약하기
           </button>
           <button
             onClick={onPurchase}
-            className="flex-1 rounded-2xl border-2 border-[#3CDBC0]/40 bg-white py-3.5 text-sm font-black text-[#2AB5A0] transition-transform active:scale-95"
+            className="flex-1 rounded-2xl border-2 border-mint-500/40 bg-white py-3.5 text-sm font-black text-mint-600 transition-transform active:scale-95"
           >
             쿠폰 구매하기
           </button>

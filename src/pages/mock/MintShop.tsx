@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react';
-import { getBalance, getDeviceId } from '@/utils/points';
-import { trackEvent } from '@/utils/analytics';
+import { getDeviceId } from '@/storage/device';
+import { getBalance } from '@/storage/points';
+import { trackEvent } from '@/services/analytics';
 import { MOCK_COUPONS, type CouponBenefitType, type MintCoupon } from '@/pages/mock/data/coupons';
 import { getNotifyList, toggleNotify } from '@/pages/mock/couponNotify';
 import { PointsBadge } from '@/components';
@@ -142,7 +143,7 @@ export default function MintShop({ onChromeChange }: Props) {
     <div className="max-w-md mx-auto px-5 pt-[max(1.5rem,env(safe-area-inset-top))]">
       <div className="flex items-center justify-between">
         <h1 className="flex items-center gap-2 text-[22px] font-black text-gray-900">
-          <IconGift className="h-6 w-6 text-[#2AB5A0]" />
+          <IconGift className="h-6 w-6 text-mint-600" />
           민트샵
         </h1>
         {/* 시트가 열리면 하단 탭바를 내린다 — 시트가 탭바에 가리지 않게 */}
@@ -168,7 +169,7 @@ export default function MintShop({ onChromeChange }: Props) {
                   onClick={() => selectFilter(f.key)}
                   aria-pressed={on}
                   className={`flex h-10 shrink-0 items-center rounded-full border px-4 text-xs font-bold transition-colors active:scale-95 ${
-                    on ? 'border-[#3CDBC0] bg-[#E8F8F5] text-[#2AB5A0]' : 'border-gray-200 bg-white text-gray-700'
+                    on ? 'border-mint-500 bg-mint-100 text-mint-600' : 'border-gray-200 bg-white text-gray-700'
                   }`}
                 >
                   {f.label}
@@ -178,7 +179,7 @@ export default function MintShop({ onChromeChange }: Props) {
           </div>
         </div>
         {/* 뒤쪽 칩이 더 있다는 신호 */}
-        <span className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-[#F5FBF8] to-transparent" />
+        <span className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-mint-50 to-transparent" />
       </div>
 
       {/* 쿠폰 그리드 */}
@@ -211,7 +212,7 @@ export default function MintShop({ onChromeChange }: Props) {
                 aria-label={`${item}페이지`}
                 className={`h-10 w-10 shrink-0 rounded-full border text-xs font-black transition-colors ${
                   item === current
-                    ? 'border-[#3CDBC0] bg-[#E8F8F5] text-[#2AB5A0]'
+                    ? 'border-mint-500 bg-mint-100 text-mint-600'
                     : 'border-gray-200 bg-white text-gray-700 active:bg-gray-50'
                 }`}
               >
@@ -243,7 +244,7 @@ export default function MintShop({ onChromeChange }: Props) {
 
       {/* 토스트는 시트(z-50)·준비중 팝업(z-60)보다 위여야 시트 안에서 눌러도 보인다 */}
       {toast && (
-        <div className="fixed bottom-[max(6rem,calc(env(safe-area-inset-bottom)+5.5rem))] left-1/2 z-[70] max-w-[90vw] -translate-x-1/2 rounded-full border border-[#3CDBC0]/35 bg-white/95 px-4 py-2.5 text-center text-xs font-bold text-[#2AB5A0] shadow-xl shadow-[#2AB5A0]/20 backdrop-blur">
+        <div className="fixed bottom-[max(6rem,calc(env(safe-area-inset-bottom)+5.5rem))] left-1/2 z-[70] max-w-[90vw] -translate-x-1/2 rounded-full border border-mint-500/35 bg-white/95 px-4 py-2.5 text-center text-xs font-bold text-mint-600 shadow-xl shadow-mint-600/20 backdrop-blur">
           {toast}
         </div>
       )}
@@ -274,15 +275,15 @@ function CouponCard({ coupon, applied, balance, onTap }: { coupon: MintCoupon; a
       onClick={onTap}
       aria-pressed={applied}
       className={`flex flex-col rounded-2xl border bg-white p-4 text-left transition-transform active:scale-[0.98] ${
-        applied ? 'border-[#3CDBC0]' : 'border-gray-100'
+        applied ? 'border-mint-500' : 'border-gray-100'
       }`}
     >
       <div className="flex items-start justify-between gap-1">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#E8F8F5] text-[#2AB5A0]">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-mint-100 text-mint-600">
           <Icon className="h-5 w-5" />
         </span>
         {applied && (
-          <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-[#E8F8F5] px-2 py-1 text-[11px] font-bold text-[#2AB5A0]">
+          <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-mint-100 px-2 py-1 text-[11px] font-bold text-mint-600">
             <IconCheck className="h-3 w-3" strokeWidth={2.6} />
             신청됨
           </span>
@@ -299,7 +300,7 @@ function CouponCard({ coupon, applied, balance, onTap }: { coupon: MintCoupon; a
       <p className="mt-1 text-[15px] font-black leading-snug text-gray-900 break-keep">{coupon.title}</p>
 
       <div className="mt-auto flex items-end justify-between gap-1 pt-3">
-        <p className={`text-[15px] font-black ${applied ? 'text-[#2AB5A0]/50' : enough ? 'text-[#2AB5A0]' : 'text-gray-400'}`}>
+        <p className={`text-[15px] font-black ${applied ? 'text-mint-600/50' : enough ? 'text-mint-600' : 'text-gray-400'}`}>
           {coupon.pointCost.toLocaleString()}P
         </p>
         {!applied && (

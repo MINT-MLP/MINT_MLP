@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { getBalance, getLedger, getDeviceId } from '@/utils/points';
-import { trackEvent } from '@/utils/analytics';
+import { getDeviceId } from '@/storage/device';
+import { getBalance, getLedger } from '@/storage/points';
+import { trackEvent } from '@/services/analytics';
 
 // 헤더 포인트 배지 + 탭 시 적립 내역 시트. 스토어는 아직 없음 — "곧 쓸 수 있다" 예고만.
 // onOpenChange: 시트 열림 상태를 부모에 알린다(탭 화면에서 하단 탭바를 내리기 위해).
@@ -24,7 +25,7 @@ export default function PointsBadge({
       <button
         onClick={() => setSheetOpen(true)}
         aria-label="내 포인트"
-        className="flex items-center gap-1 rounded-full bg-[#E8F8F5] border border-[#3CDBC0]/40 px-2.5 py-1.5 text-xs font-black text-[#2AB5A0] active:scale-95 transition-transform"
+        className="flex items-center gap-1 rounded-full bg-mint-100 border border-mint-500/40 px-2.5 py-1.5 text-xs font-black text-mint-600 active:scale-95 transition-transform"
       >
         <span className="text-sm leading-none">🌿</span>
         {balance.toLocaleString()}P
@@ -47,12 +48,12 @@ function PointsSheet({ onClose }: { onClose: () => void }) {
           <h3 className="text-lg font-black text-gray-900">🌿 내 포인트</h3>
           <button onClick={onClose} className="text-gray-400 text-sm font-bold px-2 active:scale-95">닫기</button>
         </div>
-        <p className="text-3xl font-black text-[#2AB5A0] mb-3">{balance.toLocaleString()}P</p>
+        <p className="text-3xl font-black text-mint-600 mb-3">{balance.toLocaleString()}P</p>
 
         {/* 스토어 예고 — 수요 검증(탭 계측) */}
         <button
           onClick={() => trackEvent('points_store_teaser_click', { device_id: getDeviceId(), balance })}
-          className="w-full text-left bg-gradient-to-r from-[#E8F8F5] to-yellow-50 border border-[#3CDBC0]/30 rounded-2xl px-4 py-3 mb-3 active:scale-[0.99] transition-transform"
+          className="w-full text-left bg-gradient-to-r from-mint-100 to-yellow-50 border border-mint-500/30 rounded-2xl px-4 py-3 mb-3 active:scale-[0.99] transition-transform"
         >
           <p className="text-sm font-black text-gray-800">🎁 포인트 스토어 준비 중</p>
           <p className="text-xs text-gray-500 mt-0.5">방문 인증으로 쌓은 포인트를 곧 기프티콘·골목 쿠폰으로 바꿀 수 있어요.</p>
@@ -65,7 +66,7 @@ function PointsSheet({ onClose }: { onClose: () => void }) {
         ) : (
           <div className="flex-1 overflow-y-auto flex flex-col gap-2">
             {ledger.map((e, i) => (
-              <div key={i} className="flex items-center justify-between bg-[#F5FBF8] border border-gray-100 rounded-xl px-3.5 py-2.5">
+              <div key={i} className="flex items-center justify-between bg-mint-50 border border-gray-100 rounded-xl px-3.5 py-2.5">
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-gray-800 truncate">{e.place_name || '방문 인증'}</p>
                   <p className="text-[11px] text-gray-400">
@@ -73,7 +74,7 @@ function PointsSheet({ onClose }: { onClose: () => void }) {
                     {e.method === 'gps' ? ' · 위치 인증' : ' · 사진 인증'}
                   </p>
                 </div>
-                <span className="text-sm font-black text-[#2AB5A0] shrink-0">+{e.points}P</span>
+                <span className="text-sm font-black text-mint-600 shrink-0">+{e.points}P</span>
               </div>
             ))}
           </div>
