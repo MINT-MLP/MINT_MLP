@@ -1,7 +1,8 @@
 import type { Session, User } from '@supabase/supabase-js';
-import { supabase } from './supabase';
-import { getDeviceId } from './points';
-import { loadHistory } from './history';
+import { supabase } from '@/utils/supabase';
+import { getDeviceId } from '@/utils/points';
+import { loadHistory } from '@/utils/history';
+import type { ActivityPayload, ActivityRow } from '@/types';
 
 // 카카오 기본 로그인 — 로그인은 어디까지나 '선택'이다.
 // 비로그인 사용자의 추천·찜·포인트는 localStorage로 그대로 동작하며, 여기의 어떤 함수도 그 흐름을 막지 않는다.
@@ -88,14 +89,6 @@ export async function syncProfile(): Promise<void> {
   }
 }
 
-export interface ActivityPayload {
-  placeName: string;
-  secondPlaceName?: string | null;
-  areaName?: string | null;
-  purposeFirst?: string | null;
-  groupSize?: string | null;
-}
-
 // 로그인 사용자만 가벼운 활동 로그를 남긴다. 비로그인이면 즉시 no-op.
 // 추천 플로우를 절대 깨면 안 되므로 어떤 실패도 조용히 삼킨다.
 export async function logActivityIfSignedIn(payload: ActivityPayload): Promise<void> {
@@ -115,17 +108,6 @@ export async function logActivityIfSignedIn(payload: ActivityPayload): Promise<v
   } catch {
     /* 로그 실패는 사용자에게 보이지 않는다 */
   }
-}
-
-export interface ActivityRow {
-  id: number;
-  place_name: string | null;
-  second_place_name: string | null;
-  area_name: string | null;
-  purpose_first: string | null;
-  group_size: string | null;
-  created_at: string;
-  source: string | null;
 }
 
 // 모듈 전역 캐시 — Profile은 탭 전환마다 언마운트→재마운트되므로 React state로는 중복 요청을 못 막는다.

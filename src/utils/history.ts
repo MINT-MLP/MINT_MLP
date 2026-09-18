@@ -1,3 +1,4 @@
+import type { ResultSummary, HistoryEntry } from '@/types';
 // 추천 히스토리 — localStorage에 최근 5개 보관.
 // snapshot은 Home의 결과 복원 스냅샷(RESULT_STORAGE_KEY 포맷) 그대로라,
 // 히스토리 클릭 시 스냅샷을 심고 /app으로 이동하면 결과 화면이 그대로 살아난다.
@@ -69,11 +70,6 @@ export function clearRecommendSession() {
 // "보던 추천이 아직 살아 있나"만 가볍게 확인할 때 쓴다(로그인 복귀 안내 등).
 // Home의 스냅샷 전체 타입을 셸까지 끌고 오지 않으려고 표시에 필요한 필드만 좁혀 읽는다.
 // TTL 판정은 loadResultSnapshot에 맡긴다 — 만료된 추천은 여기서도 없는 것으로 취급된다.
-export interface ResultSummary {
-  placeName: string;
-  secondPlaceName: string | null;
-  areaName: string | null;
-}
 
 export function loadResultSummary(): ResultSummary | null {
   const snapshot = loadResultSnapshot() as {
@@ -99,15 +95,6 @@ export function loadResultSummary(): ResultSummary | null {
         : null,
     areaName: typeof areaName === 'string' && areaName ? areaName : null,
   };
-}
-
-export interface HistoryEntry {
-  savedAt: number;
-  placeName: string;
-  secondPlaceName?: string | null;
-  areaName?: string | null;
-  purposeFirst?: string | null;
-  snapshot: unknown;
 }
 
 export function loadHistory(): HistoryEntry[] {
@@ -140,3 +127,11 @@ export function openHistoryEntry(entry: HistoryEntry) {
   saveResultSnapshot(entry.snapshot);
   window.location.pathname = '/app';
 }
+
+// 결과·입력초안 모두 localStorage에 보관 — 홈버튼·공유로 앱을 벗어나 웹뷰가 재시작돼도 유지
+// (sessionStorage는 모바일에서 프로세스 재시작 시 통째로 사라짐)
+// 키 자체는 utils/history가 보유한다 — 홈 바깥에서도 복원을 끊어야 하므로.
+export const INPUT_DRAFT_TTL_MS = 6 * 60 * 60 * 1000; // 입력하다 만 초안은 6시간까지만 복원
+// 그룹 호스트 세션 — sessionId는 서버 세션의 유일한 열쇠라 state에만 두면 새로고침 시 링크·대기현황이 통째로 증발한다
+
+export const GROUP_SESSION_TTL_MS = 6 * 60 * 60 * 1000; // 그룹 대기 세션도 6시간까지만 복원

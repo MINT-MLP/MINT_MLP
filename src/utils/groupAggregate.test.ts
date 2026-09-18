@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { aggregateVibe, aggregatePurpose, aggregateBudget, splitMemberKeywords, EXCLUDE_FOOD_PREFIX, SECOND_VIBE_PREFIX } from './groupAggregate';
-import type { GroupMember } from './groupAggregate';
+import { aggregateVibe, aggregatePurpose, aggregateBudget, splitMemberKeywords, EXCLUDE_FOOD_PREFIX, SECOND_VIBE_PREFIX } from '@/utils/groupAggregate';
+import type { GroupMember } from '@/types';
 
 function member(keywords: string[]): GroupMember {
   return {

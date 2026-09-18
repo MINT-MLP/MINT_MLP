@@ -1,18 +1,7 @@
+import type { TravelResult, TravelTimeData } from '@/types';
 // 소요시간 계산 (클라이언트) — 대중교통은 ODsay 실측, 자차는 직선거리 추정.
 // ODsay를 브라우저에서 직접 호출하는 이유: Vercel 서버리스는 나가는 IP가 동적이라
 // ODsay Server 키(IP 기반)가 불안정하다. URI 키는 도메인에 묶여 브라우저 노출도 안전.
-
-export interface TravelResult {
-  label: string;
-  formatted: string;
-  source?: string;
-  error?: boolean;
-}
-
-export interface TravelTimeData {
-  first: { transit: TravelResult[]; driving: TravelResult[] };
-  second: { transit: TravelResult[]; driving: TravelResult[] } | null;
-}
 
 interface Point { lat: number; lng: number }
 interface Origin extends Point { label: string }

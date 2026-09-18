@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { getDeviceId } from '../utils/points';
-import { trackEvent } from '../utils/analytics';
+import { getDeviceId } from '@/utils/points';
+import { trackEvent } from '@/utils/analytics';
 import {
   CATEGORY_OPTIONS, FEEDBACK_COUNTER_FROM, FEEDBACK_MAX_LEN, FEEDBACK_MIN_LEN,
   flushOutbox, loadDraft, saveDraftDebounced, submitFeedback, textLength,
-  type FeedbackCategory,
-} from '../utils/feedback';
+} from '@/utils/feedback';
+import type { FeedbackCategory } from '@/types';
 
 interface Props {
   tab: string;          // AppShell의 activeTab — "어느 화면에서 나온 말인지" 자동으로 실린다

@@ -2,29 +2,11 @@
 // 진짜 목적은 "누가·어떤 곳을·언제 찜했나"의 데이터 씨앗: 나중 '발굴 게임'에서
 // place_key의 최초 wishlist_add device_id = 1호 발굴자로 소급 인정할 수 있게 한다.
 
-import { placeKey } from './points';
+import { placeKey } from '@/utils/points';
+import type { WishItem, WishTargetInput } from '@/types';
 
 const WISHLIST_KEY = 'mint_wishlist';
 const MAX = 100;
-
-export interface WishItem {
-  place_key: string;
-  place_name: string;
-  address: string;
-  category: string;
-  lat: number | null;
-  lng: number | null;
-  saved_at: string; // ISO
-}
-
-export interface WishTargetInput {
-  placeName?: string;
-  address?: string;
-  area?: string;
-  category?: string;
-  lat?: number | null;
-  lng?: number | null;
-}
 
 export function getWishlist(): WishItem[] {
   try {

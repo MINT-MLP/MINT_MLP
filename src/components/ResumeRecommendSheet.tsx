@@ -1,4 +1,4 @@
-import type { ResultSummary } from '../utils/history';
+import type { ResultSummary } from '@/types';
 
 // 카카오 로그인은 페이지를 통째로 떠났다가 /app?tab=profile로 돌아온다.
 // 그 사이 결과 화면이 사라진 것처럼 보이지만 스냅샷은 그대로 남아 있다 —

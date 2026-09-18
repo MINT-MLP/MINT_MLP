@@ -1,46 +1,13 @@
 import { useEffect, useState } from 'react';
-import { congestionDotClass } from '../services/seoulData';
-import MiniMap from '../components/MiniMap';
-import WishlistButton from '../components/WishlistButton';
-import VisitCertModal from '../components/VisitCertModal';
-import { trackEvent } from '../utils/analytics';
-import { getDeviceId } from '../utils/points';
+import { congestionDotClass } from '@/services/seoulData';
+import { MiniMap, WishlistButton, VisitCertModal } from '@/components';
+import { trackEvent } from '@/utils/analytics';
+import { getDeviceId } from '@/utils/points';
+import type { VoteCandidate, SlimPlace, SnapshotPayload } from '@/types';
 
 // 공유 URL에 실려오는 투표 후보 (슬림 포맷: n=이름, c=카테고리, s=적합도)
-interface VoteCandidate {
-  n: string;
-  c?: string;
-  s?: number | null;
-}
 
 // 공유 스냅샷의 장소 1곳 — 서버(/shared?id=)와 레거시(?data=) 렌더 경로를 통일
-interface SlimPlace {
-  placeName: string;
-  category?: string;
-  description?: string;
-  priceRange?: string;
-  vibeTags?: string[];
-  address?: string;
-  area?: string;
-  congestionLevel?: string | null;
-  lat?: number | null;
-  lng?: number | null;
-  imageUrl?: string | null;
-  kakaoPlaceUrl?: string | null;
-}
-
-interface SnapshotPayload {
-  first: SlimPlace;
-  second?: SlimPlace | null;
-  third?: SlimPlace | null;
-  thirdLabel?: string | null;
-  purposeFirst?: string | null;
-  purposeSecond?: string | null;
-  areaName?: string | null;
-  treasurer?: string | null;
-  shareId?: string;
-  candidates?: VoteCandidate[];
-}
 
 // 투표자 식별 — 기기당 1표 (로그인 없는 서비스라 localStorage 익명 ID)
 function getVoterId(): string {

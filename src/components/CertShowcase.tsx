@@ -1,4 +1,4 @@
-import { CERT_SOURCES } from '../data/certifications';
+import { CERT_SOURCES } from '@/constants/certifications';
 
 // 랜딩 "신뢰 큐레이션" 섹션 — 추천 카드에 뜨는 인증 뱃지를 미리 소개.
 // 데이터는 CERT_SOURCES 단일 출처에서 읽어, 새 인증을 추가하면 이 섹션도 자동 갱신된다.

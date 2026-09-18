@@ -1,16 +1,5 @@
 import { useState } from 'react';
-
-export interface PurposeValue {
-  first: string | null;
-  firstRaw: '밥' | '술' | '카페' | '기타' | null;
-  second: string | null;
-  secondRaw: '밥' | '술' | '카페' | '기타' | '없음' | null;
-  relation: string | null;
-  occasion: string | null;
-  // (구버전 호환용 — 현재는 항상 null. 세부 메뉴는 first/second에 쉼표로 저장한다)
-  firstGenre?: string | null;
-  secondGenre?: string | null;
-}
+import type { PurposeValue } from '@/types';
 
 interface Props {
   value: PurposeValue;

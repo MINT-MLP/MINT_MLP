@@ -1,27 +1,6 @@
+import type { CoursePick, PilotConditions, PilotHandoff } from '@/types';
 // 파일럿 핸드오프 — 추천받은 세션(일련번호+조건+추천장소)을 localStorage에 보관.
 // 유저는 일련번호를 볼 필요 없이, /pilot에서 "○○집으로 추천받은 거 맞아요?" 자동 감지로 확인한다.
-
-export interface CoursePick {
-  course: string;        // '1차' | '2차' | '3차'
-  rank: number;          // 코스 내 순위(1~3), 3차는 1
-  placeName: string;
-  category: string | null;
-}
-
-export interface PilotConditions {
-  purpose: string | null;
-  relation: string | null;
-  region: string | null;
-  vibes: string[];
-  budget: string | null;
-}
-
-export interface PilotHandoff {
-  serial: string;
-  createdAt: number;
-  conditions: PilotConditions;
-  coursePicks: CoursePick[];
-}
 
 const KEY = 'mint_pilot_handoff_v1';
 const TTL = 14 * 24 * 60 * 60 * 1000; // 14일

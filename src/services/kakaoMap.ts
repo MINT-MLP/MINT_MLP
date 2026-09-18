@@ -1,21 +1,6 @@
-import { ensureKakaoMaps } from '../utils/kakaoLoader';
-import { HOTPLACES } from '../data/hotplaces';
-
-export interface KakaoPlace {
-  id: string;
-  place_name: string;
-  category_name: string;
-  address_name: string;
-  road_address_name: string;
-  phone: string;
-  place_url: string;
-  x: string;
-  y: string;
-}
-
-declare global {
-  interface Window { kakao: any; Kakao: any }
-}
+import { ensureKakaoMaps } from '@/utils/kakaoLoader';
+import { HOTPLACES } from '@/constants/hotplaces';
+import type { KakaoPlace, Neighborhood, RegionSuggestion } from '@/types';
 
 const cache = new Map<string, KakaoPlace[]>();
 
@@ -57,12 +42,6 @@ export async function searchAddress(keyword: string): Promise<KakaoPlace[]> {
   return searchKakaoKeyword(keyword);
 }
 
-export interface Neighborhood {
-  area: string;   // "대구 수성구 대흥동" 형태 (시 구 동)
-  lat: number;
-  lng: number;
-}
-
 // 지번 주소(address_name)에서 '시 [구...] 동' 부분만 뽑는다.
 // 동/읍/면/가/리로 끝나는 첫 토큰까지 포함 → 성남시 분당구처럼 구가 여러 토큰이어도 안전.
 function toDongLabel(addressName: string): string | null {
@@ -92,20 +71,6 @@ export async function searchNeighborhoods(keyword: string): Promise<Neighborhood
 // 행정단위(시/구/동) + 핫플레이스 연관검색 자동완성 (네이버 검색제안 스타일).
 // 카카오 JS SDK 키워드검색 주소를 계층 파싱하고, 커브레이티드 핫플 테이블을 동기로 매칭해
 // "원종동"·"홍대"처럼 접두어 없이 이름만 쳐도 즉시 제안이 뜬다. (별도 서버 함수 없음)
-export type RegionLevel = 'city' | 'district' | 'dong';
-export interface RegionSuggestion {
-  level: RegionLevel;
-  kind?: 'region' | 'hotplace' | 'station'; // UI 배지용
-  label: string;
-  query: string;
-  sido: string;
-  gu?: string;
-  dong?: string;
-  matchTokens: string[];// 결과 주소에 모두 포함돼야 하는 행정 토큰 (추천 범위 고정용)
-  searchAreas: string[];// 네이버 검색 프리픽스
-  lat: number;
-  lng: number;
-}
 
 const GU_RE = /(구|군)$/;
 const SI_RE = /시$/;

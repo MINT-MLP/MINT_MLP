@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { getWishlist, removeWish, wishMapLink, type WishItem } from '../utils/wishlist';
-import { getDeviceId } from '../utils/points';
-import { trackEvent } from '../utils/analytics';
+import { getWishlist, removeWish, wishMapLink } from '@/utils/wishlist';
+import { getDeviceId } from '@/utils/points';
+import { trackEvent } from '@/utils/analytics';
+import type { WishItem } from '@/types';
 
 // 내 찜 목록 바텀시트 — 저장한 곳을 모아 보고 지도로 바로 열기.
 export default function WishlistSheet({ onClose }: { onClose: () => void }) {

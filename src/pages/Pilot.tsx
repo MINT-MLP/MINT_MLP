@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { supabase } from '../utils/supabase';
+import { supabase } from '@/utils/supabase';
 import {
   getPilotHandoffs, markPilotHandoffUsed, summaryLine, topPlaceName, relativeTime,
-  type PilotHandoff, type CoursePick,
-} from '../utils/pilotHandoff';
+} from '@/utils/pilotHandoff';
+import type { PilotHandoff, CoursePick, PilotPrizeReward } from '@/types';
 
 type Phase = 'detect' | 'form-auto' | 'form-manual' | 'spinning' | 'reward' | 'soldout' | 'reclaim' | 'done';
 
 const BUCKET = 'pilot-feedback';
 
-interface Prize { title: string; tier: string; imageUrl: string | null; claimCode: string; }
 type VisitChoice = { choice: string; otherName: string }; // choice: placeName | '__other' | '__none'
 
 const REASON_OPTS = ['메뉴', '거리·위치', '가격', '분위기', '리뷰·평점', '인증 뱃지'];
@@ -51,7 +50,7 @@ export default function Pilot() {
   const [selected, setSelected] = useState<PilotHandoff | null>(null);
 
   // 공통 결과
-  const [prize, setPrize] = useState<Prize | null>(null);
+  const [prize, setPrize] = useState<PilotPrizeReward | null>(null);
   const [claimCode, setClaimCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -476,7 +475,7 @@ function Roulette({ onDone }: { onDone: () => void }) {
 }
 
 // ───────────────────────── 수령 / 소진 / 재수령 / 완료 ─────────────────────────
-function RewardView({ prize, onClose, reclaimed = false }: { prize: Prize; onClose: () => void; reclaimed?: boolean }) {
+function RewardView({ prize, onClose, reclaimed = false }: { prize: PilotPrizeReward; onClose: () => void; reclaimed?: boolean }) {
   const [contact, setContact] = useState('');
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -561,7 +560,7 @@ function ReclaimView({ onBack }: { onBack: () => void }) {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [prize, setPrize] = useState<Prize | null>(null);
+  const [prize, setPrize] = useState<PilotPrizeReward | null>(null);
   const [pending, setPending] = useState(false);
   async function lookup() {
     const c = code.trim().toUpperCase();

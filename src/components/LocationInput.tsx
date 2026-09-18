@@ -1,14 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { searchAddress } from '../services/kakaoMap';
-import type { KakaoPlace } from '../services/kakaoMap';
-import { trackEvent } from '../utils/analytics';
-
-export interface LocationEntry {
-  name: string;
-  lat?: number;
-  lng?: number;
-}
+import { searchAddress } from '@/services/kakaoMap';
+import type { KakaoPlace, LocationEntry } from '@/types';
+import { trackEvent } from '@/utils/analytics';
 
 interface Props {
   locations: LocationEntry[];

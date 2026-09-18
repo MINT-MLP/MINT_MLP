@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { addWish, removeWish, isWished, type WishTargetInput } from '../utils/wishlist';
-import { placeKey, getDeviceId } from '../utils/points';
-import { trackEvent } from '../utils/analytics';
+import { addWish, removeWish, isWished } from '@/utils/wishlist';
+import { placeKey, getDeviceId } from '@/utils/points';
+import { trackEvent } from '@/utils/analytics';
+import type { WishTargetInput } from '@/types';
 
 interface Props {
   place: WishTargetInput & { priceRange?: string };

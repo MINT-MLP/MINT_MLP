@@ -1,12 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { ensureKakaoMaps } from '../utils/kakaoLoader';
-
-export interface MapPin {
-  lat: number;
-  lng: number;
-  name: string;
-  kind: 'first' | 'second' | 'third' | 'alt';
-}
+import { ensureKakaoMaps } from '@/utils/kakaoLoader';
+import type { MapPin } from '@/types';
 
 interface Props {
   lat: number;

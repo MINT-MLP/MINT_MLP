@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { getBalance, getLedger, getDeviceId } from '../utils/points';
-import { trackEvent } from '../utils/analytics';
+import { getBalance, getLedger, getDeviceId } from '@/utils/points';
+import { trackEvent } from '@/utils/analytics';
 
 // 헤더 포인트 배지 + 탭 시 적립 내역 시트. 스토어는 아직 없음 — "곧 쓸 수 있다" 예고만.
 // onOpenChange: 시트 열림 상태를 부모에 알린다(탭 화면에서 하단 탭바를 내리기 위해).
