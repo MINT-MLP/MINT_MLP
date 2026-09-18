@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { isTrackingPaused, setTrackingPaused } from '@/services/analytics';
 import type { ReservationRecord } from '@/pages/Reserve';
-import { AdminPasswordGate, AdminStatCard, AdminBarRow, AdminMiniStat, AdminFunnelStep } from '@/components';
+import { AdminPasswordGate, AdminPasswordChangeCard, AdminStatCard, AdminBarRow, AdminMiniStat, AdminFunnelStep } from '@/components';
 import { pct, pctLabel, formatDuration, formatDate, formatRelative } from '@/utils/format';
 import { downloadCsv } from '@/utils/csv';
 import { callAdmin } from '@/services/admin';
@@ -222,6 +222,8 @@ export default function Admin() {
   const [paused, setPaused] = useState(() => isTrackingPaused());
   const [dbError, setDbError] = useState<string | null>(null);
   const [range, setRange] = useState<RangeKey>('all');
+  // 지금 로그인에 쓰인 비밀번호가 어디서 왔는지 — 'env'면 아직 한 번도 안 바꾼 상태다
+  const [passwordSource, setPasswordSource] = useState<'db' | 'env' | null>(null);
 
   const a = analytics;
   const rejectTotal = a.rejectExpensive + a.rejectFar + a.rejectVibe;
@@ -247,11 +249,13 @@ export default function Admin() {
     analytics?: Partial<AdminAnalytics>;
     reservations?: ReservationRecord[];
     userFeedback?: UserFeedbackRow[];
+    passwordSource?: 'db' | 'env';
   }) {
     // 서버가 아직 새 필드를 안 보내는 배포 시점에도 기본값으로 안전하게 렌더된다.
     setAnalytics({ ...EMPTY_ANALYTICS, ...(data.analytics ?? {}) });
     setRecords(Array.isArray(data.reservations) ? data.reservations : []);
     setFeedback(Array.isArray(data.userFeedback) ? data.userFeedback : []);
+    setPasswordSource(data.passwordSource ?? null);
   }
 
   async function loadData(pw: string, r: RangeKey = range) {
@@ -434,6 +438,21 @@ export default function Admin() {
     setPaused(next);
   }
 
+  // 비밀번호 변경. 현재 비밀번호는 password state를 재사용하지 않고 사용자가 방금 친 값을 쓴다
+  // (방치된 탭을 남이 잡아 비밀번호를 바꿔버리는 걸 막는다).
+  async function handleChangePassword(current: string, next: string) {
+    await callAdmin(current, { action: 'change_password', newPassword: next });
+    // 저장이 끝났으면 새 비밀번호가 실제로 통하는지 바로 확인한다 — 여기서 실패하면
+    // 화면을 새로고침한 순간 아무도 못 들어가는 상태이므로 복구 방법까지 알려줘야 한다.
+    try {
+      const data = await callAdmin(next, { from: rangeToFrom(range) });
+      setPassword(next);
+      applyData(data);
+    } catch {
+      throw new Error('저장은 됐는데 새 비밀번호로 확인 로그인이 실패했어요. 새로고침 후 새 비밀번호로 다시 시도하고, 그래도 안 되면 Supabase에서 admin_credentials 행을 삭제하면 기존 환경변수 비밀번호로 돌아가요.');
+    }
+  }
+
   if (!password) return <AdminPasswordGate onUnlock={handleUnlock} verifying={verifying} error={gateError} />;
 
   if (loading) {
@@ -508,6 +527,16 @@ export default function Admin() {
               이벤트 {a.eventsScanned.toLocaleString()}건 상한에 걸려 최근 것만 집계했어요.
               아래 숫자는 이 기간 전체가 아니라 최근 {a.eventsScanned.toLocaleString()}건 기준이에요 —
               기간을 좁혀서 다시 보세요.
+            </div>
+          </div>
+        )}
+
+        {/* 비밀번호가 아직 env에 있으면 운영자는 스스로 바꿀 수 없다 — 한 번 바꾸라고 계속 알린다. */}
+        {passwordSource === 'env' && (
+          <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <div className="text-sm font-bold text-amber-700 mb-1">⚠️ 비밀번호가 아직 Vercel 환경변수에 있어요</div>
+            <div className="text-xs text-amber-600">
+              아래 "어드민 비밀번호"에서 한 번 바꾸면 이후엔 여기서 직접 관리할 수 있어요.
             </div>
           </div>
         )}
@@ -1024,6 +1053,13 @@ export default function Admin() {
             </div>
           </>
         )}
+
+        {/* ── 어드민 비밀번호 ── */}
+        {/* 예약/피드백이 한 건도 없어도 보여야 하므로 목록 조건 밖(상시)에 둔다. */}
+        <section className="mt-8">
+          <h2 className="text-sm font-black text-gray-600 mb-3">🔐 어드민 비밀번호</h2>
+          <AdminPasswordChangeCard onChange={handleChangePassword} source={passwordSource} />
+        </section>
       </div>
     </div>
   );

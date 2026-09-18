@@ -4,6 +4,7 @@
 export { default as AdminBarRow } from './AdminBarRow';
 export { default as AdminFunnelStep } from './AdminFunnelStep';
 export { default as AdminMiniStat } from './AdminMiniStat';
+export { default as AdminPasswordChangeCard } from './AdminPasswordChangeCard';
 export { default as AdminPasswordGate } from './AdminPasswordGate';
 export { default as AdminStatCard } from './AdminStatCard';
 export { default as BottomTabBar } from './BottomTabBar';

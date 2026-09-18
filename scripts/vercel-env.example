@@ -26,6 +26,9 @@ VITE_KAKAO_REST_API_KEY=
 VITE_ODSAY_API_KEY=
 
 # ── 관리·크론 비밀. dev는 크론이 없지만 admin-batch POST 수동 실행엔 필요 ──
+# 어드민 비밀번호 부트스트랩(admin_credentials 행이 생기면 로그인엔 안 쓰임) + recommend x-admin-key 벤치 키
 ADMIN_PASSWORD=
+# (선택) x-admin-key 전용 키 — 설정하면 ADMIN_PASSWORD 대신 이 값
+ADMIN_BENCH_KEY=
 ADMIN_REFRESH_SECRET=
 CRON_SECRET=
