@@ -183,7 +183,7 @@ export default function Discover() {
   return (
     <div className="max-w-md mx-auto px-5 pt-[max(1.5rem,env(safe-area-inset-top))]">
       <h1 className="flex items-center gap-2 text-[22px] font-black text-gray-900">
-        <IconCompass className="h-[22px] w-[22px] text-[#2AB5A0]" />
+        <IconCompass className="h-[22px] w-[22px] text-mint-600" />
         발굴
       </h1>
       <p className="mt-1 text-sm text-gray-400">마음에 든 곳을 저장하고, 아직 안 알려진 곳을 먼저 찾아보세요.</p>
@@ -295,7 +295,7 @@ export default function Discover() {
                 </div>
 
                 {wished && (
-                  <p className="mt-2.5 flex items-center gap-1 text-[11px] font-bold text-[#2AB5A0]">
+                  <p className="mt-2.5 flex items-center gap-1 text-[11px] font-bold text-mint-600">
                     <IconCheck className="h-3 w-3" strokeWidth={2.6} />
                     담았어요
                   </p>

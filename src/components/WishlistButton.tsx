@@ -48,7 +48,7 @@ export default function WishlistButton({ place, rank, source, tone = 'light', on
   const base = 'shrink-0 flex items-center justify-center rounded-full transition-all active:scale-90';
   const ring = tone === 'onDark'
     ? 'bg-white/20 hover:bg-white/30'
-    : 'bg-white border border-gray-200 hover:border-[#3CDBC0] shadow-sm';
+    : 'bg-white border border-gray-200 hover:border-mint-500 shadow-sm';
 
   return (
     <button

@@ -33,7 +33,7 @@ export default function ResultPlaceCard({ place, extraResults = [], gradient, sh
       role="link"
       tabIndex={0}
       aria-label={`${place.placeName} 카카오맵에서 열기`}
-      className={`rounded-2xl text-white overflow-hidden cursor-pointer active:scale-[0.99] transition-transform shadow-xl outline-none focus-visible:ring-2 focus-visible:ring-[#3CDBC0] focus-visible:ring-offset-2 ${shadowColor}`}
+      className={`rounded-2xl text-white overflow-hidden cursor-pointer active:scale-[0.99] transition-transform shadow-xl outline-none focus-visible:ring-2 focus-visible:ring-mint-500 focus-visible:ring-offset-2 ${shadowColor}`}
       style={{ background: gradient }}
       onClick={() => openPlace(url, 'place_click_rank1', place)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPlace(url, 'place_click_rank1', place); } }}

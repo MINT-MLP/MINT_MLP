@@ -33,7 +33,7 @@ export default function ResumeRecommendSheet({ summary, onResume, onDiscard }: P
           새로 시작하면 이 추천은 홈에서 사라져요(지난 추천에는 남아요).
         </p>
 
-        <div className="mt-4 rounded-2xl border border-gray-100 bg-[#F5FBF8] p-4">
+        <div className="mt-4 rounded-2xl border border-gray-100 bg-mint-50 p-4">
           <p className="text-[15px] font-bold text-gray-900">{course}</p>
           {summary.areaName && (
             <p className="mt-0.5 text-[13px] text-gray-500">{summary.areaName}</p>
@@ -51,7 +51,7 @@ export default function ResumeRecommendSheet({ summary, onResume, onDiscard }: P
           <button
             type="button"
             onClick={onResume}
-            className="flex-[1.6] rounded-2xl bg-[#3CDBC0] py-3.5 text-[15px] font-black text-white"
+            className="flex-[1.6] rounded-2xl bg-mint-500 py-3.5 text-[15px] font-black text-white"
           >
             네, 돌아갈래요
           </button>

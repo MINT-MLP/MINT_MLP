@@ -22,9 +22,9 @@ export default function CertShowcase() {
     <section className="fade-section bg-white border-y border-gray-100">
       <div className="max-w-lg lg:max-w-5xl mx-auto px-6 py-14 lg:py-24">
         <div className="lg:text-center">
-          <p className="text-xs font-bold tracking-widest text-[#3CDBC0] mb-3">CERTIFIED</p>
+          <p className="text-xs font-bold tracking-widest text-mint-500 mb-3">CERTIFIED</p>
           <h2 className="text-2xl lg:text-4xl font-bold text-gray-800 leading-tight mb-3">
-            믿을 만한 집인지, <span className="text-[#2AB5A0]">인증 마크</span>가 말해줘요
+            믿을 만한 집인지, <span className="text-mint-600">인증 마크</span>가 말해줘요
           </h2>
           <p className="text-base lg:text-lg text-gray-500 mb-8 lg:mb-12 leading-relaxed">
             우체국·정부·미쉐린 가이드 — 공개된 공식 리스트와 상호·지역을 대조해,<br className="hidden lg:block" />
@@ -76,7 +76,7 @@ export default function CertShowcase() {
                     데이터 준비 중
                   </span>
                 ) : SHOW_COUNT.has(s.id) ? (
-                  <span className="self-start mt-0.5 text-[10px] font-bold text-[#2AB5A0] bg-[#E8F8F5] px-2 py-0.5 rounded-full">
+                  <span className="self-start mt-0.5 text-[10px] font-bold text-mint-600 bg-mint-100 px-2 py-0.5 rounded-full">
                     {s.entries.length}곳 수록
                   </span>
                 ) : null}

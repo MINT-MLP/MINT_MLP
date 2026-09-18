@@ -64,13 +64,13 @@ export default function PurposeSelect({ value, onChange }: Props) {
                 aria-pressed={selected}
                 className={`flex flex-col items-center justify-center h-[72px] rounded-2xl border-2 transition-all duration-200 ${
                   selected
-                    ? 'border-[#3CDBC0] bg-[#E8F8F5] shadow-md shadow-[#3CDBC0]/20'
-                    : 'border-gray-200 bg-white hover:border-[#3CDBC0]/50'
+                    ? 'border-mint-500 bg-mint-100 shadow-md shadow-mint-500/20'
+                    : 'border-gray-200 bg-white hover:border-mint-500/50'
                 }`}
               >
                 <span className="text-xl mb-0.5 leading-none">{opt.emoji}</span>
-                <span className={`text-xs font-bold leading-none ${selected ? 'text-[#2AB5A0]' : 'text-gray-700'}`}>{opt.label}</span>
-                <span className={`text-[9px] mt-0.5 leading-none ${selected ? 'text-[#2AB5A0]/70' : 'text-gray-400'}`}>{opt.sub}</span>
+                <span className={`text-xs font-bold leading-none ${selected ? 'text-mint-600' : 'text-gray-700'}`}>{opt.label}</span>
+                <span className={`text-[9px] mt-0.5 leading-none ${selected ? 'text-mint-600/70' : 'text-gray-400'}`}>{opt.sub}</span>
               </button>
             );
           })}
@@ -79,7 +79,7 @@ export default function PurposeSelect({ value, onChange }: Props) {
         {/* 메뉴 콕 모드: 세부 메뉴 태그 입력 */}
         {value.firstRaw === '기타' && (
           <div className="mt-2.5 animate-fade-in-up">
-            <p className="text-[10px] text-gray-400 mb-1.5 break-keep">먹고 싶은 메뉴 입력 · 한 집에서 다 먹고 싶으면 <span className="font-bold text-[#2AB5A0]">&amp;로 묶기</span>(예: 회&amp;초밥)</p>
+            <p className="text-[10px] text-gray-400 mb-1.5 break-keep">먹고 싶은 메뉴 입력 · 한 집에서 다 먹고 싶으면 <span className="font-bold text-mint-600">&amp;로 묶기</span>(예: 회&amp;초밥)</p>
             <MenuTagInput
               color="mint"
               menus={firstMenus}
@@ -107,13 +107,13 @@ export default function PurposeSelect({ value, onChange }: Props) {
                 aria-pressed={selected}
                 className={`flex flex-col items-center justify-center h-[72px] rounded-2xl border-2 transition-all duration-200 ${
                   selected
-                    ? 'border-[#3CDBC0] bg-[#E8F8F5] shadow-md shadow-[#3CDBC0]/20'
-                    : 'border-gray-200 bg-white hover:border-[#3CDBC0]/50'
+                    ? 'border-mint-500 bg-mint-100 shadow-md shadow-mint-500/20'
+                    : 'border-gray-200 bg-white hover:border-mint-500/50'
                 }`}
               >
                 <span className="text-xl mb-0.5 leading-none">{opt.emoji}</span>
-                <span className={`text-xs font-bold leading-none ${selected ? 'text-[#2AB5A0]' : 'text-gray-700'}`}>{opt.label}</span>
-                <span className={`text-[9px] mt-0.5 leading-none ${selected ? 'text-[#2AB5A0]/70' : 'text-gray-400'}`}>{opt.sub}</span>
+                <span className={`text-xs font-bold leading-none ${selected ? 'text-mint-600' : 'text-gray-700'}`}>{opt.label}</span>
+                <span className={`text-[9px] mt-0.5 leading-none ${selected ? 'text-mint-600/70' : 'text-gray-400'}`}>{opt.sub}</span>
               </button>
             );
           })}
@@ -138,8 +138,8 @@ export default function PurposeSelect({ value, onChange }: Props) {
           onClick={() => selectSecond('없음')}
           className={`w-full py-3.5 rounded-2xl border-2 text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
             isNoneSelected
-              ? 'border-[#3CDBC0] bg-[#E8F8F5] text-[#2AB5A0] shadow-md shadow-[#3CDBC0]/20'
-              : 'border-gray-200 bg-white text-gray-600 hover:border-[#3CDBC0]/50'
+              ? 'border-mint-500 bg-mint-100 text-mint-600 shadow-md shadow-mint-500/20'
+              : 'border-gray-200 bg-white text-gray-600 hover:border-mint-500/50'
           }`}
         >
           <span>✋</span>
@@ -204,14 +204,14 @@ function MenuTagInput({
             maxLength={MENU_MAXLEN}
             className={`flex-1 min-w-0 border-2 rounded-xl px-3.5 py-2.5 text-xs font-bold placeholder:text-gray-400 placeholder:font-medium outline-none transition-colors ${
               isMint
-                ? 'text-[#2AB5A0] border-gray-200 focus:border-[#3CDBC0]'
+                ? 'text-mint-600 border-gray-200 focus:border-mint-500'
                 : 'text-orange-500 border-gray-200 focus:border-orange-300'
             }`}
           />
           <button
             onClick={commit}
             className={`flex-shrink-0 px-3.5 rounded-xl text-white text-xs font-bold transition-all active:scale-95 ${
-              isMint ? 'bg-[#3CDBC0] hover:bg-[#2AB5A0]' : 'bg-orange-400 hover:bg-orange-500'
+              isMint ? 'bg-mint-500 hover:bg-mint-600' : 'bg-orange-400 hover:bg-orange-500'
             }`}
           >
             추가
@@ -226,7 +226,7 @@ function MenuTagInput({
               onClick={() => onRemove(m)}
               className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-bold transition-all active:scale-95 ${
                 isMint
-                  ? 'bg-[#E8F8F5] border-[#3CDBC0]/50 text-[#2AB5A0]'
+                  ? 'bg-mint-100 border-mint-500/50 text-mint-600'
                   : 'bg-orange-50 border-orange-300 text-orange-500'
               }`}
             >

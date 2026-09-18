@@ -38,7 +38,7 @@ function SuggestionDropdown({
         <button
           key={place.id}
           onMouseDown={() => onSelect(place)}
-          className="w-full text-left px-4 py-3 hover:bg-[#E8F8F5] transition-colors border-b border-gray-100 last:border-0"
+          className="w-full text-left px-4 py-3 hover:bg-mint-100 transition-colors border-b border-gray-100 last:border-0"
         >
           <div className="text-sm font-medium text-gray-800">{place.place_name}</div>
           <div className="text-xs text-gray-400 mt-0.5">{place.road_address_name || place.address_name}</div>
@@ -125,7 +125,7 @@ export default function LocationInput({ locations, onChange }: Props) {
     <div className="flex flex-col gap-2.5 px-4 py-3">
       {inputs.map((inp, i) => (
         <div key={i} className="flex items-center gap-2">
-          <span className="w-7 h-7 rounded-full bg-[#E8F8F5] border border-[#3CDBC0]/50 text-[#3CDBC0] text-xs font-black flex items-center justify-center flex-shrink-0">
+          <span className="w-7 h-7 rounded-full bg-mint-100 border border-mint-500/50 text-mint-500 text-xs font-black flex items-center justify-center flex-shrink-0">
             {i + 1}
           </span>
           <div
@@ -140,17 +140,17 @@ export default function LocationInput({ locations, onChange }: Props) {
               onFocus={() => handleFocus(i)}
               placeholder={i === 0 ? '예: 성수역, 합정역...' : '예: 강남역, 이태원...'}
               className={`w-full pl-4 pr-9 py-3.5 rounded-xl border-2 text-sm outline-none transition-all duration-200 bg-white ${
-                inp.selected ? 'border-[#3CDBC0] bg-[#E8F8F5]' : 'border-gray-200 focus:border-[#3CDBC0]'
+                inp.selected ? 'border-mint-500 bg-mint-100' : 'border-gray-200 focus:border-mint-500'
               }`}
             />
             {inp.loading && (
               <div className="absolute inset-y-0 right-3 flex items-center">
-                <div className="w-4 h-4 border-2 border-[#3CDBC0] border-t-transparent rounded-full animate-spin-slow" />
+                <div className="w-4 h-4 border-2 border-mint-500 border-t-transparent rounded-full animate-spin-slow" />
               </div>
             )}
             {inp.selected && !inp.loading && (
               <div className="absolute inset-y-0 right-3 flex items-center">
-                <span className="text-[#3CDBC0] text-sm font-bold">✓</span>
+                <span className="text-mint-500 text-sm font-bold">✓</span>
               </div>
             )}
           </div>
@@ -173,7 +173,7 @@ export default function LocationInput({ locations, onChange }: Props) {
       {inputs.length < 6 && (
         <button
           onClick={addInput}
-          className="flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-[#3CDBC0]/60 text-[#3CDBC0] text-sm font-medium hover:bg-[#E8F8F5] transition-colors"
+          className="flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-mint-500/60 text-mint-500 text-sm font-medium hover:bg-mint-100 transition-colors"
         >
           <span className="text-base leading-none">+</span>
           출발지 추가

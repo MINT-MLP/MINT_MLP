@@ -30,7 +30,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
 
   return (
     <div
-      className="bg-[#F5FBF8] overflow-hidden"
+      className="bg-mint-50 overflow-hidden"
       style={{
         // 높이는 스텝과 무관하게 항상 동일. step 0→1에서 탭바가 사라져도 컨테이너가
         // 재계산되지 않아 콘텐츠가 튀지 않는다(탭바 자리는 아래 padding-bottom이 흡수).
@@ -54,14 +54,14 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
           <div className="relative -mx-2 flex h-10 items-center justify-center">
             <button
               onClick={step === 0 ? () => { window.location.href = '/'; } : handleBack}
-              className="absolute left-0 top-1/2 -translate-y-1/2 flex min-h-10 items-center gap-1 rounded-lg px-2 text-xs font-bold text-gray-500 transition-colors hover:text-[#2AB5A0]"
+              className="absolute left-0 top-1/2 -translate-y-1/2 flex min-h-10 items-center gap-1 rounded-lg px-2 text-xs font-bold text-gray-500 transition-colors hover:text-mint-600"
               aria-label={step === 0 ? '홈으로 가기' : '뒤로 가기'}
             >
               <span aria-hidden>←</span>
               <span>{step === 0 ? '홈' : '뒤로'}</span>
             </button>
             <h1
-              className="text-2xl font-black text-[#2AB5A0] tracking-tight cursor-pointer select-none"
+              className="text-2xl font-black text-mint-600 tracking-tight cursor-pointer select-none"
               onClick={() => handleStepJump(0)}
             >
               MINT
@@ -125,12 +125,12 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                   aria-pressed={appMode === 'solo'}
                   className={`flex flex-col items-center justify-center gap-0.5 py-3 rounded-2xl border transition-all active:scale-[0.97] ${
                     appMode === 'solo'
-                      ? 'border-[#3CDBC0] bg-[#E8F8F5]'
-                      : 'border-gray-200 bg-white hover:border-[#3CDBC0]/50'
+                      ? 'border-mint-500 bg-mint-100'
+                      : 'border-gray-200 bg-white hover:border-mint-500/50'
                   }`}
                 >
                   <span className="text-lg">🙋</span>
-                  <span className={`text-[13px] font-black ${appMode === 'solo' ? 'text-[#2AB5A0]' : 'text-gray-700'}`}>혼자 정할게요</span>
+                  <span className={`text-[13px] font-black ${appMode === 'solo' ? 'text-mint-600' : 'text-gray-700'}`}>혼자 정할게요</span>
                   <span className="text-[10px] text-gray-400">내가 직접 입력</span>
                 </button>
                 <button
@@ -138,19 +138,19 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                   aria-pressed={isGroup}
                   className={`flex flex-col items-center justify-center gap-0.5 py-3 rounded-2xl border transition-all active:scale-[0.97] ${
                     isGroup
-                      ? 'border-[#3CDBC0] bg-[#E8F8F5]'
-                      : 'border-gray-200 bg-white hover:border-[#3CDBC0]/50'
+                      ? 'border-mint-500 bg-mint-100'
+                      : 'border-gray-200 bg-white hover:border-mint-500/50'
                   }`}
                 >
                   <span className="text-lg">👥</span>
-                  <span className={`text-[13px] font-black ${isGroup ? 'text-[#2AB5A0]' : 'text-gray-700'}`}>다같이 정할게요</span>
+                  <span className={`text-[13px] font-black ${isGroup ? 'text-mint-600' : 'text-gray-700'}`}>다같이 정할게요</span>
                   <span className="text-[10px] text-gray-400">링크로 친구 취향 모으기 →</span>
                 </button>
               </div>
 
               {/* 다같이 선택 시 미리보기 한 줄 — 진행 전에 그룹 모드가 어떻게 돌아가는지 체감시켜 진입률↑ */}
               {isGroup && (
-                <p className="text-xs text-[#2AB5A0] bg-[#E8F8F5] border border-[#3CDBC0]/30 rounded-xl px-3 py-2.5 leading-relaxed animate-fade-in-up break-keep">
+                <p className="text-xs text-mint-600 bg-mint-100 border border-mint-500/30 rounded-xl px-3 py-2.5 leading-relaxed animate-fade-in-up break-keep">
                   💡 링크만 공유하면 친구들은 <strong className="font-black">가입 없이 분위기만 30초</strong>. 결과는 단톡방으로 와요!
                 </p>
               )}
@@ -168,8 +168,8 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                           aria-pressed={groupSize === size}
                           className={`flex items-center justify-center h-10 rounded-xl border text-sm font-bold transition-all active:scale-[0.97] ${
                             groupSize === size
-                              ? 'border-[#3CDBC0] bg-[#E8F8F5] text-[#2AB5A0]'
-                              : 'border-gray-200 bg-white text-gray-700 hover:border-[#3CDBC0]/50'
+                              ? 'border-mint-500 bg-mint-100 text-mint-600'
+                              : 'border-gray-200 bg-white text-gray-700 hover:border-mint-500/50'
                           }`}
                         >
                           {size}
@@ -196,8 +196,8 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                           onClick={() => setExpectedCount(n)}
                           className={`flex items-center justify-center h-10 rounded-xl border text-sm font-black transition-all active:scale-[0.97] ${
                             expectedCount === n
-                              ? 'border-[#3CDBC0] bg-[#E8F8F5] text-[#2AB5A0]'
-                              : 'border-gray-200 bg-white text-gray-700 hover:border-[#3CDBC0]/50'
+                              ? 'border-mint-500 bg-mint-100 text-mint-600'
+                              : 'border-gray-200 bg-white text-gray-700 hover:border-mint-500/50'
                           }`}
                         >
                           {n === 6 ? '6+' : n}
@@ -287,16 +287,16 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                     const selected = !etcRelOpen && curRelation === opt.relation;
                     return (
                       <button key={opt.key} onClick={() => pickRel(opt.relation)}
-                        className={`flex flex-col items-center justify-center gap-1 h-[72px] rounded-2xl border transition-all active:scale-[0.97] ${selected ? 'border-[#3CDBC0] bg-[#E8F8F5]' : 'border-gray-200 bg-white hover:border-[#3CDBC0]/50'}`}>
+                        className={`flex flex-col items-center justify-center gap-1 h-[72px] rounded-2xl border transition-all active:scale-[0.97] ${selected ? 'border-mint-500 bg-mint-100' : 'border-gray-200 bg-white hover:border-mint-500/50'}`}>
                         <span className="text-xl leading-none">{opt.emoji}</span>
-                        <span className={`text-xs font-bold leading-none ${selected ? 'text-[#2AB5A0]' : 'text-gray-700'}`}>{opt.key}</span>
+                        <span className={`text-xs font-bold leading-none ${selected ? 'text-mint-600' : 'text-gray-700'}`}>{opt.key}</span>
                       </button>
                     );
                   })}
                   <button onClick={openEtc}
-                    className={`flex flex-col items-center justify-center gap-1 h-[72px] rounded-2xl border transition-all active:scale-[0.97] ${etcRelOpen ? 'border-[#3CDBC0] bg-[#E8F8F5]' : 'border-gray-200 bg-white hover:border-[#3CDBC0]/50'}`}>
+                    className={`flex flex-col items-center justify-center gap-1 h-[72px] rounded-2xl border transition-all active:scale-[0.97] ${etcRelOpen ? 'border-mint-500 bg-mint-100' : 'border-gray-200 bg-white hover:border-mint-500/50'}`}>
                     <span className="text-xl leading-none">🎯</span>
-                    <span className={`text-xs font-bold leading-none ${etcRelOpen ? 'text-[#2AB5A0]' : 'text-gray-700'}`}>기타 콕!</span>
+                    <span className={`text-xs font-bold leading-none ${etcRelOpen ? 'text-mint-600' : 'text-gray-700'}`}>기타 콕!</span>
                   </button>
                 </div>
 
@@ -309,18 +309,18 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                         const on = occasionChip === chip.key;
                         return (
                           <button key={chip.key} onClick={() => pickOccasion(chip)}
-                            className={`flex flex-col items-center justify-center gap-1 h-[64px] rounded-2xl border transition-all active:scale-[0.97] ${on ? 'border-[#3CDBC0] bg-[#E8F8F5]' : 'border-gray-200 bg-white hover:border-[#3CDBC0]/50'}`}>
+                            className={`flex flex-col items-center justify-center gap-1 h-[64px] rounded-2xl border transition-all active:scale-[0.97] ${on ? 'border-mint-500 bg-mint-100' : 'border-gray-200 bg-white hover:border-mint-500/50'}`}>
                             <span className="text-lg leading-none">{chip.emoji}</span>
-                            <span className={`text-[11px] font-bold leading-none text-center px-0.5 ${on ? 'text-[#2AB5A0]' : 'text-gray-700'}`}>{chip.key}</span>
+                            <span className={`text-[11px] font-bold leading-none text-center px-0.5 ${on ? 'text-mint-600' : 'text-gray-700'}`}>{chip.key}</span>
                           </button>
                         );
                       })}
                     </div>
                     {/* 살아있는 미리보기 — 선택 효과를 즉시 보여줌(입력 부담 0) */}
                     {previewHint && (
-                      <div className="animate-fade-in-up flex items-center gap-1.5 rounded-xl bg-[#E8F8F5] px-3 py-2 mt-0.5">
+                      <div className="animate-fade-in-up flex items-center gap-1.5 rounded-xl bg-mint-100 px-3 py-2 mt-0.5">
                         <span className="text-sm">✨</span>
-                        <span className="text-[12px] font-medium text-[#2AB5A0] leading-snug">{previewHint}</span>
+                        <span className="text-[12px] font-medium text-mint-600 leading-snug">{previewHint}</span>
                       </div>
                     )}
                   </div>
@@ -334,8 +334,8 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                       value={customOccasion}
                       onChange={(e) => handleEtcText(e.target.value)}
                       placeholder="🔎 상황을 직접 적어요 (예: 회식, 상견례, 생일, 졸업)"
-                      className={`w-full border rounded-xl px-4 py-3 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#3CDBC0] transition-colors ${
-                        customOccasion.trim() ? 'border-[#3CDBC0] bg-[#E8F8F5]' : 'border-gray-200'
+                      className={`w-full border rounded-xl px-4 py-3 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-mint-500 transition-colors ${
+                        customOccasion.trim() ? 'border-mint-500 bg-mint-100' : 'border-gray-200'
                       }`}
                     />
                     <p className="text-[11px] text-gray-400 mt-1.5">적은 상황을 반영해 분위기·메뉴를 맞춰 추천해요</p>
@@ -383,7 +383,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                     className={`w-full py-4 rounded-2xl font-black text-base transition-all active:scale-95 ${
                       creatingSession
                         ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                        : 'bg-[#3CDBC0] text-white shadow-lg shadow-[#3CDBC0]/30 hover:bg-[#2AB5A0]'
+                        : 'bg-mint-500 text-white shadow-lg shadow-mint-500/30 hover:bg-mint-600'
                     }`}
                   >
                     {creatingSession ? '생성 중...' : '링크 생성하기 →'}
@@ -425,8 +425,8 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
           {/* Step 3 (그룹): 확정 요약 */}
           {step === 3 && isGroup && (
             <div className="px-5 py-3 flex flex-col gap-3">
-              <div className="bg-white rounded-2xl border border-[#3CDBC0]/30 shadow-sm p-5">
-                <p className="text-[10px] font-bold text-[#2AB5A0] uppercase tracking-widest mb-3">모임 요약</p>
+              <div className="bg-white rounded-2xl border border-mint-500/30 shadow-sm p-5">
+                <p className="text-[10px] font-bold text-mint-600 uppercase tracking-widest mb-3">모임 요약</p>
                 <div className="flex flex-col gap-2.5 text-sm">
                   <div className="flex gap-2"><span className="text-gray-400 w-12 flex-shrink-0">코스</span>
                     <span className="font-bold text-gray-800">🍀 {purpose?.first ?? '-'}{purpose?.firstGenre ? `(${purpose.firstGenre})` : ''}{purpose?.second && purpose.second !== '없음' ? ` → ${purpose.second}${purpose?.secondGenre ? `(${purpose.secondGenre})` : ''}` : ''}</span>
@@ -446,11 +446,11 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                 if (vibeLabels.length === 0 && !budget && keywords.length === 0 && excludeFoods.length === 0) return null;
                 return (
                   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                    <p className="text-[10px] font-bold text-[#2AB5A0] uppercase tracking-widest mb-2.5">모두의 취향 (자동 종합)</p>
+                    <p className="text-[10px] font-bold text-mint-600 uppercase tracking-widest mb-2.5">모두의 취향 (자동 종합)</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {vibeLabels.map((l) => <span key={l} className="bg-[#E8F8F5] text-[#2AB5A0] text-xs font-bold px-2.5 py-1 rounded-full">{l}</span>)}
-                      {budget && <span className="bg-[#E8F8F5] text-[#2AB5A0] text-xs font-bold px-2.5 py-1 rounded-full">💰 {budget}</span>}
-                      {keywords.map((k) => <span key={k} className="bg-[#E8F8F5] text-[#2AB5A0] text-xs font-bold px-2.5 py-1 rounded-full">{k}</span>)}
+                      {vibeLabels.map((l) => <span key={l} className="bg-mint-100 text-mint-600 text-xs font-bold px-2.5 py-1 rounded-full">{l}</span>)}
+                      {budget && <span className="bg-mint-100 text-mint-600 text-xs font-bold px-2.5 py-1 rounded-full">💰 {budget}</span>}
+                      {keywords.map((k) => <span key={k} className="bg-mint-100 text-mint-600 text-xs font-bold px-2.5 py-1 rounded-full">{k}</span>)}
                       {excludeFoods.map((f) => <span key={f} className="bg-red-50 text-red-500 text-xs font-bold px-2.5 py-1 rounded-full">🚫 {f}</span>)}
                     </div>
                   </div>
@@ -462,11 +462,11 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
           </div>
 
           {showVibeScrollHint && (
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center bg-gradient-to-t from-[#F5FBF8] via-[#F5FBF8]/95 to-transparent px-5 pb-2 pt-9">
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center bg-gradient-to-t from-mint-50 via-mint-50/95 to-transparent px-5 pb-2 pt-9">
               <button
                 type="button"
                 onClick={() => stepScrollRef.current?.scrollBy({ top: 240, behavior: 'smooth' })}
-                className="pointer-events-auto flex items-center gap-2 rounded-full border border-[#3CDBC0]/35 bg-white/95 px-4 py-2 text-xs font-bold text-[#2AB5A0] shadow-lg shadow-[#2AB5A0]/15 backdrop-blur"
+                className="pointer-events-auto flex items-center gap-2 rounded-full border border-mint-500/35 bg-white/95 px-4 py-2 text-xs font-bold text-mint-600 shadow-lg shadow-mint-600/15 backdrop-blur"
               >
                 키워드·못 먹는 음식도 더 있어요
                 <span className="animate-bounce text-sm leading-none" aria-hidden>↓</span>
@@ -483,7 +483,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
             {lastRecommendRef.current && (
               <button
                 onClick={() => lastRecommendRef.current?.()}
-                className="mt-2.5 w-full py-2.5 rounded-xl bg-[#3CDBC0] text-white text-sm font-black active:scale-95 transition-transform hover:bg-[#2AB5A0]"
+                className="mt-2.5 w-full py-2.5 rounded-xl bg-mint-500 text-white text-sm font-black active:scale-95 transition-transform hover:bg-mint-600"
               >
                 🔄 다시 시도
               </button>
@@ -510,7 +510,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                   disabled={!canNext()}
                   className={`flex-1 py-4 rounded-2xl font-black text-base transition-all duration-300 active:scale-95 ${
                     canNext()
-                      ? 'bg-[#3CDBC0] text-white shadow-lg shadow-[#3CDBC0]/30 hover:bg-[#2AB5A0]'
+                      ? 'bg-mint-500 text-white shadow-lg shadow-mint-500/30 hover:bg-mint-600'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
                 >
@@ -546,7 +546,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                   onClick={() => {
                     if (meetingLocation) handleConfirmMeetingLocation(meetingLocation);
                   }}
-                  className="flex-1 py-4 rounded-2xl font-black text-base bg-[#3CDBC0] text-white shadow-lg shadow-[#3CDBC0]/30 hover:bg-[#2AB5A0] transition-all active:scale-95"
+                  className="flex-1 py-4 rounded-2xl font-black text-base bg-mint-500 text-white shadow-lg shadow-mint-500/30 hover:bg-mint-600 transition-all active:scale-95"
                 >
                   ✨ 장소 추천받기
                 </button>

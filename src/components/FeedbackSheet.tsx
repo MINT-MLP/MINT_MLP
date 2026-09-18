@@ -160,12 +160,12 @@ export default function FeedbackSheet({ tab, onClose }: Props) {
         aria-labelledby="feedback-sheet-title"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
-        className="fixed inset-x-0 z-50 mx-auto flex max-h-[85dvh] max-w-md flex-col rounded-t-3xl bg-[#F5FBF8] animate-fade-in-up transition-[bottom] duration-150"
+        className="fixed inset-x-0 z-50 mx-auto flex max-h-[85dvh] max-w-md flex-col rounded-t-3xl bg-mint-50 animate-fade-in-up transition-[bottom] duration-150"
         style={{ bottom: inset, ...(visibleHeight ? { maxHeight: visibleHeight - 16 } : {}) }}
       >
         {/* 헤더 */}
         <div className="flex shrink-0 items-center justify-between px-5 pb-2 pt-4">
-          <span className="rounded-full bg-[#E8F8F5] px-3 py-1 text-xs font-black text-[#2AB5A0]">피드백</span>
+          <span className="rounded-full bg-mint-100 px-3 py-1 text-xs font-black text-mint-600">피드백</span>
           <button onClick={close} className="px-2 text-sm font-bold text-gray-400 active:scale-95">닫기</button>
         </div>
 
@@ -175,13 +175,13 @@ export default function FeedbackSheet({ tab, onClose }: Props) {
             <div className="mb-3 text-5xl">🌱</div>
             <p id="feedback-sheet-title" className="text-lg font-black text-gray-900">잘 받았어요!</p>
             <p className="mt-1.5 text-sm leading-relaxed text-gray-500 break-keep">
-              보내주신 의견은 <span className="font-black text-[#2AB5A0]">전부 읽고</span>,<br />
+              보내주신 의견은 <span className="font-black text-mint-600">전부 읽고</span>,<br />
               다음 업데이트에 빠르게 반영할게요.
             </p>
             <button
               ref={doneButtonRef}
               onClick={onClose}
-              className="mt-5 w-full rounded-2xl bg-[#3CDBC0] py-3.5 font-black text-white transition-transform active:scale-[0.98]"
+              className="mt-5 w-full rounded-2xl bg-mint-500 py-3.5 font-black text-white transition-transform active:scale-[0.98]"
             >
               확인
             </button>
@@ -204,7 +204,7 @@ export default function FeedbackSheet({ tab, onClose }: Props) {
                   onChange={(e) => setText([...e.target.value].slice(0, FEEDBACK_MAX_LEN).join(''))}
                   rows={3}
                   placeholder="예: 추천이 좀 멀어요 / 이런 기능 있으면 좋겠어요"
-                  className="w-full resize-none rounded-2xl border-2 border-gray-200 bg-white px-4 py-3 text-sm leading-relaxed outline-none focus:border-[#3CDBC0]"
+                  className="w-full resize-none rounded-2xl border-2 border-gray-200 bg-white px-4 py-3 text-sm leading-relaxed outline-none focus:border-mint-500"
                 />
                 {textLen >= FEEDBACK_COUNTER_FROM && (
                   <span className="absolute bottom-3 right-3 text-[11px] text-gray-400">
@@ -223,7 +223,7 @@ export default function FeedbackSheet({ tab, onClose }: Props) {
                       onClick={() => setCategory(on ? null : opt.value)}
                       aria-pressed={on}
                       className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-colors active:scale-95 ${
-                        on ? 'border-[#3CDBC0] bg-[#E8F8F5] text-[#2AB5A0]' : 'border-gray-200 bg-white text-gray-500'
+                        on ? 'border-mint-500 bg-mint-100 text-mint-600' : 'border-gray-200 bg-white text-gray-500'
                       }`}
                     >
                       {opt.emoji} {opt.label}
@@ -239,7 +239,7 @@ export default function FeedbackSheet({ tab, onClose }: Props) {
                 value={contact}
                 onChange={(e) => setContact(e.target.value.slice(0, 100))}
                 placeholder="답변 받고 싶다면 (선택)"
-                className="mt-2.5 w-full rounded-2xl border-2 border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#3CDBC0]"
+                className="mt-2.5 w-full rounded-2xl border-2 border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-mint-500"
               />
             </div>
 
@@ -249,7 +249,7 @@ export default function FeedbackSheet({ tab, onClose }: Props) {
                 onClick={handleSubmit}
                 disabled={!canSend}
                 className={`w-full rounded-2xl py-4 text-base font-black transition-transform active:scale-95 ${
-                  canSend ? 'bg-[#3CDBC0] text-white shadow-lg shadow-[#3CDBC0]/30' : 'bg-gray-200 text-gray-400'
+                  canSend ? 'bg-mint-500 text-white shadow-lg shadow-mint-500/30' : 'bg-gray-200 text-gray-400'
                 }`}
               >
                 보내기

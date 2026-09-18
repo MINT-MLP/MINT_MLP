@@ -4,11 +4,24 @@
 @tailwind utilities;
 
 :root {
-  --color-mint: #3CDBC0;
-  --color-mint-dark: #2AB5A0;
-  --color-mint-light: #E8F8F5;
-  --color-bg: #F5FBF8;
-  --color-text: #333333;
+  /* 브랜드 색 원천 — 여기 한 곳만 바꾸면 전체가 따라온다.
+     공백 구분 RGB인 이유: tailwind.config가 rgb(var(--mint-500) / <alpha-value>)로 감싸야
+     bg-mint-500/30 같은 투명도 수식어(136곳)가 동작한다. 헥스로 되돌리면 그 136곳이 조용히 무색이 된다.
+     CSS 변수를 못 읽는 곳(카카오 지도 SDK)은 src/constants/colors.ts의 MINT_HEX를 쓴다 — 값을 같이 고칠 것. */
+  --mint-50:  245 251 248;  /* #F5FBF8  배경 */
+  --mint-100: 232 248 245;  /* #E8F8F5  연한 틴트·선택 배경 */
+  --mint-200: 212 243 238;  /* #D4F3EE  hover 틴트 */
+  --mint-500:  60 219 192;  /* #3CDBC0  브랜드 기본 */
+  --mint-600:  42 181 160;  /* #2AB5A0  브랜드 진한 것·글자 */
+  --mint-800:  26 122 110;  /* #1A7A6E  2차 코스 */
+  --mint-900:  15  78  70;  /* #0F4E46  3차 코스 */
+
+  /* 기존 이름 호환 — body가 --color-bg, --color-text를 쓴다 */
+  --color-mint:       rgb(var(--mint-500));
+  --color-mint-dark:  rgb(var(--mint-600));
+  --color-mint-light: rgb(var(--mint-100));
+  --color-bg:         rgb(var(--mint-50));
+  --color-text:       #333333;
 }
 
 * {
@@ -86,7 +99,7 @@ body {
 }
 
 .shimmer {
-  background: linear-gradient(90deg, #E8F8F5 25%, #C8F0E8 50%, #E8F8F5 75%);
+  background: linear-gradient(90deg, rgb(var(--mint-100)) 25%, #C8F0E8 50%, rgb(var(--mint-100)) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
@@ -103,7 +116,7 @@ body {
 }
 
 .result-gradient {
-  background: linear-gradient(135deg, #3CDBC0 0%, #2AB5A0 100%);
+  background: linear-gradient(135deg, rgb(var(--mint-500)) 0%, rgb(var(--mint-600)) 100%);
 }
 
 ::-webkit-scrollbar {
@@ -111,11 +124,11 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #F5FBF8;
+  background: rgb(var(--mint-50));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #3CDBC0;
+  background: rgb(var(--mint-500));
   border-radius: 2px;
 }
 

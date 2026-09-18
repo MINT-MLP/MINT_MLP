@@ -54,7 +54,7 @@ export default function GroupResultView({
   const secondTransit = myTravel?.second?.[transportMode]?.[0];
 
   return (
-    <div className="min-h-[100dvh] bg-[#F5FBF8] px-5 pt-10 pb-12">
+    <div className="min-h-[100dvh] bg-mint-50 px-5 pt-10 pb-12">
       {/* 호스트가 장소를 바꾸면 알림 — 조용한 교체 대신 명시 */}
       {placeChanged && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-sm font-bold px-4 py-2.5 rounded-full shadow-lg animate-fade-in-up">
@@ -72,17 +72,17 @@ export default function GroupResultView({
 
         {/* 내가 낸 취향이 반영됐다는 체감 — 호스트 결과의 개인화 배너를 게스트 '자기' 취향으로 */}
         {(chips.length > 0 || guest.excludeFoods.length > 0) && (
-          <div className="bg-[#E8F8F5] border border-[#3CDBC0]/30 rounded-2xl px-4 py-3 flex flex-col gap-1">
+          <div className="bg-mint-100 border border-mint-500/30 rounded-2xl px-4 py-3 flex flex-col gap-1">
             {chips.length > 0 && (
-              <p className="text-xs text-[#2AB5A0] leading-relaxed">
+              <p className="text-xs text-mint-600 leading-relaxed">
                 <span className="font-black">{chips.map((c) => `#${c}`).join(' ')}</span>
-                <span className="text-[#2AB5A0]/80"> — 네가 고른 취향도 반영됐어요</span>
+                <span className="text-mint-600/80"> — 네가 고른 취향도 반영됐어요</span>
               </p>
             )}
             {guest.excludeFoods.length > 0 && (
-              <p className="text-xs text-[#2AB5A0] leading-relaxed">
+              <p className="text-xs text-mint-600 leading-relaxed">
                 <span className="font-black">🚫 {guest.excludeFoods.join(', ')}</span>
-                <span className="text-[#2AB5A0]/80"> 못 먹는 건 빼고 골랐어요</span>
+                <span className="text-mint-600/80"> 못 먹는 건 빼고 골랐어요</span>
               </p>
             )}
           </div>
@@ -92,8 +92,8 @@ export default function GroupResultView({
         {hasMyLoc && firstTransit && (
           <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="flex items-center gap-1 text-xs font-black text-[#2AB5A0]">
-                <GpsPin className="text-[#3CDBC0]" />
+              <span className="flex items-center gap-1 text-xs font-black text-mint-600">
+                <GpsPin className="text-mint-500" />
                 <span className="truncate max-w-[150px]">{guest.locName || '내 출발지'}에서</span>
               </span>
               <button
@@ -108,13 +108,13 @@ export default function GroupResultView({
               <div className="flex items-center gap-1">
                 <span className="text-gray-500">1차 {f.placeName}</span>
                 <span className="text-gray-400">→ 약</span>
-                <span className="font-black text-[#3CDBC0]">{firstTransit.formatted}</span>
+                <span className="font-black text-mint-500">{firstTransit.formatted}</span>
               </div>
               {secondTransit && result.second && (
                 <div className="flex items-center gap-1">
                   <span className="text-gray-500">2차 {result.second.placeName}</span>
                   <span className="text-gray-400">→ 약</span>
-                  <span className="font-black text-[#1A7A6E]">{secondTransit.formatted}</span>
+                  <span className="font-black text-mint-800">{secondTransit.formatted}</span>
                 </div>
               )}
             </div>
@@ -136,7 +136,7 @@ export default function GroupResultView({
         {/* 1차 라벨 */}
         <div className="flex items-center justify-between mt-1">
           {hasSecond ? (
-            <span className="text-xs font-black bg-[#3CDBC0] text-white px-3 py-1 rounded-full">
+            <span className="text-xs font-black bg-mint-500 text-white px-3 py-1 rounded-full">
               1차 추천{result.purposeFirst ? ` ${result.purposeFirst}` : ''}
             </span>
           ) : <span />}
@@ -146,8 +146,8 @@ export default function GroupResultView({
         {/* 1차 카드 — 호스트와 동일한 신뢰 요소 */}
         <GuestPlaceCard
           place={f}
-          gradient="linear-gradient(135deg, #3CDBC0 0%, #2AB5A0 100%)"
-          shadowColor="shadow-[#3CDBC0]/25"
+          gradient="linear-gradient(135deg, rgb(var(--mint-500)) 0%, rgb(var(--mint-600)) 100%)"
+          shadowColor="shadow-mint-500/25"
           wishRank="first"
         />
 
@@ -160,18 +160,18 @@ export default function GroupResultView({
         {result.second && (
           <>
             <div className="relative flex items-center py-1">
-              <span className="text-xs font-black bg-[#1A7A6E] text-white px-3 py-1 rounded-full">
+              <span className="text-xs font-black bg-mint-800 text-white px-3 py-1 rounded-full">
                 2차 추천{result.purposeSecond ? ` ${result.purposeSecond}` : ''}
               </span>
               <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 text-xs text-gray-400 font-medium pointer-events-none">
-                <span className="text-[#3CDBC0] text-base leading-none">↓</span>
+                <span className="text-mint-500 text-base leading-none">↓</span>
                 <span>도보 약 {f.walkingToNext ? `${f.walkingToNext}분` : '10~15분'}</span>
               </div>
             </div>
             <GuestPlaceCard
               place={result.second}
-              gradient="linear-gradient(135deg, #1A7A6E 0%, #155E54 100%)"
-              shadowColor="shadow-[#1A7A6E]/25"
+              gradient="linear-gradient(135deg, rgb(var(--mint-800)) 0%, #155E54 100%)"
+              shadowColor="shadow-mint-800/25"
               wishRank="second"
             />
           </>
@@ -181,11 +181,11 @@ export default function GroupResultView({
         {result.third && (
           <>
             <div className="relative flex items-center py-1">
-              <span className="text-xs font-black bg-[#0F4E46] text-white px-3 py-1 rounded-full">
+              <span className="text-xs font-black bg-mint-900 text-white px-3 py-1 rounded-full">
                 3차 · {result.thirdLabel ?? '이어서 가기'}
               </span>
               <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 text-xs text-gray-400 font-medium pointer-events-none">
-                <span className="text-[#3CDBC0] text-base leading-none">↓</span>
+                <span className="text-mint-500 text-base leading-none">↓</span>
                 <span>도보 약 {(hasSecond ? result.second?.walkingToNext : f.walkingToNext) ? `${hasSecond ? result.second?.walkingToNext : f.walkingToNext}분` : '5~10분'}</span>
               </div>
             </div>
@@ -193,14 +193,14 @@ export default function GroupResultView({
               href={kakaoUrl(result.third)}
               target="_blank"
               rel="noreferrer"
-              className="block rounded-2xl bg-white border border-gray-200 border-l-4 border-l-[#0F4E46] p-3.5 shadow-sm active:scale-[0.99] transition-transform"
+              className="block rounded-2xl bg-white border border-gray-200 border-l-4 border-l-mint-900 p-3.5 shadow-sm active:scale-[0.99] transition-transform"
             >
               <div className="flex items-start gap-3">
                 {result.third.imageUrl && (
                   <img src={result.third.imageUrl} alt={result.third.placeName} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" loading="lazy" onError={hideOnError} />
                 )}
                 <div className="min-w-0 flex-1">
-                  <span className="inline-block text-[11px] font-bold text-[#0F4E46] bg-[#0F4E46]/10 px-2 py-0.5 rounded-full mb-1">{result.third.category}</span>
+                  <span className="inline-block text-[11px] font-bold text-mint-900 bg-mint-900/10 px-2 py-0.5 rounded-full mb-1">{result.third.category}</span>
                   <p className="text-base font-black text-gray-800 leading-tight">{result.third.placeName}</p>
                   {result.third.description && (
                     <p className="text-xs text-gray-500 leading-snug mt-0.5 break-keep">{result.third.description}</p>
@@ -232,13 +232,13 @@ export default function GroupResultView({
             target="_blank"
             rel="noreferrer"
             onClick={() => trackEvent('guest_directions_click', { device_id: getDeviceId(), place_key: `${f.placeName}|${f.address ?? ''}` })}
-            className="flex-1 py-2.5 rounded-2xl bg-white border border-gray-200 text-gray-600 font-bold text-sm flex items-center justify-center gap-1.5 hover:border-[#3CDBC0] hover:text-[#2AB5A0] transition-all active:scale-95"
+            className="flex-1 py-2.5 rounded-2xl bg-white border border-gray-200 text-gray-600 font-bold text-sm flex items-center justify-center gap-1.5 hover:border-mint-500 hover:text-mint-600 transition-all active:scale-95"
           >
             <span className="text-base">🧭</span><span>길찾기</span>
           </a>
           <button
             onClick={() => { trackEvent('guest_calendar_add', { device_id: getDeviceId() }); downloadMeetingIcs(f.placeName, f.address || f.area || ''); }}
-            className="flex-1 py-2.5 rounded-2xl bg-white border border-gray-200 text-gray-600 font-bold text-sm flex items-center justify-center gap-1.5 hover:border-[#3CDBC0] hover:text-[#2AB5A0] transition-all active:scale-95"
+            className="flex-1 py-2.5 rounded-2xl bg-white border border-gray-200 text-gray-600 font-bold text-sm flex items-center justify-center gap-1.5 hover:border-mint-500 hover:text-mint-600 transition-all active:scale-95"
           >
             <span className="text-base">📅</span><span>캘린더 저장</span>
           </button>
@@ -247,7 +247,7 @@ export default function GroupResultView({
         {/* 방문 인증 → 500P (추천→실제 방문 전환 씨앗) — 실제 방문자의 다수는 게스트다 */}
         <button
           onClick={() => { trackEvent('visit_cert_open', { device_id: getDeviceId(), place_key: `${f.placeName}|${f.address ?? ''}`, source: 'shared' }); setVisitPlace(f); }}
-          className="w-full py-3 rounded-2xl bg-[#E8F8F5] border-2 border-[#3CDBC0]/40 text-[#2AB5A0] font-black text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
+          className="w-full py-3 rounded-2xl bg-mint-100 border-2 border-mint-500/40 text-mint-600 font-black text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
         >
           <span className="text-lg">📍</span>
           <span>여기 방문 인증하고 500P 받기</span>
@@ -256,7 +256,7 @@ export default function GroupResultView({
         {/* 신규 유입 CTA — 결과로 신뢰를 준 뒤 마지막에. "다음엔 내가 모임 만들기" 프레이밍 */}
         <a
           href="/app?ref=grp"
-          className="block w-full mt-2 py-4 rounded-2xl bg-[#3CDBC0] text-white font-black text-base text-center shadow-lg shadow-[#3CDBC0]/30 active:scale-95 transition-transform"
+          className="block w-full mt-2 py-4 rounded-2xl bg-mint-500 text-white font-black text-base text-center shadow-lg shadow-mint-500/30 active:scale-95 transition-transform"
         >
           🌿 다음엔 내가 모임 만들어보기 →
         </a>

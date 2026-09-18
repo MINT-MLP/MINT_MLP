@@ -58,7 +58,7 @@ export default function Landing() {
   const installButton = canInstall && (
     <button
       onClick={triggerInstall}
-      className="w-full flex items-center justify-center gap-2 bg-white border-2 border-[#3CDBC0] text-[#2AB5A0] font-bold text-base py-4 rounded-xl active:scale-95 transition-all hover:bg-teal-50"
+      className="w-full flex items-center justify-center gap-2 bg-white border-2 border-mint-500 text-mint-600 font-bold text-base py-4 rounded-xl active:scale-95 transition-all hover:bg-teal-50"
     >
       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -76,12 +76,12 @@ export default function Landing() {
       <nav className="sticky top-0 z-50 bg-[#F0FDF9]/90 backdrop-blur border-b border-teal-100">
         <div className="max-w-lg lg:max-w-7xl mx-auto px-5 lg:px-8 py-3 flex items-center justify-between">
           <span className="flex items-baseline gap-1.5">
-            <span className="text-xl lg:text-2xl font-black text-[#3CDBC0] tracking-tight">MINT</span>
+            <span className="text-xl lg:text-2xl font-black text-mint-500 tracking-tight">MINT</span>
             <span className="hidden sm:inline text-[10px] lg:text-[11px] font-semibold text-[#8BD3C7] tracking-tight">Meet in one tap</span>
           </span>
           <button
             onClick={goToApp}
-            className="bg-[#3CDBC0] text-white text-sm font-bold px-5 lg:px-6 lg:py-2.5 py-2 rounded-xl transition-all active:scale-95 hover:bg-[#2AB5A0]"
+            className="bg-mint-500 text-white text-sm font-bold px-5 lg:px-6 lg:py-2.5 py-2 rounded-xl transition-all active:scale-95 hover:bg-mint-600"
           >
             시작하기 →
           </button>
@@ -96,12 +96,12 @@ export default function Landing() {
         <div className="max-w-lg lg:max-w-7xl mx-auto lg:w-full lg:px-8 lg:grid lg:grid-cols-[minmax(0,1fr)_560px] lg:gap-16 lg:items-center lg:-translate-y-8">
           {/* 좌: 카피 + CTA + 통계 */}
           <div className="text-center lg:text-left lg:w-full lg:justify-self-start">
-            <div className="inline-flex items-center gap-1.5 bg-teal-50 border border-teal-200 text-[#2AB5A0] text-xs font-bold px-4 py-1.5 rounded-full mb-6 lg:mb-7 lg:self-start">
+            <div className="inline-flex items-center gap-1.5 bg-teal-50 border border-teal-200 text-mint-600 text-xs font-bold px-4 py-1.5 rounded-full mb-6 lg:mb-7 lg:self-start">
               ✦ 그룹 만남 장소 큐레이션
             </div>
             <h1 className="text-4xl lg:text-6xl font-black text-gray-800 leading-tight mb-3 lg:mb-5">
               약속은 잡았는데<br />
-              <span className="text-[#3CDBC0]">어디서 만나지?</span>
+              <span className="text-mint-500">어디서 만나지?</span>
             </h1>
             <p className="text-gray-600 text-lg lg:text-xl leading-relaxed mb-7 lg:mb-10 break-keep">
               조건 몇 개만 고르세요.<br />
@@ -112,7 +112,7 @@ export default function Landing() {
               <div key={comboIdx} className="animate-fade-in">
                 <div className="flex items-center justify-center gap-1.5 flex-wrap mb-2.5">
                   {combo.chips.map((c) => (
-                    <span key={c} className="bg-[#E8F8F5] text-[#2AB5A0] text-xs font-bold px-3 py-1.5 rounded-full">{c}</span>
+                    <span key={c} className="bg-mint-100 text-mint-600 text-xs font-bold px-3 py-1.5 rounded-full">{c}</span>
                   ))}
                 </div>
                 <div className="flex items-center justify-center gap-2 text-sm">
@@ -121,14 +121,14 @@ export default function Landing() {
                     target="_blank"
                     rel="noreferrer"
                     onClick={() => trackEvent('landing_demo_place_click')}
-                    className="flex items-center gap-1 font-bold text-gray-800 underline decoration-[#3CDBC0] decoration-2 underline-offset-4 active:scale-95 transition-transform"
+                    className="flex items-center gap-1 font-bold text-gray-800 underline decoration-mint-500 decoration-2 underline-offset-4 active:scale-95 transition-transform"
                   >
-                    <svg className="w-3.5 h-3.5 text-[#3CDBC0] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                    <svg className="w-3.5 h-3.5 text-mint-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                     </svg>
                     {combo.result}
                   </a>
-                  <span className="bg-[#3CDBC0] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">적합도 90+</span>
+                  <span className="bg-mint-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">적합도 90+</span>
                 </div>
               </div>
             </div>
@@ -136,7 +136,7 @@ export default function Landing() {
             <div className="flex flex-col gap-3 w-full max-w-xs mb-3 mx-auto lg:mx-0 lg:mb-5">
               <button
                 onClick={goToApp}
-                className="w-full bg-gradient-to-r from-[#3CDBC0] to-[#2AB5A0] text-white font-black text-lg py-4 rounded-xl cta-glow-mint active:scale-95 transition-all"
+                className="w-full bg-gradient-to-r from-mint-500 to-mint-600 text-white font-black text-lg py-4 rounded-xl cta-glow-mint active:scale-95 transition-all"
               >
                 지금 바로 추천받기
               </button>
@@ -145,7 +145,7 @@ export default function Landing() {
 
             {visitCount >= 50 && (
               <p className="text-sm text-gray-500 mb-8 lg:mb-10">
-                지금까지 <strong className="text-[#2AB5A0]">{visitCount.toLocaleString()}번</strong>의 "어디서 만나지?" 고민이 MINT를 찾아왔어요
+                지금까지 <strong className="text-mint-600">{visitCount.toLocaleString()}번</strong>의 "어디서 만나지?" 고민이 MINT를 찾아왔어요
               </p>
             )}
             {visitCount < 50 && <div className="mb-5 lg:mb-10" />}
@@ -159,7 +159,7 @@ export default function Landing() {
                 { v: '79만 곳', d: '전국 실존 장소 검증' },
               ].map((s, i) => (
                 <div key={s.v} className={`flex-1 flex flex-col items-center ${i > 0 ? 'border-l border-teal-100' : ''}`}>
-                  <div className="text-2xl lg:text-3xl font-black text-[#3CDBC0] whitespace-nowrap">{s.v}</div>
+                  <div className="text-2xl lg:text-3xl font-black text-mint-500 whitespace-nowrap">{s.v}</div>
                   <div className="text-xs lg:text-sm text-gray-500 mt-1 leading-tight">{s.d}</div>
                 </div>
               ))}
@@ -170,7 +170,7 @@ export default function Landing() {
           <div className="hidden lg:block lg:relative lg:h-[660px] lg:w-full lg:justify-self-end">
             {/* 배경 글로우 */}
             <div aria-hidden className="absolute inset-0 pointer-events-none">
-              <div className="absolute top-6 right-8 h-72 w-72 rounded-full bg-[#3CDBC0]/25 blur-3xl" />
+              <div className="absolute top-6 right-8 h-72 w-72 rounded-full bg-mint-500/25 blur-3xl" />
               <div className="absolute bottom-2 left-0 h-64 w-64 rounded-full bg-[#8FEAD9]/30 blur-3xl" />
             </div>
 
@@ -190,13 +190,13 @@ export default function Landing() {
             />
 
             {/* 플로팅: 상단 배지 — 입력→결과를 잇는 위치 */}
-            <div className="absolute left-[33%] top-6 z-30 flex items-center gap-1.5 rounded-full bg-[#3CDBC0] px-3.5 py-2 text-xs font-black text-white shadow-lg shadow-[#3CDBC0]/40 rotate-[-4deg]">
+            <div className="absolute left-[33%] top-6 z-30 flex items-center gap-1.5 rounded-full bg-mint-500 px-3.5 py-2 text-xs font-black text-white shadow-lg shadow-mint-500/40 rotate-[-4deg]">
               🎯 조건 100% 반영
             </div>
 
             {/* 플로팅: 하단 스탯 카드 */}
             <div className="absolute left-1 bottom-9 z-30 flex items-center gap-2.5 rounded-2xl bg-white/95 px-4 py-3 shadow-xl shadow-teal-900/10 ring-1 ring-black/5 backdrop-blur rotate-[-3deg]">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E8F8F5] text-lg">⚡</span>
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-mint-100 text-lg">⚡</span>
               <span className="text-left">
                 <span className="block text-sm font-black leading-none text-gray-800">30초 만에 완성</span>
                 <span className="mt-1 block text-xs leading-none text-gray-500">조건 4개 → 딱 3곳</span>
@@ -213,7 +213,7 @@ export default function Landing() {
       <section className="bg-white border-y border-gray-100 fade-section">
         <div className="max-w-lg lg:max-w-7xl mx-auto px-6 py-14 lg:py-24 lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
           <div>
-            <p className="text-xs font-bold tracking-widest text-[#3CDBC0] mb-3">PROBLEM</p>
+            <p className="text-xs font-bold tracking-widest text-mint-500 mb-3">PROBLEM</p>
             <h2 className="text-2xl lg:text-4xl font-bold text-gray-800 leading-tight mb-3">
               매번 반복되는 이 대화,<br />익숙하지 않나요?
             </h2>
@@ -227,10 +227,10 @@ export default function Landing() {
                   <div className="text-5xl font-black text-gray-300 line-through decoration-gray-300 decoration-2">32분</div>
                   <div className="text-sm text-gray-500 mt-1.5">단톡방 실랑이</div>
                 </div>
-                <div className="text-3xl font-black text-[#3CDBC0]">→</div>
+                <div className="text-3xl font-black text-mint-500">→</div>
                 <div>
-                  <div className="text-5xl font-black text-[#3CDBC0]">30초</div>
-                  <div className="text-sm font-bold text-[#2AB5A0] mt-1.5">MINT로</div>
+                  <div className="text-5xl font-black text-mint-500">30초</div>
+                  <div className="text-sm font-bold text-mint-600 mt-1.5">MINT로</div>
                 </div>
               </div>
             </div>
@@ -260,7 +260,7 @@ export default function Landing() {
                   </div>
                 ))}
                 <div className="flex items-end gap-2 flex-row-reverse">
-                  <div className="bg-[#FEE500] rounded-2xl px-3 py-2 text-sm text-gray-800 shadow-sm">ㅋㅋ 누가 정해줘...</div>
+                  <div className="bg-kakao rounded-2xl px-3 py-2 text-sm text-gray-800 shadow-sm">ㅋㅋ 누가 정해줘...</div>
                   <div className="text-xs text-gray-500 mb-1">오후 2:45</div>
                 </div>
               </div>
@@ -273,10 +273,10 @@ export default function Landing() {
                   <div className="text-3xl font-black text-gray-300 line-through decoration-2">32분</div>
                   <div className="text-xs text-gray-500 mt-1">단톡방 실랑이</div>
                 </div>
-                <div className="text-2xl font-black text-[#3CDBC0]">→</div>
+                <div className="text-2xl font-black text-mint-500">→</div>
                 <div className="text-center">
-                  <div className="text-3xl font-black text-[#3CDBC0]">30초</div>
-                  <div className="text-sm font-bold text-[#2AB5A0] mt-1">MINT로</div>
+                  <div className="text-3xl font-black text-mint-500">30초</div>
+                  <div className="text-sm font-bold text-mint-600 mt-1">MINT로</div>
                 </div>
               </div>
             </div>
@@ -291,7 +291,7 @@ export default function Landing() {
       <section className="fade-section">
         <div className="max-w-lg lg:max-w-7xl mx-auto px-6 py-14 lg:py-24 text-center lg:text-left lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
           <div className="lg:order-2">
-            <p className="text-xs font-bold tracking-widest text-[#3CDBC0] mb-3">RESULT</p>
+            <p className="text-xs font-bold tracking-widest text-mint-500 mb-3">RESULT</p>
             <h2 className="text-2xl lg:text-4xl font-bold text-gray-800 leading-tight mb-3">
               조건만 골랐을 뿐인데,<br />이런 결과가 나와요
             </h2>
@@ -324,9 +324,9 @@ export default function Landing() {
       <section className="bg-white border-y border-gray-100 fade-section">
         <div className="max-w-lg lg:max-w-7xl mx-auto px-6 py-14 lg:py-24">
           <div className="lg:text-center">
-            <p className="text-xs font-bold tracking-widest text-[#3CDBC0] mb-3">HOW IT WORKS</p>
+            <p className="text-xs font-bold tracking-widest text-mint-500 mb-3">HOW IT WORKS</p>
             <h2 className="text-2xl lg:text-4xl font-bold text-gray-800 leading-tight mb-3">
-              고르기만 하면 <span className="lg:text-[#3CDBC0]">끝나는 4스텝</span>
+              고르기만 하면 <span className="lg:text-mint-500">끝나는 4스텝</span>
             </h2>
             <p className="text-base lg:text-lg text-gray-500 mb-10 lg:mb-16 leading-relaxed">
               검색어를 몰라도 돼요. 전부 선택지로 준비되어 있으니까요.
@@ -343,11 +343,11 @@ export default function Landing() {
             ].map(({ badge, title, desc, img, highlight }, i) => (
               <div key={badge} className="contents lg:block">
                 {i > 0 && (
-                  <div className="w-0.5 h-8 bg-gradient-to-b from-[#3CDBC0] to-transparent my-2 lg:hidden" />
+                  <div className="w-0.5 h-8 bg-gradient-to-b from-mint-500 to-transparent my-2 lg:hidden" />
                 )}
                 <div className="text-center w-full">
                   <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full mb-3 ${
-                    highlight ? 'bg-white border-2 border-[#3CDBC0] text-[#2AB5A0]' : 'bg-[#3CDBC0] text-white font-bold'
+                    highlight ? 'bg-white border-2 border-mint-500 text-mint-600' : 'bg-mint-500 text-white font-bold'
                   }`}>{badge}</span>
                   <h3 className="text-lg font-bold text-gray-800 mb-1">{title}</h3>
                   <p className="text-base text-gray-500 mb-5 lg:min-h-[72px]">{desc}</p>
@@ -365,9 +365,9 @@ export default function Landing() {
       <section className="bg-white border-y border-gray-100 fade-section">
         <div className="max-w-lg lg:max-w-5xl mx-auto px-6 py-14 lg:py-24">
           <div className="lg:text-center mb-8 lg:mb-14">
-            <p className="text-xs font-bold tracking-widest text-[#3CDBC0] mb-3">MENU CHOICE</p>
+            <p className="text-xs font-bold tracking-widest text-mint-500 mb-3">MENU CHOICE</p>
             <h2 className="text-2xl lg:text-4xl font-bold text-gray-800 leading-tight mb-3">
-              뭘 먹을지 몰라도, <span className="text-[#3CDBC0]">정해졌어도 OK</span>
+              뭘 먹을지 몰라도, <span className="text-mint-500">정해졌어도 OK</span>
             </h2>
             <p className="text-base lg:text-lg text-gray-500 leading-relaxed">
               <span className="block lg:inline">1차 목적만 고르면 끝 </span>
@@ -400,30 +400,30 @@ export default function Landing() {
               </div>
 
               {/* 메뉴 콕 */}
-              <div className="rounded-2xl border-2 border-[#3CDBC0] bg-teal-50 p-5 lg:p-6">
+              <div className="rounded-2xl border-2 border-mint-500 bg-teal-50 p-5 lg:p-6">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-2xl">🎯</span>
                   <p className="text-lg font-bold text-gray-800">이건 꼭 먹고 싶어요</p>
                 </div>
                 <p className="text-base text-gray-600 leading-relaxed mb-3 break-keep">
-                  <strong className="text-[#2AB5A0]">메뉴 콕!</strong>에 먹고 싶은 걸 입력하면,<br />그대로 딱 맞는 맛집을 찾아드려요.
+                  <strong className="text-mint-600">메뉴 콕!</strong>에 먹고 싶은 걸 입력하면,<br />그대로 딱 맞는 맛집을 찾아드려요.
                 </p>
                 <p className="text-xs text-gray-500 mb-3 break-keep">
-                  따로 쓰면 골고루, <strong className="text-[#2AB5A0]">&로 묶으면</strong> 한 집에서 다.
+                  따로 쓰면 골고루, <strong className="text-mint-600">&로 묶으면</strong> 한 집에서 다.
                 </p>
                 <div className="flex flex-col gap-2.5">
                   {/* & 로 묶으면 = 한 집에서 다 (짧은 줄을 위로) */}
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="bg-white border border-[#3CDBC0]/50 text-[#2AB5A0] text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap">#회&초밥</span>
-                    <span className="text-[#3CDBC0] font-bold text-sm">→</span>
-                    <span className="bg-[#3CDBC0] text-white text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap">회·초밥 다 되는 맛집</span>
+                    <span className="bg-white border border-mint-500/50 text-mint-600 text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap">#회&초밥</span>
+                    <span className="text-mint-500 font-bold text-sm">→</span>
+                    <span className="bg-mint-500 text-white text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap">회·초밥 다 되는 맛집</span>
                   </div>
                   {/* 따로 = 골고루 다른 집 (긴 줄을 아래로 — 안정감) */}
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="bg-white border border-[#3CDBC0]/50 text-[#2AB5A0] text-xs font-bold px-3 py-1.5 rounded-full">#보쌈</span>
-                    <span className="bg-white border border-[#3CDBC0]/50 text-[#2AB5A0] text-xs font-bold px-3 py-1.5 rounded-full">#피자</span>
-                    <span className="text-[#3CDBC0] font-bold text-sm">→</span>
-                    <span className="bg-[#3CDBC0] text-white text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap">보쌈집·피자집 골고루</span>
+                    <span className="bg-white border border-mint-500/50 text-mint-600 text-xs font-bold px-3 py-1.5 rounded-full">#보쌈</span>
+                    <span className="bg-white border border-mint-500/50 text-mint-600 text-xs font-bold px-3 py-1.5 rounded-full">#피자</span>
+                    <span className="text-mint-500 font-bold text-sm">→</span>
+                    <span className="bg-mint-500 text-white text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap">보쌈집·피자집 골고루</span>
                   </div>
                 </div>
               </div>
@@ -437,9 +437,9 @@ export default function Landing() {
       ══════════════════════════════════════ */}
       <section className="py-14 lg:py-24 fade-section overflow-hidden">
         <div className="max-w-lg lg:max-w-5xl mx-auto px-6 lg:text-center mb-6 lg:mb-10">
-          <p className="text-xs font-bold tracking-widest text-[#3CDBC0] mb-3">GROUP MODE</p>
+          <p className="text-xs font-bold tracking-widest text-mint-500 mb-3">GROUP MODE</p>
           <h2 className="text-2xl lg:text-4xl font-bold text-gray-800 leading-tight mb-3">
-            역할은 딱 둘, <span className="text-[#3CDBC0]">한 명이 세팅하면 끝</span>
+            역할은 딱 둘, <span className="text-mint-500">한 명이 세팅하면 끝</span>
           </h2>
           <p className="text-base lg:text-lg text-gray-500 leading-relaxed">
             <span className="block lg:inline">호스트가 코스·지역을 미리 정하니까, </span>
@@ -481,7 +481,7 @@ export default function Landing() {
             <div className="max-w-7xl mx-auto px-6">
               <div className="relative flex gap-1.5 rounded-xl bg-white border border-gray-200 p-1 shadow-sm mb-5 lg:max-w-[360px] lg:mx-auto overflow-hidden">
                 <span
-                  className={`absolute left-1 top-1 bottom-1 w-[calc(50%-4px)] rounded-lg bg-[#3CDBC0] shadow-md shadow-[#3CDBC0]/25 transition-transform duration-300 ease-out ${
+                  className={`absolute left-1 top-1 bottom-1 w-[calc(50%-4px)] rounded-lg bg-mint-500 shadow-md shadow-mint-500/25 transition-transform duration-300 ease-out ${
                     groupRole === 'guest' ? 'translate-x-[calc(100%+6px)]' : 'translate-x-0'
                   }`}
                   aria-hidden="true"
@@ -505,13 +505,13 @@ export default function Landing() {
               </div>
 
               <p className="text-sm lg:text-base text-gray-500 mb-2 lg:mb-10 lg:text-center leading-relaxed">{active.desc}</p>
-              <p className="text-sm text-[#2AB5A0] font-bold mb-8 lg:hidden">옆으로 넘겨보세요 →</p>
+              <p className="text-sm text-mint-600 font-bold mb-8 lg:hidden">옆으로 넘겨보세요 →</p>
 
               <div className={`flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-2 lg:grid ${active.cols} lg:gap-5 lg:overflow-visible ${active.max}`}>
                 {active.steps.map(({ n, title, desc, img }) => (
                   <div key={`${groupRole}-${n}`} className="snap-center flex-shrink-0 w-60 lg:w-full text-center">
                     <div className="flex items-center justify-center gap-2 mb-1.5">
-                      <span className="w-6 h-6 rounded-full bg-[#3CDBC0] text-white text-xs font-black flex items-center justify-center flex-shrink-0">{n}</span>
+                      <span className="w-6 h-6 rounded-full bg-mint-500 text-white text-xs font-black flex items-center justify-center flex-shrink-0">{n}</span>
                       <span className="text-base font-semibold text-gray-800">{title}</span>
                     </div>
                     <p className="text-sm text-gray-500 mb-4 leading-relaxed min-h-[48px] lg:min-h-[56px]">{desc}</p>
@@ -530,7 +530,7 @@ export default function Landing() {
           <div className="bg-teal-50 border border-teal-100 rounded-2xl p-4 lg:p-6 text-center">
             <p className="text-base lg:text-lg text-gray-600 leading-relaxed">
               "난 아무데나 괜찮아"가 진짜였는지,<br />
-              <strong className="text-[#2AB5A0]">몰래 고른 취향이 전부 반영</strong>됩니다. 눈치 게임 없이, 공평하게.
+              <strong className="text-mint-600">몰래 고른 취향이 전부 반영</strong>됩니다. 눈치 게임 없이, 공평하게.
             </p>
           </div>
         </div>
@@ -542,7 +542,7 @@ export default function Landing() {
       <section className="bg-white border-y border-gray-100 fade-section">
         <div className="max-w-lg lg:max-w-5xl mx-auto px-6 py-14 lg:py-24">
           <div className="lg:text-center">
-            <p className="text-xs font-bold tracking-widest text-[#3CDBC0] mb-3">WHY MINT?</p>
+            <p className="text-xs font-bold tracking-widest text-mint-500 mb-3">WHY MINT?</p>
             <h2 className="text-2xl lg:text-4xl font-bold text-gray-800 leading-tight mb-3">
               네이버 지도와 뭐가 다를까?
             </h2>
@@ -567,12 +567,12 @@ export default function Landing() {
                 ))}
               </ul>
             </div>
-            <div className="lg:flex-1 rounded-2xl border-2 border-[#3CDBC0] bg-teal-50 p-5 lg:p-7">
+            <div className="lg:flex-1 rounded-2xl border-2 border-mint-500 bg-teal-50 p-5 lg:p-7">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-6 h-6 rounded-md bg-[#3CDBC0] flex items-center justify-center flex-shrink-0">
+                <div className="w-6 h-6 rounded-md bg-mint-500 flex items-center justify-center flex-shrink-0">
                   <span className="text-white text-[10px] font-black leading-none">M</span>
                 </div>
-                <span className="font-bold text-[#2AB5A0]">MINT</span>
+                <span className="font-bold text-mint-600">MINT</span>
               </div>
               <ul className="flex flex-col gap-2 lg:gap-3">
                 {[
@@ -583,7 +583,7 @@ export default function Landing() {
                   '카카오톡 한 번이면 공유 완료',
                 ].map((t) => (
                   <li key={t} className="flex items-start gap-2 text-base lg:text-lg text-gray-800">
-                    <span className="text-[#2AB5A0] font-bold mt-0.5">✓</span>{t}
+                    <span className="text-mint-600 font-bold mt-0.5">✓</span>{t}
                   </li>
                 ))}
               </ul>
@@ -660,9 +660,9 @@ export default function Landing() {
       ══════════════════════════════════════ */}
       <section className="fade-section">
         <div className="max-w-lg lg:max-w-7xl mx-auto px-6 py-14 lg:py-24">
-          <p className="text-xs font-bold tracking-widest text-[#3CDBC0] mb-3 text-center">FOR EVERY 모임</p>
+          <p className="text-xs font-bold tracking-widest text-mint-500 mb-3 text-center">FOR EVERY 모임</p>
           <h2 className="text-2xl lg:text-4xl font-bold text-gray-800 leading-tight mb-8 lg:mb-14 text-center">
-            지금 잡혀 있는 <span className="lg:text-[#3CDBC0]">바로 그 약속부터</span>
+            지금 잡혀 있는 <span className="lg:text-mint-500">바로 그 약속부터</span>
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-5">
             {[
@@ -672,7 +672,7 @@ export default function Landing() {
               { e: '👨‍👩‍👧', t: '가족 모임', d: '넓은 공간 · 주차 · 부모님 취향까지' },
             ].map(({ e, t, d }) => (
               <button key={t} onClick={goToApp}
-                className="vibe-card bg-white border border-gray-100 rounded-2xl p-5 lg:p-8 text-center shadow-sm hover:border-[#3CDBC0] hover:shadow-md">
+                className="vibe-card bg-white border border-gray-100 rounded-2xl p-5 lg:p-8 text-center shadow-sm hover:border-mint-500 hover:shadow-md">
                 <div className="text-3xl lg:text-5xl mb-2 lg:mb-4">{e}</div>
                 <p className="text-base lg:text-lg font-bold text-gray-800 mb-1">{t}</p>
                 <p className="text-xs lg:text-sm text-gray-500 leading-relaxed">{d}</p>
@@ -687,19 +687,19 @@ export default function Landing() {
       ══════════════════════════════════════ */}
       <section className="bg-white border-y border-gray-100 fade-section">
         <div className="max-w-lg lg:max-w-3xl mx-auto px-6 py-14 lg:py-24 lg:text-center">
-          <p className="text-xs font-bold tracking-widest text-[#3CDBC0] mb-3">SHARE</p>
+          <p className="text-xs font-bold tracking-widest text-mint-500 mb-3">SHARE</p>
           <h2 className="text-2xl lg:text-4xl font-bold text-gray-800 leading-tight mb-3">
-            추천 받자마자 <span className="text-[#3CDBC0]">카카오톡으로 공유</span>
+            추천 받자마자 <span className="text-mint-500">카카오톡으로 공유</span>
           </h2>
           <p className="text-base lg:text-lg text-gray-500 mb-6 lg:mb-10 leading-relaxed">
             결과 나오면 버튼 하나로 단톡방에 공유.<br />'여기 어때?' 한 줄이면 약속 끝.
           </p>
           <div className="flex items-center justify-center gap-2 flex-nowrap">
-            <span className="bg-teal-50 border border-teal-200 text-[#2AB5A0] text-sm lg:text-base font-bold px-4 lg:px-5 py-2 lg:py-2.5 rounded-full whitespace-nowrap">🍃 조건 선택</span>
-            <span className="text-[#3CDBC0] font-bold flex-shrink-0">→</span>
-            <span className="bg-teal-50 border border-teal-200 text-[#2AB5A0] text-sm lg:text-base font-bold px-4 lg:px-5 py-2 lg:py-2.5 rounded-full whitespace-nowrap">✨ 장소 추천</span>
-            <span className="text-[#3CDBC0] font-bold flex-shrink-0">→</span>
-            <div className="flex items-center gap-1.5 bg-teal-50 border border-teal-200 text-[#2AB5A0] text-sm lg:text-base font-bold px-3 lg:px-4 py-2 lg:py-2.5 rounded-full whitespace-nowrap flex-shrink-0">
+            <span className="bg-teal-50 border border-teal-200 text-mint-600 text-sm lg:text-base font-bold px-4 lg:px-5 py-2 lg:py-2.5 rounded-full whitespace-nowrap">🍃 조건 선택</span>
+            <span className="text-mint-500 font-bold flex-shrink-0">→</span>
+            <span className="bg-teal-50 border border-teal-200 text-mint-600 text-sm lg:text-base font-bold px-4 lg:px-5 py-2 lg:py-2.5 rounded-full whitespace-nowrap">✨ 장소 추천</span>
+            <span className="text-mint-500 font-bold flex-shrink-0">→</span>
+            <div className="flex items-center gap-1.5 bg-teal-50 border border-teal-200 text-mint-600 text-sm lg:text-base font-bold px-3 lg:px-4 py-2 lg:py-2.5 rounded-full whitespace-nowrap flex-shrink-0">
               <LandingKakaoBubble className="w-4 h-4" />
               카톡 공유
             </div>
@@ -710,14 +710,14 @@ export default function Landing() {
             <div className="rounded-2xl bg-[#B2C7D9] p-4 shadow-md">
               <div className="flex items-start gap-2 flex-row-reverse text-left">
                 <div className="w-full">
-                  <div className="ml-auto max-w-[85%] overflow-hidden rounded-2xl rounded-tr-md bg-[#FEE500] shadow-sm">
+                  <div className="ml-auto max-w-[85%] overflow-hidden rounded-2xl rounded-tr-md bg-kakao shadow-sm">
                     <div className="px-3.5 py-3">
                       <p className="text-[13px] font-bold text-gray-800">📍 오늘 여기 어때?</p>
                     </div>
                     <div className="border-t border-black/5 bg-white px-3.5 py-3">
                       <p className="text-[13px] font-bold text-gray-800">안목 성수 · 시끌벅적 국밥</p>
                       <p className="text-[11px] text-gray-500 mt-0.5">1차 밥 → 2차 술 · 적합도 88점</p>
-                      <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-[#2AB5A0]">
+                      <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-mint-600">
                         <LandingKakaoBubble className="w-3.5 h-3.5" /> MINT 추천 열어보기
                       </div>
                     </div>
@@ -735,7 +735,7 @@ export default function Landing() {
       ══════════════════════════════════════ */}
       <section className="fade-section">
         <div className="max-w-lg lg:max-w-5xl mx-auto px-6 py-14 lg:py-24">
-          <p className="text-xs font-bold tracking-widest text-[#3CDBC0] mb-3 text-center">FAQ</p>
+          <p className="text-xs font-bold tracking-widest text-mint-500 mb-3 text-center">FAQ</p>
           <h2 className="text-2xl lg:text-4xl font-bold text-gray-800 leading-tight mb-8 lg:mb-14 text-center">
             자주 묻는 질문
           </h2>
@@ -781,17 +781,17 @@ export default function Landing() {
       <section className="bg-gradient-to-b from-[#F0FDF9] to-[#E8FBF3] fade-section">
         <div className="max-w-lg lg:max-w-3xl mx-auto px-6 py-14 lg:pt-20 lg:pb-28 text-center">
           <h2 className="text-3xl lg:text-6xl font-black text-gray-800 leading-tight mb-1">어디서 만나지?</h2>
-          <h2 className="text-3xl lg:text-6xl font-black text-[#3CDBC0] leading-tight mb-3 lg:mb-4">MINT 하지, 뭐.</h2>
+          <h2 className="text-3xl lg:text-6xl font-black text-mint-500 leading-tight mb-3 lg:mb-4">MINT 하지, 뭐.</h2>
           <div className="flex items-center justify-center gap-2.5 mb-4 lg:mb-6">
             <span className="h-px w-6 bg-teal-200" />
-            <span className="text-xs lg:text-sm font-bold text-[#2AB5A0] tracking-wide">MINT · Meet in one tap</span>
+            <span className="text-xs lg:text-sm font-bold text-mint-600 tracking-wide">MINT · Meet in one tap</span>
             <span className="h-px w-6 bg-teal-200" />
           </div>
           <p className="text-base lg:text-lg text-gray-500 mb-8">무료로 시작하세요. 회원가입도 없어요.</p>
           <div className="flex flex-col gap-3 w-full max-w-xs mb-6 mx-auto">
             <button
               onClick={goToApp}
-              className="w-full bg-gradient-to-r from-[#3CDBC0] to-[#2AB5A0] text-white font-black text-lg py-4 rounded-xl cta-glow-mint active:scale-95 transition-all"
+              className="w-full bg-gradient-to-r from-mint-500 to-mint-600 text-white font-black text-lg py-4 rounded-xl cta-glow-mint active:scale-95 transition-all"
             >
               지금 바로 추천받기
             </button>
@@ -799,12 +799,12 @@ export default function Landing() {
           </div>
           {visitCount >= 50 && (
             <p className="text-sm text-gray-500 mb-6">
-              지금까지 <strong className="text-[#2AB5A0]">{visitCount.toLocaleString()}번</strong>의 "어디서 만나지?" 고민이 MINT를 찾아왔어요
+              지금까지 <strong className="text-mint-600">{visitCount.toLocaleString()}번</strong>의 "어디서 만나지?" 고민이 MINT를 찾아왔어요
             </p>
           )}
           <div className="flex justify-center gap-4 flex-wrap">
             <div className="flex items-center gap-1 text-sm text-gray-500">
-              <svg className="w-3.5 h-3.5 text-[#3CDBC0]" viewBox="0 0 24 24" fill="currentColor">
+              <svg className="w-3.5 h-3.5 text-mint-500" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M13 2.05V2c0-1.1-.9-2-2-2s-2 .9-2 2v.05C4.6 2.55 1 6.5 1 11.5 1 17.3 5.7 22 11.5 22S22 17.3 22 11.5c0-5-3.6-8.95-9-9.45zM11.5 20C6.81 20 3 16.19 3 11.5S6.81 3 11.5 3 20 6.81 20 11.5 16.19 20 11.5 20zm.5-10.31V7c0-.55-.45-1-1-1s-1 .45-1 1v3c0 .28.11.53.29.71l2 2c.39.39 1.02.39 1.41 0 .39-.39.39-1.02 0-1.41L12 9.69z"/>
               </svg>
               30초면 끝
@@ -820,7 +820,7 @@ export default function Landing() {
               카톡 공유
             </div>
             <div className="flex items-center gap-1 text-sm text-gray-500">
-              <svg className="w-3.5 h-3.5 text-[#3CDBC0]" viewBox="0 0 24 24" fill="currentColor">
+              <svg className="w-3.5 h-3.5 text-mint-500" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
               </svg>
               완전 무료
@@ -890,7 +890,7 @@ export default function Landing() {
             </div>
             <button
               onClick={() => setShowPrivacy(false)}
-              className="w-full mt-6 py-3.5 rounded-xl bg-[#3CDBC0] text-white font-bold text-sm active:scale-95 transition-all"
+              className="w-full mt-6 py-3.5 rounded-xl bg-mint-500 text-white font-bold text-sm active:scale-95 transition-all"
             >
               확인
             </button>
@@ -913,7 +913,7 @@ export default function Landing() {
             aria-labelledby="ios-install-title"
           >
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
-            <div className="mb-3 inline-flex rounded-full bg-[#E8F8F5] px-3 py-1 text-xs font-bold text-[#2AB5A0]">
+            <div className="mb-3 inline-flex rounded-full bg-mint-100 px-3 py-1 text-xs font-bold text-mint-600">
               전체화면을 해제했어요
             </div>
             <h3 id="ios-install-title" className="mb-2 break-keep text-xl font-black tracking-tight text-gray-800">
@@ -936,7 +936,7 @@ export default function Landing() {
                   ]
               ).map(({ n, t, d }) => (
                 <div key={n} className="flex items-start gap-3">
-                  <div className="w-7 h-7 rounded-full bg-[#3CDBC0] text-white text-xs font-black flex items-center justify-center flex-shrink-0">{n}</div>
+                  <div className="w-7 h-7 rounded-full bg-mint-500 text-white text-xs font-black flex items-center justify-center flex-shrink-0">{n}</div>
                   <div className="min-w-0 break-keep">
                     <p className="text-sm font-bold leading-snug text-gray-800">{t}</p>
                     <p className="mt-0.5 text-xs leading-relaxed text-gray-500">{d}</p>
@@ -946,7 +946,7 @@ export default function Landing() {
             </div>
             <button
               onClick={() => setGuide(null)}
-              className="w-full py-3.5 rounded-xl bg-[#3CDBC0] text-white font-bold text-sm active:scale-95 transition-all"
+              className="w-full py-3.5 rounded-xl bg-mint-500 text-white font-bold text-sm active:scale-95 transition-all"
             >
               알겠어요
             </button>

@@ -3,7 +3,7 @@ import WishlistButton from '@/components/WishlistButton';
 import { GpsPin, hideOnError, kakaoUrl, openPlace, certPrefix } from '@/components/placeCardBits';
 
 // 대안 추천 카드 — 항상 펼쳐진 독립 카드
-export default function ResultAltsSection({ alts, accentColor = '#3CDBC0', label }: { alts: PlaceRecommendation[]; accentColor?: string; label?: string }) {
+export default function ResultAltsSection({ alts, accentColor = 'rgb(var(--mint-500))', label }: { alts: PlaceRecommendation[]; accentColor?: string; label?: string }) {
   if (!alts.length) return null;
   return (
     <div className="flex flex-col gap-2">

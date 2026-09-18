@@ -128,11 +128,11 @@ export default function RetryWeightModal({ vibe, budget, onRetryWithWeights, onC
               onChange={(e) => setKwInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addKeyword(kwInput); } }}
               placeholder="예: 루프탑, 조용한, 노포..."
-              className="flex-1 border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#3CDBC0] transition-colors"
+              className="flex-1 border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-mint-500 transition-colors"
             />
             <button
               onClick={() => addKeyword(kwInput)}
-              className="flex-shrink-0 px-4 rounded-xl bg-[#3CDBC0] text-white text-sm font-bold transition-all active:scale-95 hover:bg-[#2AB5A0]"
+              className="flex-shrink-0 px-4 rounded-xl bg-mint-500 text-white text-sm font-bold transition-all active:scale-95 hover:bg-mint-600"
             >
               추가
             </button>
@@ -148,8 +148,8 @@ export default function RetryWeightModal({ vibe, budget, onRetryWithWeights, onC
                   onClick={() => togglePreset(kw)}
                   className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 border ${
                     active
-                      ? 'bg-[#E8F8F5] border-[#3CDBC0] text-[#2AB5A0]'
-                      : 'bg-white border-gray-200 text-gray-600 hover:border-[#3CDBC0]/50'
+                      ? 'bg-mint-100 border-mint-500 text-mint-600'
+                      : 'bg-white border-gray-200 text-gray-600 hover:border-mint-500/50'
                   }`}
                 >
                   {active ? '✓ ' : '+ '}{kw}
@@ -161,7 +161,7 @@ export default function RetryWeightModal({ vibe, budget, onRetryWithWeights, onC
 
         <button
           onClick={() => onRetryWithWeights(weights)}
-          className="w-full py-4 rounded-2xl bg-[#3CDBC0] text-white font-black text-base shadow-lg shadow-[#3CDBC0]/30 hover:bg-[#2AB5A0] transition-all active:scale-95"
+          className="w-full py-4 rounded-2xl bg-mint-500 text-white font-black text-base shadow-lg shadow-mint-500/30 hover:bg-mint-600 transition-all active:scale-95"
         >
           이 조건으로 재추천받기
         </button>
@@ -188,10 +188,10 @@ function SliderRow({
       <div className="flex justify-between items-center mb-2">
         <span className="flex items-center gap-1.5">
           <span className="text-sm font-bold text-gray-700">{label}</span>
-          {badge && <span className="text-[9px] font-black text-[#2AB5A0] bg-[#E8F8F5] px-1.5 py-0.5 rounded-full">{badge}</span>}
+          {badge && <span className="text-[9px] font-black text-mint-600 bg-mint-100 px-1.5 py-0.5 rounded-full">{badge}</span>}
         </span>
         <span className="flex items-center gap-2">
-          <span className="text-xs font-black text-[#2AB5A0] bg-[#E8F8F5] px-2 py-0.5 rounded-full">
+          <span className="text-xs font-black text-mint-600 bg-mint-100 px-2 py-0.5 rounded-full">
             {WEIGHT_LABELS[value]}
           </span>
           {onRemove && (
@@ -206,7 +206,7 @@ function SliderRow({
         step={1}
         value={value}
         onChange={(e) => onChange(parseInt(e.target.value))}
-        className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#3CDBC0]"
+        className="w-full h-2 rounded-full appearance-none cursor-pointer accent-mint-500"
       />
       <div className="flex justify-between text-[10px] text-gray-300 mt-1">
         <span>1</span>

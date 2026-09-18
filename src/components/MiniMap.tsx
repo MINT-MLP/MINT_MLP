@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { ensureKakaoMaps } from '@/utils/kakaoLoader';
 import type { MapPin } from '@/types';
+import { MINT_HEX } from '@/constants/colors';
 
 interface Props {
   lat: number;
@@ -15,7 +16,8 @@ function pinContent(pin: MapPin): string {
   if (pin.kind === 'alt') {
     return `<div title="${pin.name}" style="width:11px;height:11px;border-radius:50%;background:#9CA3AF;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.35);"></div>`;
   }
-  const bg = pin.kind === 'first' ? '#3CDBC0' : pin.kind === 'third' ? '#0F4E46' : '#1A7A6E';
+  // 카카오 지도 오버레이/폴리라인은 CSS 변수를 못 읽어 헥스 상수를 쓴다 (constants/colors.ts)
+  const bg = pin.kind === 'first' ? MINT_HEX[500] : pin.kind === 'third' ? MINT_HEX[900] : MINT_HEX[800];
   const label = pin.kind === 'first' ? '1차' : pin.kind === 'third' ? '3차' : '2차';
   const shortName = pin.name.length > 10 ? `${pin.name.slice(0, 10)}…` : pin.name;
   return `<div style="display:flex;align-items:center;gap:4px;background:${bg};color:#fff;font-weight:800;font-size:11px;padding:3px 9px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,.28);font-family:'Pretendard',sans-serif;white-space:nowrap;transform:translateY(-6px);">${label} · ${shortName}</div>`;
@@ -62,7 +64,7 @@ export default function MiniMap({ lat, lng, placeName, pins }: Props) {
           new kakao.maps.LatLng(second.lat, second.lng),
         ],
         strokeWeight: 3,
-        strokeColor: '#3CDBC0',
+        strokeColor: MINT_HEX[500],
         strokeOpacity: 0.85,
         strokeStyle: 'shortdash',
       });
@@ -109,7 +111,7 @@ export default function MiniMap({ lat, lng, placeName, pins }: Props) {
         href={`https://map.kakao.com/link/map/${encodeURIComponent(placeName)},${lat},${lng}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center justify-center gap-1.5 py-2.5 bg-[#FFE812] text-[#3A1D1D] text-sm font-bold hover:bg-[#FFD700] transition-colors"
+        className="flex items-center justify-center gap-1.5 py-2.5 bg-kakao text-[#3A1D1D] text-sm font-bold hover:bg-[#FFD700] transition-colors"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/>

@@ -34,7 +34,7 @@ function SuggestionDropdown({
         <button
           key={place.id}
           onMouseDown={() => onSelect(place)}
-          className="w-full text-left px-4 py-3 hover:bg-[#E8F8F5] transition-colors border-b border-gray-100 last:border-0"
+          className="w-full text-left px-4 py-3 hover:bg-mint-100 transition-colors border-b border-gray-100 last:border-0"
         >
           <div className="text-sm font-medium text-gray-800">{place.place_name}</div>
           <div className="text-xs text-gray-400 mt-0.5">{place.road_address_name || place.address_name}</div>
@@ -63,8 +63,8 @@ function regionText(ctx: HostContext | null): string {
 function HostContextBanner({ ctx }: { ctx: HostContext | null }) {
   if (!ctx?.purposeFirst) return null;
   return (
-    <div className="mx-5 mb-1 bg-[#E8F8F5] border border-[#3CDBC0]/40 rounded-2xl px-4 py-3">
-      <p className="text-[10px] font-bold text-[#2AB5A0] uppercase tracking-widest mb-1.5">호스트가 정한 모임</p>
+    <div className="mx-5 mb-1 bg-mint-100 border border-mint-500/40 rounded-2xl px-4 py-3">
+      <p className="text-[10px] font-bold text-mint-600 uppercase tracking-widest mb-1.5">호스트가 정한 모임</p>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
         <span className="flex items-center gap-1 font-bold text-gray-800">🍀 {courseText(ctx)}</span>
         <span className="flex items-center gap-1 font-bold text-gray-800">📍 {regionText(ctx)}</span>
@@ -302,7 +302,7 @@ export default function MemberInput() {
 
   if (!sessionId) {
     return (
-      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-[#F5FBF8] px-6 text-center">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-mint-50 px-6 text-center">
         <p className="text-2xl mb-3">🔗</p>
         <p className="font-bold text-gray-800 mb-1">유효하지 않은 링크예요</p>
         <p className="text-sm text-gray-400">호스트에게 참여 링크를 다시 받아주세요.</p>
@@ -341,7 +341,7 @@ export default function MemberInput() {
     // 결과 없이 기다리는 중이었다면 여기서 끊어준다. 끝나지 않는 대기 화면이 최악이다.
     if (cancelled) {
       return (
-        <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-[#F5FBF8] px-6 text-center">
+        <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-mint-50 px-6 text-center">
           <p className="text-3xl mb-3">🙏</p>
           <p className="font-black text-gray-800 mb-1.5">호스트가 초대를 취소했어요</p>
           <p className="text-sm text-gray-400 leading-relaxed">
@@ -351,8 +351,8 @@ export default function MemberInput() {
       );
     }
     return (
-      <div className="min-h-[100dvh] flex flex-col items-center bg-[#F5FBF8] px-6 pt-12 pb-10">
-        <div className="w-16 h-16 rounded-full bg-[#3CDBC0] flex items-center justify-center mb-5 shadow-lg shadow-[#3CDBC0]/30">
+      <div className="min-h-[100dvh] flex flex-col items-center bg-mint-50 px-6 pt-12 pb-10">
+        <div className="w-16 h-16 rounded-full bg-mint-500 flex items-center justify-center mb-5 shadow-lg shadow-mint-500/30">
           <span className="text-white text-3xl font-black">✓</span>
         </div>
         <h1 className="text-xl font-black text-gray-800 mb-1">제출 완료!</h1>
@@ -375,7 +375,7 @@ export default function MemberInput() {
             disabled={members.length < 2}
             className={`w-full max-w-xs mb-5 py-3.5 rounded-2xl font-black text-sm transition-all ${
               members.length >= 2
-                ? 'bg-[#3CDBC0] text-white shadow-lg shadow-[#3CDBC0]/30 active:scale-95'
+                ? 'bg-mint-500 text-white shadow-lg shadow-mint-500/30 active:scale-95'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >
@@ -386,7 +386,7 @@ export default function MemberInput() {
         {/* 호스트가 정한 코스·지역 */}
         {hostCtx?.purposeFirst && (
           <div className="w-full max-w-xs bg-white shadow-sm rounded-2xl px-5 py-4 mb-3">
-            <p className="text-[10px] font-bold text-[#2AB5A0] uppercase tracking-widest mb-2">이 모임</p>
+            <p className="text-[10px] font-bold text-mint-600 uppercase tracking-widest mb-2">이 모임</p>
             <div className="flex flex-col gap-1.5 text-sm">
               <div className="flex items-center gap-2"><span className="text-gray-400 w-9 flex-shrink-0">코스</span><span className="font-bold text-gray-800">🍀 {courseText(hostCtx)}</span></div>
               <div className="flex items-center gap-2"><span className="text-gray-400 w-9 flex-shrink-0">지역</span><span className="font-bold text-gray-800">📍 {regionText(hostCtx)}</span></div>
@@ -397,14 +397,14 @@ export default function MemberInput() {
         {/* 내가 고른 것 */}
         {(myVibeLabels.length > 0 || budget || excludeFoods.length > 0 || keywords.length > 0) && (
           <div className="w-full max-w-xs bg-white shadow-sm rounded-2xl px-5 py-4 mb-3">
-            <p className="text-[10px] font-bold text-[#2AB5A0] uppercase tracking-widest mb-2">내가 고른 취향</p>
+            <p className="text-[10px] font-bold text-mint-600 uppercase tracking-widest mb-2">내가 고른 취향</p>
             <div className="flex flex-wrap gap-1.5">
               {myVibeLabels.map((l) => (
-                <span key={l} className="bg-[#E8F8F5] text-[#2AB5A0] text-xs font-bold px-2.5 py-1 rounded-full">{l}</span>
+                <span key={l} className="bg-mint-100 text-mint-600 text-xs font-bold px-2.5 py-1 rounded-full">{l}</span>
               ))}
-              {budget && <span className="bg-[#E8F8F5] text-[#2AB5A0] text-xs font-bold px-2.5 py-1 rounded-full">💰 {budget}</span>}
+              {budget && <span className="bg-mint-100 text-mint-600 text-xs font-bold px-2.5 py-1 rounded-full">💰 {budget}</span>}
               {keywords.map((k) => (
-                <span key={k} className="bg-[#E8F8F5] text-[#2AB5A0] text-xs font-bold px-2.5 py-1 rounded-full">{k}</span>
+                <span key={k} className="bg-mint-100 text-mint-600 text-xs font-bold px-2.5 py-1 rounded-full">{k}</span>
               ))}
               {excludeFoods.map((f) => (
                 <span key={f} className="bg-red-50 text-red-500 text-xs font-bold px-2.5 py-1 rounded-full">🚫 {f}</span>
@@ -416,7 +416,7 @@ export default function MemberInput() {
         {/* 참여 현황 */}
         <div className="bg-white shadow-sm rounded-2xl px-6 py-5 w-full max-w-xs">
           <p className="text-xs text-gray-400 mb-3 text-center">
-            입력 현황 <span className="font-black text-[#2AB5A0]">{members.length}</span>
+            입력 현황 <span className="font-black text-mint-600">{members.length}</span>
             <span className="text-gray-300"> / {total}</span>
           </p>
           <div className="flex flex-col gap-2">
@@ -426,17 +426,17 @@ export default function MemberInput() {
                 <div
                   key={i}
                   className={`flex items-center gap-3 px-4 py-3 rounded-2xl ${
-                    member ? 'bg-[#E8F8F5]' : 'bg-gray-50 border border-dashed border-gray-200'
+                    member ? 'bg-mint-100' : 'bg-gray-50 border border-dashed border-gray-200'
                   }`}
                 >
                   <div
                     className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 ${
-                      member ? 'bg-[#3CDBC0] text-white' : 'bg-gray-200 text-gray-400'
+                      member ? 'bg-mint-500 text-white' : 'bg-gray-200 text-gray-400'
                     }`}
                   >
                     {member ? '✓' : i + 1}
                   </div>
-                  <span className={`text-sm font-bold ${member ? 'text-[#2AB5A0]' : 'text-gray-300'}`}>
+                  <span className={`text-sm font-bold ${member ? 'text-mint-600' : 'text-gray-300'}`}>
                     {member ? member.member_name : '대기 중...'}
                   </span>
                 </div>
@@ -453,10 +453,10 @@ export default function MemberInput() {
   const stepLabels = [showLocation ? '출발지' : '이름', '분위기', '취향', '완료'];
 
   return (
-    <div className="h-[100dvh] bg-[#F5FBF8] flex flex-col overflow-hidden" style={{ height: 'var(--mint-app-height, 100dvh)' }}>
+    <div className="h-[100dvh] bg-mint-50 flex flex-col overflow-hidden" style={{ height: 'var(--mint-app-height, 100dvh)' }}>
       {/* 헤더 */}
       <div className="flex-shrink-0 text-center pt-4 px-4">
-        <h1 className="text-2xl font-black text-[#2AB5A0] tracking-tight">MINT</h1>
+        <h1 className="text-2xl font-black text-mint-600 tracking-tight">MINT</h1>
       </div>
 
       {/* 스텝 프로그레스 — 전 화면 4단계 고정 */}
@@ -496,7 +496,7 @@ export default function MemberInput() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="이름을 입력해주세요"
-                className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 bg-white text-sm outline-none focus:border-[#3CDBC0] transition-all"
+                className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 bg-white text-sm outline-none focus:border-mint-500 transition-all"
               />
             </div>
             {/* 출발지 — 중간지점 자동 모드에서만 */}
@@ -514,17 +514,17 @@ export default function MemberInput() {
                     }}
                     placeholder="예: 강남역, 합정역..."
                     className={`w-full pl-4 pr-9 py-3 rounded-2xl border-2 text-sm outline-none transition-all bg-white ${
-                      locSelected ? 'border-[#3CDBC0] bg-[#E8F8F5]' : 'border-gray-200 focus:border-[#3CDBC0]'
+                      locSelected ? 'border-mint-500 bg-mint-100' : 'border-gray-200 focus:border-mint-500'
                     }`}
                   />
                   {searching && (
                     <div className="absolute inset-y-0 right-3 flex items-center">
-                      <div className="w-4 h-4 border-2 border-[#3CDBC0] border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-mint-500 border-t-transparent rounded-full animate-spin" />
                     </div>
                   )}
                   {locSelected && !searching && (
                     <div className="absolute inset-y-0 right-3 flex items-center">
-                      <span className="text-[#3CDBC0] text-sm font-bold">✓</span>
+                      <span className="text-mint-500 text-sm font-bold">✓</span>
                     </div>
                   )}
                   <SuggestionDropdown
@@ -593,7 +593,7 @@ export default function MemberInput() {
               disabled={!canGoStep1}
               className={`flex-1 py-4 rounded-2xl font-black text-base transition-all active:scale-95 ${
                 canGoStep1
-                  ? 'bg-[#3CDBC0] text-white shadow-lg shadow-[#3CDBC0]/30 hover:bg-[#2AB5A0]'
+                  ? 'bg-mint-500 text-white shadow-lg shadow-mint-500/30 hover:bg-mint-600'
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
             >
@@ -604,7 +604,7 @@ export default function MemberInput() {
           {phase === 'step1' && (
             <button
               onClick={() => setPhase('step2')}
-              className="flex-1 py-4 rounded-2xl font-black text-base bg-[#3CDBC0] text-white shadow-lg shadow-[#3CDBC0]/30 hover:bg-[#2AB5A0] transition-all active:scale-95"
+              className="flex-1 py-4 rounded-2xl font-black text-base bg-mint-500 text-white shadow-lg shadow-mint-500/30 hover:bg-mint-600 transition-all active:scale-95"
             >
               다음
             </button>
@@ -616,7 +616,7 @@ export default function MemberInput() {
               disabled={submitting}
               className={`flex-1 py-4 rounded-2xl font-black text-base transition-all active:scale-95 ${
                 !submitting
-                  ? 'bg-[#3CDBC0] text-white shadow-lg shadow-[#3CDBC0]/30 hover:bg-[#2AB5A0]'
+                  ? 'bg-mint-500 text-white shadow-lg shadow-mint-500/30 hover:bg-mint-600'
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
             >

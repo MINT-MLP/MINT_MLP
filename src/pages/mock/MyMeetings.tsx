@@ -9,7 +9,7 @@ import { buildMapLink } from '@/utils/wishlist';
 // 배지는 카드당 1개만 둔다. 색은 "지금 내 응답이 필요한 상태"(취합 중)에만 민트를 쓰고
 // 나머지는 회색조 — 우상단이 알록달록한 라벨 뭉치가 되지 않게 하는 게 목적이다.
 const STATUS_BADGE: Record<MockMeeting['status'], { label: string; className: string }> = {
-  collecting: { label: '취합 중', className: 'bg-[#E8F8F5] text-[#2AB5A0]' },
+  collecting: { label: '취합 중', className: 'bg-mint-100 text-mint-600' },
   confirmed: { label: '장소 확정', className: 'bg-gray-100 text-gray-500' },
   past: { label: '지난 모임', className: 'bg-gray-100 text-gray-400' },
 };
@@ -48,7 +48,7 @@ export default function MyMeetings({ onGoHome, onChromeChange }: Props) {
   return (
     <div className="max-w-md mx-auto px-5 pt-[max(1.5rem,env(safe-area-inset-top))]">
       <h1 className="flex items-center gap-2 text-[22px] font-black text-gray-900">
-        <IconCalendar className="h-6 w-6 text-[#2AB5A0]" />
+        <IconCalendar className="h-6 w-6 text-mint-600" />
         내 모임
       </h1>
       <p className="mt-1 text-sm text-gray-400">약속 잡은 모임들을 한눈에 볼 수 있어요.</p>
@@ -62,7 +62,7 @@ export default function MyMeetings({ onGoHome, onChromeChange }: Props) {
           </p>
           <button
             onClick={() => { trackEvent('meetings_empty_cta_click', { device_id: getDeviceId() }); onGoHome?.(); }}
-            className="mt-4 min-h-10 rounded-2xl bg-[#3CDBC0] px-5 py-3 text-sm font-black text-white transition-transform active:scale-[0.98]"
+            className="mt-4 min-h-10 rounded-2xl bg-mint-500 px-5 py-3 text-sm font-black text-white transition-transform active:scale-[0.98]"
           >
             장소 추천 받으러 가기
           </button>
@@ -139,7 +139,7 @@ function MeetingCard({ meeting: m }: { meeting: MockMeeting }) {
             <p className="truncate text-sm font-black text-gray-800">{m.title}</p>
             {/* 총무는 배지 대신 제목 옆 12px 아이콘으로 — 우상단 라벨 뭉침을 만들지 않는다 */}
             {m.isHost && (
-              <span className="shrink-0 text-[#2AB5A0]" title="내가 총무인 모임">
+              <span className="shrink-0 text-mint-600" title="내가 총무인 모임">
                 <IconUserCircle className="h-3 w-3" strokeWidth={2.4} />
                 <span className="sr-only">총무</span>
               </span>
@@ -167,7 +167,7 @@ function MeetingCard({ meeting: m }: { meeting: MockMeeting }) {
           aria-label="응답 현황"
           className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100"
         >
-          <div className="h-full rounded-full bg-[#3CDBC0] transition-all" style={{ width: `${ratio}%` }} />
+          <div className="h-full rounded-full bg-mint-500 transition-all" style={{ width: `${ratio}%` }} />
         </div>
       </div>
 
@@ -179,9 +179,9 @@ function MeetingCard({ meeting: m }: { meeting: MockMeeting }) {
           rel="noreferrer"
           className="mt-1 -mx-1 flex min-h-10 items-center gap-1 rounded-xl px-1 text-xs text-gray-500 transition-transform active:scale-[0.99]"
         >
-          <IconMapPin className="h-4 w-4 shrink-0 text-[#2AB5A0]" />
+          <IconMapPin className="h-4 w-4 shrink-0 text-mint-600" />
           <span className="truncate font-bold text-gray-700">{m.placeName}</span>
-          <span aria-hidden className="shrink-0 text-[#2AB5A0]">›</span>
+          <span aria-hidden className="shrink-0 text-mint-600">›</span>
         </a>
       ) : (
         <p className="mt-1 flex min-h-10 items-center gap-1 text-xs text-gray-500">

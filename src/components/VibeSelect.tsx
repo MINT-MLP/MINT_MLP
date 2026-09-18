@@ -146,14 +146,14 @@ export default function VibeSelect({
                   onClick={() => applyPreset(preset)}
                   aria-pressed={on}
                   className={`flex flex-col items-start gap-0.5 rounded-2xl border-2 p-3 text-left transition-all duration-200 active:scale-[0.97] ${
-                    on ? 'border-[#3CDBC0] bg-[#E8F8F5] shadow-sm shadow-[#3CDBC0]/20' : 'border-gray-200 bg-white hover:border-[#3CDBC0]/50'
+                    on ? 'border-mint-500 bg-mint-100 shadow-sm shadow-mint-500/20' : 'border-gray-200 bg-white hover:border-mint-500/50'
                   }`}
                 >
                   <span className="flex items-center gap-1.5">
                     <span className="text-base leading-none">{preset.emoji}</span>
-                    <span className={`text-sm font-black break-keep ${on ? 'text-[#2AB5A0]' : 'text-gray-800'}`}>{preset.title}</span>
+                    <span className={`text-sm font-black break-keep ${on ? 'text-mint-600' : 'text-gray-800'}`}>{preset.title}</span>
                   </span>
-                  <span className={`text-[11px] leading-snug break-keep ${on ? 'text-[#2AB5A0]/70' : 'text-gray-400'}`}>{preset.desc}</span>
+                  <span className={`text-[11px] leading-snug break-keep ${on ? 'text-mint-600/70' : 'text-gray-400'}`}>{preset.desc}</span>
                 </button>
               );
             })}
@@ -161,7 +161,7 @@ export default function VibeSelect({
 
           <button
             onClick={() => setManualOpen((o) => !o)}
-            className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-gray-400 hover:text-[#2AB5A0] transition-colors"
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-gray-400 hover:text-mint-600 transition-colors"
           >
             <span>{manualOpen ? '접기' : '직접 골라볼까요?'}</span>
             <span className={`inline-block transition-transform duration-200 ${manualOpen ? 'rotate-180' : ''}`}>▾</span>
@@ -211,15 +211,15 @@ export default function VibeSelect({
                             className={`relative flex h-10 items-center justify-center gap-1 rounded-full border-2 px-1 text-xs font-bold whitespace-nowrap transition-all duration-200 active:scale-95 ${
                               inActive
                                 ? activeCourse === 'first'
-                                  ? 'border-[#3CDBC0] bg-[#E8F8F5] text-[#2AB5A0] shadow-sm shadow-[#3CDBC0]/20'
+                                  ? 'border-mint-500 bg-mint-100 text-mint-600 shadow-sm shadow-mint-500/20'
                                   : 'border-orange-400 bg-orange-50 text-orange-500 shadow-sm shadow-orange-200/50'
-                                : 'border-gray-200 bg-white text-gray-700 hover:border-[#3CDBC0]/50'
+                                : 'border-gray-200 bg-white text-gray-700 hover:border-mint-500/50'
                             }`}
                           >
                             {/* 다른 코스에 이미 골라둔 칩 — 탭을 옮기지 않아도 보이게 */}
                             {inOther && (
                               <span className={`absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full ring-2 ring-white ${
-                                activeCourse === 'first' ? 'bg-orange-400' : 'bg-[#3CDBC0]'
+                                activeCourse === 'first' ? 'bg-orange-400' : 'bg-mint-500'
                               }`} />
                             )}
                             <span className="text-sm leading-none">{opt.emoji}</span>
@@ -239,7 +239,7 @@ export default function VibeSelect({
                 <div>
                   <button
                     onClick={() => setConditionsOpen((o) => !o)}
-                    className="w-full flex items-center justify-between py-1 text-xs font-bold text-gray-400 hover:text-[#2AB5A0] transition-colors"
+                    className="w-full flex items-center justify-between py-1 text-xs font-bold text-gray-400 hover:text-mint-600 transition-colors"
                   >
                     <span>조건 추가{conditions.length > 0 ? ` (${conditions.length})` : ''}</span>
                     <span className={`inline-block transition-transform duration-200 ${conditionsOpen ? 'rotate-180' : ''}`}>▾</span>
@@ -255,8 +255,8 @@ export default function VibeSelect({
                             aria-pressed={active}
                             className={`flex h-10 items-center justify-center gap-1 rounded-full border-2 px-1 text-xs font-bold whitespace-nowrap transition-all duration-200 active:scale-95 ${
                               active
-                                ? 'border-[#3CDBC0] bg-[#E8F8F5] text-[#2AB5A0] shadow-sm shadow-[#3CDBC0]/20'
-                                : 'border-gray-200 bg-white text-gray-700 hover:border-[#3CDBC0]/50'
+                                ? 'border-mint-500 bg-mint-100 text-mint-600 shadow-sm shadow-mint-500/20'
+                                : 'border-gray-200 bg-white text-gray-700 hover:border-mint-500/50'
                             }`}
                           >
                             <span className="text-sm leading-none">{opt.emoji}</span>
@@ -290,13 +290,13 @@ export default function VibeSelect({
                   aria-pressed={isActive}
                   className={`flex flex-col items-center justify-center h-16 rounded-xl border-2 text-xs font-bold transition-all duration-200 active:scale-[0.97] ${
                     isActive
-                      ? 'border-[#3CDBC0] bg-[#E8F8F5] text-[#2AB5A0] shadow-md shadow-[#3CDBC0]/20'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-[#3CDBC0]/50'
+                      ? 'border-mint-500 bg-mint-100 text-mint-600 shadow-md shadow-mint-500/20'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-mint-500/50'
                   }`}
                 >
                   <span className="text-lg mb-0.5 leading-none">{opt.emoji}</span>
                   <span>{opt.label}</span>
-                  <span className={`text-[9px] font-medium ${isActive ? 'text-[#2AB5A0]/70' : 'text-gray-400'}`}>{opt.sub}</span>
+                  <span className={`text-[9px] font-medium ${isActive ? 'text-mint-600/70' : 'text-gray-400'}`}>{opt.sub}</span>
                 </button>
               );
             })}
@@ -318,7 +318,7 @@ export default function VibeSelect({
                   onClick={() => onKeywordsChange(active ? keywords.filter((k) => k !== kw) : [...keywords, kw])}
                   aria-pressed={active}
                   className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 border ${
-                    active ? 'bg-[#E8F8F5] border-[#3CDBC0] text-[#2AB5A0]' : 'bg-white border-gray-200 text-gray-600 hover:border-[#3CDBC0]/50'
+                    active ? 'bg-mint-100 border-mint-500 text-mint-600' : 'bg-white border-gray-200 text-gray-600 hover:border-mint-500/50'
                   }`}
                 >
                   {active ? '✓ ' : '+ '}{kw}
@@ -355,12 +355,12 @@ export default function VibeSelect({
               }}
               onBlur={() => { if (excludeInput.trim()) addExcludeFoods(); }}
               placeholder="예: 회, 오이, 곱창 (쉼표로 여러 개)"
-              className="flex-1 min-w-0 border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#3CDBC0] transition-colors"
+              className="flex-1 min-w-0 border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-mint-500 transition-colors"
             />
             {/* 추가 버튼은 편의시설과 동일한 민트로 통일 — 빨강은 '제외' 신호로 태그에만 사용 */}
             <button
               onClick={addExcludeFoods}
-              className="flex-shrink-0 px-4 rounded-xl bg-[#3CDBC0] text-white text-sm font-bold transition-all active:scale-95 hover:bg-[#2AB5A0]"
+              className="flex-shrink-0 px-4 rounded-xl bg-mint-500 text-white text-sm font-bold transition-all active:scale-95 hover:bg-mint-600"
             >
               추가
             </button>

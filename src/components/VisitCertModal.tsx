@@ -89,10 +89,10 @@ export default function VisitCertModal({
             <div className="text-5xl mb-3">🎉</div>
             <p className="text-lg font-black text-gray-900">방문 인증 완료!</p>
             <p className="text-sm text-gray-500 mt-1 leading-relaxed">
-              <span className="font-black text-[#2AB5A0]">+{VISIT_POINTS}P</span> 적립됐어요.<br />
+              <span className="font-black text-mint-600">+{VISIT_POINTS}P</span> 적립됐어요.<br />
               쌓인 포인트는 곧 쿠폰·기프티콘으로 바꿀 수 있어요.
             </p>
-            <button onClick={onClose} className="w-full mt-5 py-3.5 rounded-2xl bg-[#3CDBC0] text-white font-black active:scale-[0.98] transition-transform">
+            <button onClick={onClose} className="w-full mt-5 py-3.5 rounded-2xl bg-mint-500 text-white font-black active:scale-[0.98] transition-transform">
               확인
             </button>
           </>
@@ -103,27 +103,27 @@ export default function VisitCertModal({
               {place.placeName ? `${place.placeName}에` : '이곳에'} 오셨나요?
             </p>
             <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">
-              위치만 확인하면 끝이에요. 인증하면 <span className="font-black text-[#2AB5A0]">{VISIT_POINTS}P</span>를 드려요.
+              위치만 확인하면 끝이에요. 인증하면 <span className="font-black text-mint-600">{VISIT_POINTS}P</span>를 드려요.
             </p>
 
             {error && <p className="text-xs text-amber-600 bg-amber-50 rounded-xl px-3 py-2 mt-3 leading-relaxed">{error}</p>}
 
             {stage === 'checking' ? (
               <div className="flex items-center justify-center gap-2 py-6 text-sm text-gray-500">
-                <div className="w-4 h-4 border-2 border-[#3CDBC0] border-t-transparent rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-mint-500 border-t-transparent rounded-full animate-spin" />
                 위치 확인 중...
               </div>
             ) : (
               <div className="flex flex-col gap-2 mt-5">
                 {stage !== 'photo' && (
-                  <button onClick={certifyByGps} className="w-full py-3.5 rounded-2xl bg-[#3CDBC0] text-white font-black active:scale-[0.98] transition-transform">
+                  <button onClick={certifyByGps} className="w-full py-3.5 rounded-2xl bg-mint-500 text-white font-black active:scale-[0.98] transition-transform">
                     📍 위치로 인증하기
                   </button>
                 )}
                 <button
                   onClick={() => photoRef.current?.click()}
                   className={`w-full py-3.5 rounded-2xl font-black active:scale-[0.98] transition-transform ${
-                    stage === 'photo' ? 'bg-[#3CDBC0] text-white' : 'bg-[#E8F8F5] text-[#2AB5A0]'
+                    stage === 'photo' ? 'bg-mint-500 text-white' : 'bg-mint-100 text-mint-600'
                   }`}
                 >
                   📷 사진으로 인증하기

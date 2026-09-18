@@ -26,7 +26,7 @@ const MORE_REGIONS = [
 
 // 레벨 배지 라벨/색상 — 시(전체)/구/동 범위를 한눈에
 const LEVEL_BADGE: Record<RegionLevel, { text: string; cls: string }> = {
-  city:     { text: '시 전체', cls: 'bg-[#E8F8F5] text-[#2AB5A0]' },
+  city:     { text: '시 전체', cls: 'bg-mint-100 text-mint-600' },
   district: { text: '구 전체', cls: 'bg-blue-50 text-blue-500' },
   dong:     { text: '동',      cls: 'bg-amber-50 text-amber-600' },
 };
@@ -60,7 +60,7 @@ function SuggestionDropdown({
           <button
             key={`${s.level}:${s.label}`}
             onMouseDown={() => onPick(s)}
-            className="w-full text-left px-4 py-3 hover:bg-[#E8F8F5] transition-colors border-b border-gray-100 last:border-0 flex items-center gap-2"
+            className="w-full text-left px-4 py-3 hover:bg-mint-100 transition-colors border-b border-gray-100 last:border-0 flex items-center gap-2"
           >
             <span className="text-sm">📍</span>
             <span className="text-sm font-medium text-gray-800 flex-1 truncate">{s.label}</span>
@@ -141,10 +141,10 @@ export default function MeetingLocationSelect({ value, onSelect }: Props) {
       {/* 자동 중간지점 카드 */}
       <button
         onClick={() => { setSearch(''); setSuggestions([]); onSelect({ type: 'auto' }); }}
-        className={`w-full text-left rounded-2xl p-4 flex items-center gap-3 active:scale-[0.98] transition-all shadow-lg shadow-[#3CDBC0]/25 ${
+        className={`w-full text-left rounded-2xl p-4 flex items-center gap-3 active:scale-[0.98] transition-all shadow-lg shadow-mint-500/25 ${
           value?.type === 'auto'
-            ? 'bg-[#3CDBC0] border-4 border-[#2AB5A0]'
-            : 'bg-[#3CDBC0]'
+            ? 'bg-mint-500 border-4 border-mint-600'
+            : 'bg-mint-500'
         }`}
       >
         <div className="text-2xl">🧭</div>
@@ -152,7 +152,7 @@ export default function MeetingLocationSelect({ value, onSelect }: Props) {
           <div className="font-black text-white text-base">자동 중간지점 찾기</div>
           <div className="text-xs text-white/80 mt-0.5">모두의 이동거리를 계산해 가장 공평한 곳으로</div>
         </div>
-        <div className="text-xs font-bold text-[#3CDBC0] bg-white px-2.5 py-1 rounded-full flex-shrink-0">
+        <div className="text-xs font-bold text-mint-500 bg-white px-2.5 py-1 rounded-full flex-shrink-0">
           추천
         </div>
       </button>
@@ -161,8 +161,8 @@ export default function MeetingLocationSelect({ value, onSelect }: Props) {
 
         {/* 카드 헤더 */}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#E8F8F5] flex items-center justify-center">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3CDBC0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <div className="w-9 h-9 rounded-xl bg-mint-100 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="stroke-mint-500" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
             </svg>
@@ -181,23 +181,23 @@ export default function MeetingLocationSelect({ value, onSelect }: Props) {
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="예: 인천 · 인천 미추홀구 · 인천 미추홀구 학익동"
             className={`w-full pl-4 pr-9 py-3 rounded-xl border-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none transition-colors bg-white ${
-              customSelected ? 'border-[#3CDBC0] bg-[#E8F8F5]' : 'border-[#3CDBC0] focus:ring-2 focus:ring-[#3CDBC0]/20'
+              customSelected ? 'border-mint-500 bg-mint-100' : 'border-mint-500 focus:ring-2 focus:ring-mint-500/20'
             }`}
           />
           {searching && (
             <div className="absolute inset-y-0 right-3 flex items-center">
-              <div className="w-4 h-4 border-2 border-[#3CDBC0] border-t-transparent rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-mint-500 border-t-transparent rounded-full animate-spin" />
             </div>
           )}
           {customSelected && !searching && (
             <div className="absolute inset-y-0 right-3 flex items-center">
-              <span className="text-[#3CDBC0] text-sm font-bold">✓</span>
+              <span className="text-mint-500 text-sm font-bold">✓</span>
             </div>
           )}
           <SuggestionDropdown suggestions={suggestions} anchorEl={wrapperRef.current} onPick={pickPlace} />
         </div>
         {customSelected && (
-          <p className="-mt-2 text-xs text-[#2AB5A0] font-medium">📍 {(value as { area: string }).area} 범위 안에서 추천해요</p>
+          <p className="-mt-2 text-xs text-mint-600 font-medium">📍 {(value as { area: string }).area} 범위 안에서 추천해요</p>
         )}
 
         {/* 핫 지역 */}
@@ -212,8 +212,8 @@ export default function MeetingLocationSelect({ value, onSelect }: Props) {
                 onClick={() => selectPreset(r.id, r.label)}
                 className={`rounded-xl border-2 px-3 py-2.5 text-center active:scale-[0.97] transition-all ${
                   isManualSelected(r.id)
-                    ? 'border-[#3CDBC0] bg-teal-50'
-                    : 'border-gray-200 bg-white hover:border-[#3CDBC0]'
+                    ? 'border-mint-500 bg-teal-50'
+                    : 'border-gray-200 bg-white hover:border-mint-500'
                 }`}
               >
                 <div className="text-sm font-black text-gray-800 truncate">{r.label}</div>
@@ -226,7 +226,7 @@ export default function MeetingLocationSelect({ value, onSelect }: Props) {
         {!showMore ? (
           <button
             onClick={() => setShowMore(true)}
-            className="text-center text-xs text-[#3CDBC0] font-bold hover:text-[#2AB5A0] transition-colors py-0.5"
+            className="text-center text-xs text-mint-500 font-bold hover:text-mint-600 transition-colors py-0.5"
           >
             다른 지역 선택하기 →
           </button>
@@ -238,8 +238,8 @@ export default function MeetingLocationSelect({ value, onSelect }: Props) {
                 onClick={() => selectPreset(r.id, r.label)}
                 className={`rounded-xl border-2 px-3 py-2.5 text-center active:scale-[0.97] transition-all ${
                   isManualSelected(r.id)
-                    ? 'border-[#3CDBC0] bg-teal-50'
-                    : 'border-gray-200 bg-white hover:border-[#3CDBC0]'
+                    ? 'border-mint-500 bg-teal-50'
+                    : 'border-gray-200 bg-white hover:border-mint-500'
                 }`}
               >
                 <div className="text-sm font-black text-gray-800 truncate">{r.label}</div>

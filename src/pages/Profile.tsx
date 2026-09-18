@@ -123,7 +123,7 @@ export default function Profile({ onChromeChange }: Props) {
 
   return (
     <div className="max-w-md mx-auto px-5 pt-[max(1.5rem,env(safe-area-inset-top))]">
-      <h1 className="flex items-center gap-2 text-[22px] font-black text-gray-900"><IconUserCircle className="h-[22px] w-[22px] text-[#2AB5A0]" />프로필</h1>
+      <h1 className="flex items-center gap-2 text-[22px] font-black text-gray-900"><IconUserCircle className="h-[22px] w-[22px] text-mint-600" />프로필</h1>
 
       {/* 요약 */}
       <div className="mt-4 rounded-2xl border border-gray-100 bg-white p-4">
@@ -131,7 +131,7 @@ export default function Profile({ onChromeChange }: Props) {
           {avatarUrl ? (
             <img src={avatarUrl} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover" />
           ) : (
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#E8F8F5]">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-mint-100">
               <img src="/image/mascot-bird.webp" alt="" aria-hidden="true" className="h-9 w-9 select-none" />
             </span>
           )}
@@ -169,7 +169,7 @@ export default function Profile({ onChromeChange }: Props) {
           <button
             onClick={() => void handleSignIn()}
             disabled={signingIn}
-            className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl bg-[#FEE500] py-3 text-sm font-black text-[#191919] active:scale-[0.99] transition-transform disabled:opacity-60"
+            className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl bg-kakao py-3 text-sm font-black text-[#191919] active:scale-[0.99] transition-transform disabled:opacity-60"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="#191919" aria-hidden="true">
               <path d="M12 3C6.99 3 3 6.2 3 10.15c0 2.5 1.65 4.7 4.14 5.97l-.9 3.3c-.09.32.27.58.55.4l3.96-2.6c.4.04.82.06 1.25.06 5.01 0 9-3.2 9-7.13S17.01 3 12 3z" />
@@ -211,7 +211,7 @@ export default function Profile({ onChromeChange }: Props) {
           {serverLoading ? (
             /* 스피너는 VisitCertModal의 로딩 패턴과 동일한 문법 */
             <div className="flex items-center gap-2 px-1 text-xs text-gray-400">
-              <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[#3CDBC0] border-t-transparent" />
+              <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-mint-500 border-t-transparent" />
               기록을 불러오는 중이에요…
             </div>
           ) : serverError ? (
@@ -265,7 +265,7 @@ export default function Profile({ onChromeChange }: Props) {
                   {e.method === 'gps' ? ' · 위치 인증' : ' · 사진 인증'}
                 </p>
               </div>
-              <span className="shrink-0 text-sm font-black text-[#2AB5A0]">+{e.points}P</span>
+              <span className="shrink-0 text-sm font-black text-mint-600">+{e.points}P</span>
             </div>
           ))}
         </div>
@@ -324,7 +324,7 @@ function ToggleRow({ label, desc, on, onToggle }: { label: string; desc: string;
         role="switch"
         aria-checked={on}
         aria-label={label}
-        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${on ? 'bg-[#3CDBC0]' : 'bg-gray-200'}`}
+        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${on ? 'bg-mint-500' : 'bg-gray-200'}`}
       >
         <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? 'left-[1.375rem]' : 'left-0.5'}`} />
       </button>

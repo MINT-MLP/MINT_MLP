@@ -15,7 +15,7 @@ export default function CouponPurchasePreparingModal({ onClose }: { onClose: () 
         </p>
         <button
           onClick={onClose}
-          className="mt-5 w-full rounded-2xl bg-[#3CDBC0] py-3.5 font-black text-white transition-transform active:scale-[0.98]"
+          className="mt-5 w-full rounded-2xl bg-mint-500 py-3.5 font-black text-white transition-transform active:scale-[0.98]"
         >
           확인
         </button>

@@ -111,12 +111,12 @@ export default function Pilot() {
                   setVisited({}); setReason([]); setIssues([]); setBudget(null); setVibeFit(0); setReuse(null); setFitRating(0); setFitText('');
                   setPhase('form-auto');
                 }}
-                className="text-left border-2 border-gray-200 rounded-2xl p-4 hover:border-[#3CDBC0] active:scale-[0.99] transition-all">
+                className="text-left border-2 border-gray-200 rounded-2xl p-4 hover:border-mint-500 active:scale-[0.99] transition-all">
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <span className="text-base font-black text-gray-800 truncate">🍽️ {topPlaceName(h)}</span>
                   <span className="text-[11px] text-gray-400 shrink-0">{relativeTime(h.createdAt)}</span>
                 </div>
-                <p className="text-xs text-[#2AB5A0] font-bold">{summaryLine(h.conditions) || '추천 조건'}</p>
+                <p className="text-xs text-mint-600 font-bold">{summaryLine(h.conditions) || '추천 조건'}</p>
               </button>
             ))}
           </div>
@@ -156,12 +156,12 @@ export default function Pilot() {
         <button onClick={() => setPhase('detect')} className="text-xs font-bold text-gray-400 mb-3">← 다시 고르기</button>
 
         {/* 확인 */}
-        <section className="bg-[#E8F8F5] border border-[#3CDBC0]/30 rounded-2xl p-5 mb-4">
-          <p className="text-sm font-black text-[#2AB5A0] mb-1">이 추천으로 다녀오신 거 맞죠?</p>
-          <p className="text-xs text-[#2AB5A0]/80 mb-3">{summaryLine(selected.conditions) || '추천 조건'}</p>
+        <section className="bg-mint-100 border border-mint-500/30 rounded-2xl p-5 mb-4">
+          <p className="text-sm font-black text-mint-600 mb-1">이 추천으로 다녀오신 거 맞죠?</p>
+          <p className="text-xs text-mint-600/80 mb-3">{summaryLine(selected.conditions) || '추천 조건'}</p>
           <div className="flex flex-wrap gap-1.5">
             {selected.coursePicks.map((p) => (
-              <span key={`${p.course}-${p.rank}`} className="text-[11px] font-bold text-[#2AB5A0] bg-white border border-[#3CDBC0]/30 px-2.5 py-1 rounded-full">
+              <span key={`${p.course}-${p.rank}`} className="text-[11px] font-bold text-mint-600 bg-white border border-mint-500/30 px-2.5 py-1 rounded-full">
                 {p.course} {p.rank}. {p.placeName}
               </span>
             ))}
@@ -192,7 +192,7 @@ export default function Pilot() {
                   {v.choice === '__other' && (
                     <input value={v.otherName} onChange={(e) => setVisited((prev) => ({ ...prev, [course]: { choice: '__other', otherName: e.target.value } }))}
                       placeholder="실제 가신 가게 이름 (선택)" maxLength={60}
-                      className="mt-1 w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#3CDBC0]" />
+                      className="mt-1 w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-mint-500" />
                   )}
                 </div>
               </div>
@@ -207,7 +207,7 @@ export default function Pilot() {
             <div className="flex gap-1.5">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button key={n} onClick={() => setFitRating(n)} aria-label={`${n}점`}
-                  className={`w-11 h-11 rounded-xl border-2 text-xl transition-all active:scale-95 ${fitRating >= n ? 'border-[#3CDBC0] bg-[#E8F8F5] text-[#2AB5A0]' : 'border-gray-200 bg-white text-gray-300'}`}>★</button>
+                  className={`w-11 h-11 rounded-xl border-2 text-xl transition-all active:scale-95 ${fitRating >= n ? 'border-mint-500 bg-mint-100 text-mint-600' : 'border-gray-200 bg-white text-gray-300'}`}>★</button>
               ))}
             </div>
             {fitRating > 0 && fitRating <= 3 && (
@@ -235,7 +235,7 @@ export default function Pilot() {
             <div className="flex gap-1.5">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button key={n} onClick={() => setVibeFit(n)} aria-label={`${n}점`}
-                  className={`flex-1 h-10 rounded-xl border-2 text-sm font-bold transition-all active:scale-95 ${vibeFit >= n ? 'border-[#3CDBC0] bg-[#E8F8F5] text-[#2AB5A0]' : 'border-gray-200 bg-white text-gray-300'}`}>{n}</button>
+                  className={`flex-1 h-10 rounded-xl border-2 text-sm font-bold transition-all active:scale-95 ${vibeFit >= n ? 'border-mint-500 bg-mint-100 text-mint-600' : 'border-gray-200 bg-white text-gray-300'}`}>{n}</button>
               ))}
             </div>
           </div>
@@ -250,7 +250,7 @@ export default function Pilot() {
           <div>
             <QLabel>딱 하나만 고친다면? <span className="text-gray-300">· 선택</span></QLabel>
             <textarea value={fitText} onChange={(e) => setFitText(e.target.value)} placeholder="한 줄이면 충분해요. 건너뛰어도 돼요."
-              className="w-full min-h-16 resize-none border-2 border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#3CDBC0]" />
+              className="w-full min-h-16 resize-none border-2 border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-mint-500" />
           </div>
         </section>
 
@@ -272,7 +272,7 @@ export default function Pilot() {
     <Shell onReclaim={() => setPhase('reclaim')}>
       <Hero />
       {handoffs.length > 0 && (
-        <button onClick={() => setPhase('detect')} className="text-xs font-bold text-[#2AB5A0] bg-[#E8F8F5] border border-[#3CDBC0]/30 px-3 py-2 rounded-xl mb-4 w-full">
+        <button onClick={() => setPhase('detect')} className="text-xs font-bold text-mint-600 bg-mint-100 border border-mint-500/30 px-3 py-2 rounded-xl mb-4 w-full">
           ← 최근 추천 기록으로 간편하게 참여하기
         </button>
       )}
@@ -280,18 +280,18 @@ export default function Pilot() {
         <p className="text-sm font-black text-gray-800 mb-1">어디 다녀오셨어요?</p>
         <p className="text-xs text-gray-400 mb-3">MINT 추천으로 방문한 가게 이름을 적어주세요.</p>
         <input value={manualPlace} onChange={(e) => setManualPlace(e.target.value)} placeholder="예: ○○집 (홍대)" maxLength={60}
-          className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#3CDBC0]" />
+          className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-mint-500" />
       </section>
       <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
         <QLabel required>다녀온 곳, 어떠셨어요?</QLabel>
         <div className="flex gap-1.5 mb-3">
           {[1, 2, 3, 4, 5].map((n) => (
             <button key={n} onClick={() => setFitRating(n)} aria-label={`${n}점`}
-              className={`w-11 h-11 rounded-xl border-2 text-xl transition-all active:scale-95 ${fitRating >= n ? 'border-[#3CDBC0] bg-[#E8F8F5] text-[#2AB5A0]' : 'border-gray-200 bg-white text-gray-300'}`}>★</button>
+              className={`w-11 h-11 rounded-xl border-2 text-xl transition-all active:scale-95 ${fitRating >= n ? 'border-mint-500 bg-mint-100 text-mint-600' : 'border-gray-200 bg-white text-gray-300'}`}>★</button>
           ))}
         </div>
         <textarea value={fitText} onChange={(e) => setFitText(e.target.value)} placeholder="조건에 잘 맞았는지, 아쉬운 점은 없었는지 한 줄이면 충분해요."
-          className="w-full min-h-20 resize-none border-2 border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#3CDBC0]" />
+          className="w-full min-h-20 resize-none border-2 border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-mint-500" />
       </section>
       <PaymentBox files={paymentFiles} onChange={setPaymentFiles} />
       {error && <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 text-center my-3">{error}</div>}
@@ -303,12 +303,12 @@ export default function Pilot() {
 // ───────────────────────── 레이아웃/소품 ─────────────────────────
 function Shell({ children, onReclaim }: { children: ReactNode; onReclaim: () => void }) {
   return (
-    <div className="min-h-[100dvh] bg-[#F5FBF8]">
+    <div className="min-h-[100dvh] bg-mint-50">
       <div className="max-w-md mx-auto px-5 pt-5 pb-10">
         <header className="flex items-center justify-between mb-6">
-          <button onClick={() => { window.location.href = '/'; }} className="text-xl font-black text-[#3CDBC0] tracking-tight">MINT</button>
+          <button onClick={() => { window.location.href = '/'; }} className="text-xl font-black text-mint-500 tracking-tight">MINT</button>
           <div className="flex items-center gap-2">
-            <button onClick={onReclaim} className="text-xs font-bold text-[#2AB5A0] bg-[#E8F8F5] border border-[#3CDBC0]/30 px-3 py-1.5 rounded-full active:scale-95">당첨코드로 다시 받기</button>
+            <button onClick={onReclaim} className="text-xs font-bold text-mint-600 bg-mint-100 border border-mint-500/30 px-3 py-1.5 rounded-full active:scale-95">당첨코드로 다시 받기</button>
             <button onClick={() => { window.location.href = '/pilot-admin'; }} className="text-xs font-bold text-gray-400 bg-white border border-gray-100 px-3 py-1.5 rounded-full active:scale-95">관리자</button>
           </div>
         </header>
@@ -321,9 +321,9 @@ function Shell({ children, onReclaim }: { children: ReactNode; onReclaim: () => 
 function Hero() {
   return (
     <section className="mb-5">
-      <div className="inline-flex items-center gap-1.5 bg-[#E8F8F5] border border-[#3CDBC0]/30 text-[#2AB5A0] text-xs font-bold px-3 py-1 rounded-full mb-3">✦ MINT 선발대</div>
+      <div className="inline-flex items-center gap-1.5 bg-mint-100 border border-mint-500/30 text-mint-600 text-xs font-bold px-3 py-1 rounded-full mb-3">✦ MINT 선발대</div>
       <h1 className="text-3xl font-black text-gray-800 leading-tight mb-2">다녀온 인증만 하면<br />그 자리에서 100% 당첨</h1>
-      <p className="text-sm text-gray-500 leading-relaxed">MINT 추천으로 다녀온 곳을 인증하고 짧은 후기를 남기면, <strong className="text-[#2AB5A0]">꽝 없는 룰렛</strong>으로 기프티콘을 바로 받아요.</p>
+      <p className="text-sm text-gray-500 leading-relaxed">MINT 추천으로 다녀온 곳을 인증하고 짧은 후기를 남기면, <strong className="text-mint-600">꽝 없는 룰렛</strong>으로 기프티콘을 바로 받아요.</p>
     </section>
   );
 }
@@ -340,9 +340,9 @@ function QLabel({ children, required }: { children: ReactNode; required?: boolea
 function VisitOpt({ on, onClick, label, sub }: { on: boolean; onClick: () => void; label: string; sub?: string }) {
   return (
     <button onClick={onClick} aria-pressed={on}
-      className={`flex items-center justify-between text-left rounded-xl border-2 px-4 py-2.5 transition-all active:scale-[0.99] ${on ? 'border-[#3CDBC0] bg-[#E8F8F5]' : 'border-gray-200 bg-white'}`}>
-      <span className={`text-sm font-bold ${on ? 'text-[#2AB5A0]' : 'text-gray-700'}`}>{label}{sub && <span className="text-gray-400 font-medium"> · {sub}</span>}</span>
-      <span className={`w-4 h-4 rounded-full border-2 ${on ? 'border-[#3CDBC0] bg-[#3CDBC0]' : 'border-gray-300'}`} />
+      className={`flex items-center justify-between text-left rounded-xl border-2 px-4 py-2.5 transition-all active:scale-[0.99] ${on ? 'border-mint-500 bg-mint-100' : 'border-gray-200 bg-white'}`}>
+      <span className={`text-sm font-bold ${on ? 'text-mint-600' : 'text-gray-700'}`}>{label}{sub && <span className="text-gray-400 font-medium"> · {sub}</span>}</span>
+      <span className={`w-4 h-4 rounded-full border-2 ${on ? 'border-mint-500 bg-mint-500' : 'border-gray-300'}`} />
     </button>
   );
 }
@@ -354,7 +354,7 @@ function ChipRow({ opts, sel, onToggle }: { opts: string[]; sel: string[]; onTog
         const on = sel.includes(o);
         return (
           <button key={o} onClick={() => onToggle(o)}
-            className={`px-3 py-1.5 rounded-full border-2 text-xs font-bold transition-all active:scale-95 ${on ? 'border-[#3CDBC0] bg-[#E8F8F5] text-[#2AB5A0]' : 'border-gray-200 bg-white text-gray-600'}`}>{o}</button>
+            className={`px-3 py-1.5 rounded-full border-2 text-xs font-bold transition-all active:scale-95 ${on ? 'border-mint-500 bg-mint-100 text-mint-600' : 'border-gray-200 bg-white text-gray-600'}`}>{o}</button>
         );
       })}
     </div>
@@ -364,7 +364,7 @@ function ChipRow({ opts, sel, onToggle }: { opts: string[]; sel: string[]; onTog
 function PickBtn({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
   return (
     <button onClick={onClick} aria-pressed={on}
-      className={`py-2.5 rounded-xl border-2 text-xs font-bold transition-all active:scale-95 ${on ? 'border-[#3CDBC0] bg-[#E8F8F5] text-[#2AB5A0]' : 'border-gray-200 bg-white text-gray-600'}`}>{label}</button>
+      className={`py-2.5 rounded-xl border-2 text-xs font-bold transition-all active:scale-95 ${on ? 'border-mint-500 bg-mint-100 text-mint-600' : 'border-gray-200 bg-white text-gray-600'}`}>{label}</button>
   );
 }
 
@@ -378,15 +378,15 @@ function PaymentBox({ files, onChange }: { files: File[]; onChange: (f: File[]) 
         </div>
         <span className="text-[10px] font-bold text-red-400 bg-red-50 px-2 py-0.5 rounded-full shrink-0">필수</span>
       </div>
-      <label className="block border-2 border-dashed border-[#3CDBC0]/60 rounded-2xl bg-[#F0FDF9] px-4 py-5 text-center active:scale-[0.99] transition-all cursor-pointer">
+      <label className="block border-2 border-dashed border-mint-500/60 rounded-2xl bg-[#F0FDF9] px-4 py-5 text-center active:scale-[0.99] transition-all cursor-pointer">
         <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => onChange(Array.from(e.target.files ?? []))} />
         <span className="block text-2xl mb-1">＋</span>
-        <span className="block text-sm font-black text-[#2AB5A0] truncate">{fileLabel(files)}</span>
+        <span className="block text-sm font-black text-mint-600 truncate">{fileLabel(files)}</span>
       </label>
       {files.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-3">
           {files.map((file) => (
-            <span key={`${file.name}-${file.size}`} className="max-w-full truncate text-xs font-bold text-[#2AB5A0] bg-[#E8F8F5] px-2.5 py-1 rounded-full">{file.name}</span>
+            <span key={`${file.name}-${file.size}`} className="max-w-full truncate text-xs font-bold text-mint-600 bg-mint-100 px-2.5 py-1 rounded-full">{file.name}</span>
           ))}
         </div>
       )}
@@ -398,7 +398,7 @@ function SubmitBtn({ onClick, disabled, submitting }: { onClick: () => void; dis
   return (
     <>
       <button onClick={onClick} disabled={disabled}
-        className={`w-full mt-3 py-4 rounded-2xl font-black text-base transition-all active:scale-95 ${!disabled ? 'bg-[#3CDBC0] text-white shadow-lg shadow-[#3CDBC0]/30 hover:bg-[#2AB5A0]' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
+        className={`w-full mt-3 py-4 rounded-2xl font-black text-base transition-all active:scale-95 ${!disabled ? 'bg-mint-500 text-white shadow-lg shadow-mint-500/30 hover:bg-mint-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
         {submitting ? '제출 중...' : '🎁 제출하고 룰렛 돌리기'}
       </button>
       <p className="text-center text-[11px] text-gray-400 mt-2">꽝 없는 룰렛 · 제출하면 그 자리에서 100% 당첨돼요</p>
@@ -442,12 +442,12 @@ function Roulette({ onDone }: { onDone: () => void }) {
 
   const gradient = useMemo(() => {
     const parts: string[] = [];
-    for (let i = 0; i < SLICES; i++) parts.push(`${i % 2 === 0 ? '#3CDBC0' : '#E5E7EB'} ${i * SLICE_DEG}deg ${(i + 1) * SLICE_DEG}deg`);
+    for (let i = 0; i < SLICES; i++) parts.push(`${i % 2 === 0 ? 'rgb(var(--mint-500))' : '#E5E7EB'} ${i * SLICE_DEG}deg ${(i + 1) * SLICE_DEG}deg`);
     return `conic-gradient(${parts.join(', ')})`;
   }, []);
 
   return (
-    <div className="min-h-[100dvh] bg-[#F5FBF8] flex flex-col items-center justify-center px-6">
+    <div className="min-h-[100dvh] bg-mint-50 flex flex-col items-center justify-center px-6">
       <p className="text-2xl font-black text-gray-800 mb-1">🎉 꽝 없는 룰렛</p>
       <p className="text-sm text-gray-500 mb-8">100% 당첨! 어떤 상품이 걸릴까요?</p>
       <div className="relative w-72 h-72">
@@ -468,7 +468,7 @@ function Roulette({ onDone }: { onDone: () => void }) {
             );
           })}
         </div>
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow-md border-2 border-[#3CDBC0] flex items-center justify-center z-10 text-xl">🎯</div>
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow-md border-2 border-mint-500 flex items-center justify-center z-10 text-xl">🎯</div>
       </div>
     </div>
   );
@@ -489,11 +489,11 @@ function RewardView({ prize, onClose, reclaimed = false }: { prize: PilotPrizeRe
     onClose();
   }
   return (
-    <div className="min-h-[100dvh] bg-[#F5FBF8] flex items-center justify-center px-5 py-8">
-      <div className="w-full max-w-sm bg-white rounded-3xl border border-[#3CDBC0]/30 shadow-xl shadow-[#3CDBC0]/10 px-6 py-7 text-center animate-fade-in-up">
-        <div className="inline-flex items-center gap-1.5 bg-[#E8F8F5] text-[#2AB5A0] text-xs font-black px-3 py-1 rounded-full mb-3">🎉 100% 당첨</div>
+    <div className="min-h-[100dvh] bg-mint-50 flex items-center justify-center px-5 py-8">
+      <div className="w-full max-w-sm bg-white rounded-3xl border border-mint-500/30 shadow-xl shadow-mint-500/10 px-6 py-7 text-center animate-fade-in-up">
+        <div className="inline-flex items-center gap-1.5 bg-mint-100 text-mint-600 text-xs font-black px-3 py-1 rounded-full mb-3">🎉 100% 당첨</div>
         <p className="text-2xl font-black text-gray-800 mb-1">{prize.title}</p>
-        <p className="text-xs text-gray-400 mb-4">지금 <strong className="text-[#2AB5A0]">스크린샷으로 저장</strong>하세요!</p>
+        <p className="text-xs text-gray-400 mb-4">지금 <strong className="text-mint-600">스크린샷으로 저장</strong>하세요!</p>
         {prize.imageUrl ? (
           <a href={prize.imageUrl} target="_blank" rel="noreferrer" className="block rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 mb-4">
             <img src={prize.imageUrl} alt={prize.title} className="w-full object-contain max-h-80" />
@@ -501,21 +501,21 @@ function RewardView({ prize, onClose, reclaimed = false }: { prize: PilotPrizeRe
         ) : (
           <div className="rounded-2xl border border-gray-100 bg-gray-50 py-10 mb-4 text-sm text-gray-400">이미지를 불러오지 못했어요.<br />아래 당첨코드로 다시 받아주세요.</div>
         )}
-        <div className="bg-[#F5FBF8] border border-[#3CDBC0]/30 rounded-2xl px-4 py-3 mb-4">
+        <div className="bg-mint-50 border border-mint-500/30 rounded-2xl px-4 py-3 mb-4">
           <p className="text-[11px] text-gray-400 mb-1">당첨코드 (재수령용 · 꼭 보관)</p>
           <div className="flex items-center justify-center gap-2">
-            <span className="text-xl font-black tracking-widest text-[#2AB5A0]">{prize.claimCode}</span>
-            <button onClick={copyCode} className="text-xs font-bold text-[#2AB5A0] bg-[#E8F8F5] border border-[#3CDBC0]/30 px-2.5 py-1 rounded-full active:scale-95">{copied ? '복사됨!' : '복사'}</button>
+            <span className="text-xl font-black tracking-widest text-mint-600">{prize.claimCode}</span>
+            <button onClick={copyCode} className="text-xs font-bold text-mint-600 bg-mint-100 border border-mint-500/30 px-2.5 py-1 rounded-full active:scale-95">{copied ? '복사됨!' : '복사'}</button>
           </div>
         </div>
         {!reclaimed && (
           <div className="mb-4 text-left">
             <p className="text-[11px] text-gray-400 mb-1">혹시 몰라 재발송 받을 연락처 <span className="text-gray-300">(선택)</span></p>
             <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="카톡ID / 이메일 / 전화 (안 적어도 돼요)" maxLength={100}
-              className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#3CDBC0]" />
+              className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-mint-500" />
           </div>
         )}
-        <button onClick={finish} disabled={saving} className="w-full py-4 rounded-2xl bg-[#3CDBC0] text-white font-black text-base active:scale-95 transition-all disabled:opacity-60">
+        <button onClick={finish} disabled={saving} className="w-full py-4 rounded-2xl bg-mint-500 text-white font-black text-base active:scale-95 transition-all disabled:opacity-60">
           {saving ? '저장 중...' : reclaimed ? '닫기' : '저장했어요, 완료'}
         </button>
       </div>
@@ -538,19 +538,19 @@ function SoldOutView({ claimCode, onClose }: { claimCode: string; onClose: () =>
     } catch (e) { setErr((e as Error).message); } finally { setSaving(false); }
   }
   return (
-    <div className="min-h-[100dvh] bg-[#F5FBF8] flex items-center justify-center px-5 py-8">
-      <div className="w-full max-w-sm bg-white rounded-3xl border border-[#3CDBC0]/30 shadow-xl shadow-[#3CDBC0]/10 px-6 py-7 text-center animate-fade-in-up">
+    <div className="min-h-[100dvh] bg-mint-50 flex items-center justify-center px-5 py-8">
+      <div className="w-full max-w-sm bg-white rounded-3xl border border-mint-500/30 shadow-xl shadow-mint-500/10 px-6 py-7 text-center animate-fade-in-up">
         <div className="text-4xl mb-3">🎁</div>
         <p className="text-2xl font-black text-gray-800 mb-1">당첨 확정!</p>
-        <p className="text-sm text-gray-500 leading-relaxed mb-4">상품이 잠시 품절이라 <strong className="text-[#2AB5A0]">충전 즉시 보내드릴게요.</strong> 이번만 연락처를 남겨주세요.</p>
-        <div className="bg-[#F5FBF8] border border-[#3CDBC0]/30 rounded-2xl px-4 py-3 mb-4">
+        <p className="text-sm text-gray-500 leading-relaxed mb-4">상품이 잠시 품절이라 <strong className="text-mint-600">충전 즉시 보내드릴게요.</strong> 이번만 연락처를 남겨주세요.</p>
+        <div className="bg-mint-50 border border-mint-500/30 rounded-2xl px-4 py-3 mb-4">
           <p className="text-[11px] text-gray-400 mb-1">당첨코드 (꼭 보관 · 이 코드로도 수령 가능)</p>
-          <span className="text-xl font-black tracking-widest text-[#2AB5A0]">{claimCode}</span>
+          <span className="text-xl font-black tracking-widest text-mint-600">{claimCode}</span>
         </div>
         <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="카톡ID / 이메일 / 전화번호" maxLength={100}
-          className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#3CDBC0] mb-1 text-center" />
+          className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-mint-500 mb-1 text-center" />
         {err && <p className="text-xs text-red-400 mb-2">{err}</p>}
-        <button onClick={save} disabled={saving} className="w-full mt-3 py-4 rounded-2xl bg-[#3CDBC0] text-white font-black text-base active:scale-95 transition-all disabled:opacity-60">{saving ? '저장 중...' : '연락처 남기기'}</button>
+        <button onClick={save} disabled={saving} className="w-full mt-3 py-4 rounded-2xl bg-mint-500 text-white font-black text-base active:scale-95 transition-all disabled:opacity-60">{saving ? '저장 중...' : '연락처 남기기'}</button>
       </div>
     </div>
   );
@@ -576,16 +576,16 @@ function ReclaimView({ onBack }: { onBack: () => void }) {
   }
   if (prize) return <RewardView prize={prize} onClose={onBack} reclaimed />;
   return (
-    <div className="min-h-[100dvh] bg-[#F5FBF8] flex items-center justify-center px-5">
+    <div className="min-h-[100dvh] bg-mint-50 flex items-center justify-center px-5">
       <div className="w-full max-w-sm bg-white rounded-3xl border border-gray-100 shadow-sm px-6 py-8 text-center">
         <div className="text-3xl mb-3">🎟️</div>
         <h1 className="text-lg font-black text-gray-800 mb-1">당첨코드로 다시 받기</h1>
         <p className="text-sm text-gray-400 mb-5">받았던 당첨코드(MINT-XXXXX)를 입력하면 기프티콘을 다시 보여드려요.</p>
         <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="MINT-XXXXX" maxLength={10} onKeyDown={(e) => { if (e.key === 'Enter') lookup(); }}
-          className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-center text-lg font-black tracking-widest uppercase text-[#2AB5A0] placeholder-gray-300 focus:outline-none focus:border-[#3CDBC0]" />
+          className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-center text-lg font-black tracking-widest uppercase text-mint-600 placeholder-gray-300 focus:outline-none focus:border-mint-500" />
         {err && <p className="text-xs text-red-400 mt-2">{err}</p>}
-        {pending && <p className="text-xs text-[#2AB5A0] mt-2">아직 상품 충전 대기 중이에요. 곧 지급되면 이 코드로 받을 수 있어요.</p>}
-        <button onClick={lookup} disabled={loading} className="w-full mt-4 py-3.5 rounded-xl bg-[#3CDBC0] text-white font-black active:scale-95 transition-all disabled:opacity-60">{loading ? '조회 중...' : '기프티콘 받기'}</button>
+        {pending && <p className="text-xs text-mint-600 mt-2">아직 상품 충전 대기 중이에요. 곧 지급되면 이 코드로 받을 수 있어요.</p>}
+        <button onClick={lookup} disabled={loading} className="w-full mt-4 py-3.5 rounded-xl bg-mint-500 text-white font-black active:scale-95 transition-all disabled:opacity-60">{loading ? '조회 중...' : '기프티콘 받기'}</button>
         <button onClick={onBack} className="w-full mt-2 py-2 text-sm font-bold text-gray-400">돌아가기</button>
       </div>
     </div>
@@ -594,17 +594,17 @@ function ReclaimView({ onBack }: { onBack: () => void }) {
 
 function DoneView({ claimCode }: { claimCode: string }) {
   return (
-    <div className="min-h-[100dvh] bg-[#F5FBF8] flex items-center justify-center px-5">
-      <div className="w-full max-w-sm bg-white rounded-3xl border border-[#3CDBC0]/30 shadow-xl shadow-[#3CDBC0]/10 px-6 py-8 text-center animate-fade-in-up">
-        <div className="w-20 h-20 rounded-full bg-[#3CDBC0] mx-auto mb-5 flex items-center justify-center shadow-lg shadow-[#3CDBC0]/30">
+    <div className="min-h-[100dvh] bg-mint-50 flex items-center justify-center px-5">
+      <div className="w-full max-w-sm bg-white rounded-3xl border border-mint-500/30 shadow-xl shadow-mint-500/10 px-6 py-8 text-center animate-fade-in-up">
+        <div className="w-20 h-20 rounded-full bg-mint-500 mx-auto mb-5 flex items-center justify-center shadow-lg shadow-mint-500/30">
           <span className="text-white text-4xl font-black">✓</span>
         </div>
         <p className="text-2xl font-black text-gray-800 mb-2">참여 완료!</p>
         <p className="text-sm text-gray-500 leading-relaxed mb-2">소중한 선발대 데이터 정말 감사합니다.</p>
         {claimCode && (
-          <p className="text-sm text-gray-500 leading-relaxed mb-6">당첨코드 <strong className="text-[#2AB5A0]">{claimCode}</strong> 는 꼭 보관하세요.<br />언제든 <strong>당첨코드로 다시 받기</strong>로 재수령할 수 있어요.</p>
+          <p className="text-sm text-gray-500 leading-relaxed mb-6">당첨코드 <strong className="text-mint-600">{claimCode}</strong> 는 꼭 보관하세요.<br />언제든 <strong>당첨코드로 다시 받기</strong>로 재수령할 수 있어요.</p>
         )}
-        <button onClick={() => { window.location.href = '/'; }} className="w-full py-4 rounded-2xl bg-[#3CDBC0] text-white font-black text-base active:scale-95 transition-all">MINT로 돌아가기</button>
+        <button onClick={() => { window.location.href = '/'; }} className="w-full py-4 rounded-2xl bg-mint-500 text-white font-black text-base active:scale-95 transition-all">MINT로 돌아가기</button>
       </div>
     </div>
   );

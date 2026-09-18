@@ -26,11 +26,11 @@ export default function HomeResultView({ result, flow, input, resultState, actio
   const handleFullReset = onFullReset;
 
   return (
-      <div className="min-h-screen bg-[#F5FBF8]">
+      <div className="min-h-screen bg-mint-50">
         {/* 중간 지점 보완 토스트 */}
         {compromiseMessage && (
           <div className={`fixed top-[max(1rem,env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-sm transition-all duration-500 ${showCompromiseToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}`}>
-            <div className="bg-[#1A7A6E] text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-lg flex items-start gap-2">
+            <div className="bg-mint-800 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-lg flex items-start gap-2">
               <span className="text-base leading-none mt-0.5">📍</span>
               <span className="leading-snug">{compromiseMessage}</span>
             </div>
@@ -48,7 +48,7 @@ export default function HomeResultView({ result, flow, input, resultState, actio
                 setView('steps');
                 setStep(3);
               }}
-              className="flex min-h-10 items-center gap-1 rounded-lg px-2 text-xs font-bold text-gray-500 transition-colors hover:text-[#2AB5A0]"
+              className="flex min-h-10 items-center gap-1 rounded-lg px-2 text-xs font-bold text-gray-500 transition-colors hover:text-mint-600"
             >
               ← 조건 수정
             </button>
@@ -56,13 +56,13 @@ export default function HomeResultView({ result, flow, input, resultState, actio
             <button
               onClick={() => { window.location.href = '/'; }}
               aria-label="MINT 홈으로"
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[#2AB5A0] font-black text-2xl tracking-tight select-none active:scale-95 transition-transform"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-mint-600 font-black text-2xl tracking-tight select-none active:scale-95 transition-transform"
             >
               MINT
             </button>
             <button
               onClick={handleFullReset}
-              className="flex min-h-10 items-center gap-1 rounded-lg px-2 text-xs font-bold text-gray-500 transition-colors hover:text-[#2AB5A0]"
+              className="flex min-h-10 items-center gap-1 rounded-lg px-2 text-xs font-bold text-gray-500 transition-colors hover:text-mint-600"
               title="처음부터 다시 (입력·결과 초기화)"
             >
               ↺ 처음부터
@@ -108,12 +108,12 @@ export default function HomeResultView({ result, flow, input, resultState, actio
 
           {/* 재추천 변경점 한 줄 — 이전 결과 대비 뭐가 달라졌는지 */}
           {changeNote && (
-            <div className="mb-2 bg-[#E8F8F5] border border-[#3CDBC0]/40 rounded-2xl px-4 py-2.5 flex items-start gap-2 animate-fade-in-up">
+            <div className="mb-2 bg-mint-100 border border-mint-500/40 rounded-2xl px-4 py-2.5 flex items-start gap-2 animate-fade-in-up">
               <span className="text-base leading-none mt-0.5">🔁</span>
-              <p className="text-xs text-[#1A7A6E] leading-relaxed flex-1">{changeNote}</p>
+              <p className="text-xs text-mint-800 leading-relaxed flex-1">{changeNote}</p>
               <button
                 onClick={() => setChangeNote(null)}
-                className="text-[#2AB5A0]/60 hover:text-[#2AB5A0] text-xs px-1"
+                className="text-mint-600/60 hover:text-mint-600 text-xs px-1"
               >
                 ✕
               </button>
@@ -146,7 +146,7 @@ export default function HomeResultView({ result, flow, input, resultState, actio
             <div className="mx-auto max-w-md">
               <button
                 onClick={handleShare}
-                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[#FEE500] text-gray-900 font-black text-base shadow-lg shadow-yellow-200/60 active:scale-95 transition-transform"
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-kakao text-gray-900 font-black text-base shadow-lg shadow-yellow-200/60 active:scale-95 transition-transform"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2C6.48 2 2 6.08 2 11.1c0 3.13 1.73 5.9 4.35 7.57V22l3.97-2.18c1.06.29 2.18.44 3.33.44 5.52 0 10-4.08 10-9.1C23.65 6.08 17.52 2 12 2z" />
@@ -160,7 +160,7 @@ export default function HomeResultView({ result, flow, input, resultState, actio
             <button
               type="button"
               onClick={() => window.scrollBy({ top: Math.max(320, window.innerHeight * 0.55), behavior: 'smooth' })}
-              className="fixed bottom-[max(5.5rem,calc(env(safe-area-inset-bottom)+5rem))] left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border border-[#3CDBC0]/35 bg-white/95 px-4 py-2.5 text-xs font-bold text-[#2AB5A0] shadow-xl shadow-[#2AB5A0]/20 backdrop-blur"
+              className="fixed bottom-[max(5.5rem,calc(env(safe-area-inset-bottom)+5rem))] left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border border-mint-500/35 bg-white/95 px-4 py-2.5 text-xs font-bold text-mint-600 shadow-xl shadow-mint-600/20 backdrop-blur"
             >
               {purpose?.second && purpose.second !== '없음'
                 ? '아래에 다른 후보와 2차 코스도 있어요'

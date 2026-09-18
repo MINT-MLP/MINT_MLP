@@ -20,7 +20,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
           <p style={{ fontSize: '32px', marginBottom: '12px' }}>😓</p>
           <p style={{ fontWeight: 'bold', color: '#333', marginBottom: '8px' }}>페이지를 불러오지 못했어요</p>
           <p style={{ color: '#888', fontSize: '13px', marginBottom: '20px' }}>{(this.state.error as Error).message}</p>
-          <button onClick={() => window.location.reload()} style={{ background: '#3CDBC0', color: '#fff', border: 'none', borderRadius: '12px', padding: '10px 24px', fontWeight: 'bold', cursor: 'pointer' }}>
+          <button onClick={() => window.location.reload()} style={{ background: 'rgb(var(--mint-500))', color: '#fff', border: 'none', borderRadius: '12px', padding: '10px 24px', fontWeight: 'bold', cursor: 'pointer' }}>
             새로고침
           </button>
         </div>
@@ -32,8 +32,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 
 function PageLoading() {
   return (
-    <div className="min-h-screen bg-[#F5FBF8] flex items-center justify-center">
-      <div className="w-10 h-10 border-4 border-[#3CDBC0] border-t-transparent rounded-full animate-spin-slow" />
+    <div className="min-h-screen bg-mint-50 flex items-center justify-center">
+      <div className="w-10 h-10 border-4 border-mint-500 border-t-transparent rounded-full animate-spin-slow" />
     </div>
   );
 }

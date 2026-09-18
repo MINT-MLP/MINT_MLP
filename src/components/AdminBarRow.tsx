@@ -1,4 +1,4 @@
-export default function AdminBarRow({ label, count, total, color = '#36CFA0' }: {
+export default function AdminBarRow({ label, count, total, color = 'rgb(var(--mint-500))' }: {
   label: string; count: number; total: number; color?: string;
 }) {
   const p = total > 0 ? Math.round((count / total) * 100) : 0;

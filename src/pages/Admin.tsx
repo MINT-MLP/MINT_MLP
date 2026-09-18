@@ -57,7 +57,7 @@ const FEEDBACK_CATEGORIES: { key: string; label: string; badge: string; color: s
   { key: 'bug', label: '🐞 버그', badge: 'bg-red-50 text-red-500', color: '#EF4444' },
   { key: 'pain', label: '😣 불편', badge: 'bg-amber-50 text-amber-600', color: '#F59E0B' },
   { key: 'idea', label: '💡 아이디어', badge: 'bg-blue-50 text-blue-500', color: '#3B82F6' },
-  { key: 'praise', label: '💚 칭찬', badge: 'bg-[#E8F8F5] text-[#2AB5A0]', color: '#36CFA0' },
+  { key: 'praise', label: '💚 칭찬', badge: 'bg-mint-100 text-mint-600', color: 'rgb(var(--mint-500))' },
   { key: '', label: '미분류', badge: 'bg-gray-100 text-gray-400', color: '#94A3B8' },
 ];
 
@@ -438,38 +438,38 @@ export default function Admin() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F5FBF8] flex items-center justify-center">
+      <div className="min-h-screen bg-mint-50 flex items-center justify-center">
         <p className="text-gray-400">불러오는 중...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F5FBF8]">
+    <div className="min-h-screen bg-mint-50">
       <div className="max-w-3xl mx-auto px-4 pt-8 pb-16">
 
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-black text-[#2AB5A0]">MINT 어드민</h1>
+            <h1 className="text-2xl font-black text-mint-600">MINT 어드민</h1>
             <p className="text-sm text-gray-400">데이터 대시보드</p>
           </div>
           <div className="flex items-center gap-2">
             <a
               href="/pilot-admin"
-              className="text-xs bg-white border border-gray-200 text-gray-500 px-2.5 py-1 rounded-full hover:border-[#36CFA0] hover:text-[#36CFA0] transition-colors"
+              className="text-xs bg-white border border-gray-200 text-gray-500 px-2.5 py-1 rounded-full hover:border-mint-500 hover:text-mint-500 transition-colors"
             >
               선발대 피드백 →
             </a>
             <button
               onClick={() => loadData(password)}
-              className="text-xs bg-white border border-gray-200 text-gray-500 px-2.5 py-1 rounded-full hover:border-[#36CFA0] hover:text-[#36CFA0] transition-colors"
+              className="text-xs bg-white border border-gray-200 text-gray-500 px-2.5 py-1 rounded-full hover:border-mint-500 hover:text-mint-500 transition-colors"
             >
               새로고침
             </button>
             <button
               onClick={handleExport}
-              className="text-xs bg-white border border-gray-200 text-gray-500 px-2.5 py-1 rounded-full hover:border-[#36CFA0] hover:text-[#36CFA0] transition-colors"
+              className="text-xs bg-white border border-gray-200 text-gray-500 px-2.5 py-1 rounded-full hover:border-mint-500 hover:text-mint-500 transition-colors"
             >
               CSV
             </button>
@@ -483,7 +483,7 @@ export default function Admin() {
               key={key}
               onClick={() => handleRange(key)}
               className={`text-xs font-bold px-3 py-1.5 rounded-full transition-all ${
-                range === key ? 'bg-[#36CFA0] text-white' : 'bg-white border border-gray-200 text-gray-400 hover:text-gray-600'
+                range === key ? 'bg-mint-500 text-white' : 'bg-white border border-gray-200 text-gray-400 hover:text-gray-600'
               }`}
             >
               {label}
@@ -531,7 +531,7 @@ export default function Admin() {
                 </div>
               </div>
             </div>
-            <div className={`w-10 h-6 rounded-full transition-colors relative ${paused ? 'bg-orange-400' : 'bg-[#3CDBC0]'}`}>
+            <div className={`w-10 h-6 rounded-full transition-colors relative ${paused ? 'bg-orange-400' : 'bg-mint-500'}`}>
               <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${paused ? 'left-1' : 'left-5'}`} />
             </div>
           </button>
@@ -592,7 +592,7 @@ export default function Admin() {
                       </span>
                     </span>
                     <span className="text-right shrink-0">
-                      <span className="block font-black text-[#36CFA0]">유입 {row.entries}</span>
+                      <span className="block font-black text-mint-500">유입 {row.entries}</span>
                       {/* 비율의 분자는 recommend_shown이다. recommend_request는 재추천·조정마다 다시 쏘여서
                           한 명이 "다시 추천"을 세 번 누르면 400%가 나오고, 재시도가 많다는 부정 신호가
                           화면에선 성과처럼 보인다. 요청 수는 절대수로만 남긴다. */}
@@ -685,7 +685,7 @@ export default function Admin() {
             ) : (
               <div className="flex flex-col gap-2">
                 <AdminBarRow label="1순위" count={a.placeClickRank1} total={placeClickTotal} />
-                <AdminBarRow label="2차" count={a.placeClickSecond} total={placeClickTotal} color="#1A7A6E" />
+                <AdminBarRow label="2차" count={a.placeClickSecond} total={placeClickTotal} color="rgb(var(--mint-800))" />
                 <AdminBarRow label="대안" count={a.placeClickCandidate} total={placeClickTotal} color="#0EA5E9" />
                 <AdminBarRow label="3차" count={a.placeClickThird} total={placeClickTotal} color="#8B5CF6" />
                 <div className="text-[11px] text-gray-400 mt-1 pt-2 border-t border-gray-50">
@@ -779,7 +779,7 @@ export default function Admin() {
                       </span>
                     </span>
                     <span className="text-right shrink-0">
-                      <span className="block font-black text-[#36CFA0]">{cp.net}건</span>
+                      <span className="block font-black text-mint-500">{cp.net}건</span>
                       {cp.removes > 0 && <span className="block text-[11px] text-gray-300">취소 {cp.removes}</span>}
                     </span>
                   </div>
@@ -865,7 +865,7 @@ export default function Admin() {
         {/* ── 상시 유저 피드백 ── */}
         <section className="mb-8">
           <h2 className="text-sm font-black text-gray-600 mb-3">
-            💬 유저 피드백 <span className="text-[#2AB5A0]">{feedback.length}건</span>
+            💬 유저 피드백 <span className="text-mint-600">{feedback.length}건</span>
           </h2>
           {/* 퍼널을 원문 목록과 한 섹션에 둔다 — 목적이 "어제 만든 피드백 기능이 살아 있나"의 확인이라
               원문이 0건일 때 열림/제출 숫자가 바로 옆에 있어야 원인을 가릴 수 있다. */}
@@ -916,7 +916,7 @@ export default function Admin() {
                       </div>
                       {f.contact && (
                         // 연락처를 남겼다는 건 답을 기다린다는 뜻이다 — 목록에서 눈에 띄어야 한다
-                        <div className="mt-1.5 text-xs font-bold text-[#2AB5A0] bg-[#E8F8F5] rounded-lg px-2.5 py-1.5">
+                        <div className="mt-1.5 text-xs font-bold text-mint-600 bg-mint-100 rounded-lg px-2.5 py-1.5">
                           ✉️ 답장 대상 · {f.contact}
                         </div>
                       )}
@@ -930,7 +930,7 @@ export default function Admin() {
 
         {/* ── 예약 목록 ── */}
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-black text-gray-600">📋 예약 요청 <span className="text-[#2AB5A0]">{records.length}건</span></h2>
+          <h2 className="text-sm font-black text-gray-600">📋 예약 요청 <span className="text-mint-600">{records.length}건</span></h2>
           {records.length > 0 && (
             <button
               onClick={handleClear}
@@ -944,7 +944,7 @@ export default function Admin() {
           <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
             <div className="text-4xl mb-3">📋</div>
             <p className="text-gray-400">이 기간에 예약 요청이 없어요.</p>
-            <a href="/app" className="inline-block mt-4 text-sm text-[#3CDBC0] underline">
+            <a href="/app" className="inline-block mt-4 text-sm text-mint-500 underline">
               MINT로 장소 추천받기 →
             </a>
           </div>
@@ -985,12 +985,12 @@ export default function Admin() {
             <div className="hidden md:block bg-white rounded-2xl border-2 border-gray-100 overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-[#E8F8F5] text-left">
-                    <th className="px-4 py-3 font-bold text-[#2AB5A0]">장소명</th>
-                    <th className="px-4 py-3 font-bold text-[#2AB5A0]">주소</th>
-                    <th className="px-4 py-3 font-bold text-[#2AB5A0]">예약자</th>
-                    <th className="px-4 py-3 font-bold text-[#2AB5A0]">인원</th>
-                    <th className="px-4 py-3 font-bold text-[#2AB5A0]">요청시간</th>
+                  <tr className="bg-mint-100 text-left">
+                    <th className="px-4 py-3 font-bold text-mint-600">장소명</th>
+                    <th className="px-4 py-3 font-bold text-mint-600">주소</th>
+                    <th className="px-4 py-3 font-bold text-mint-600">예약자</th>
+                    <th className="px-4 py-3 font-bold text-mint-600">인원</th>
+                    <th className="px-4 py-3 font-bold text-mint-600">요청시간</th>
                     <th className="px-4 py-3"></th>
                   </tr>
                 </thead>
@@ -1004,7 +1004,7 @@ export default function Admin() {
                       <td className="px-4 py-3 text-gray-500 text-xs max-w-[160px] truncate">{r.address}</td>
                       <td className="px-4 py-3 font-medium text-gray-700">{r.guestName}</td>
                       <td className="px-4 py-3">
-                        <span className="bg-[#E8F8F5] text-[#2AB5A0] font-bold px-2 py-0.5 rounded-full text-xs">
+                        <span className="bg-mint-100 text-mint-600 font-bold px-2 py-0.5 rounded-full text-xs">
                           {r.people}명
                         </span>
                       </td>

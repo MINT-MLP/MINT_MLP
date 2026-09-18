@@ -98,15 +98,15 @@ export default function FeedbackFab({ hidden, onOpen }: Props) {
           <button
             onClick={() => { trackEvent('feedback_hint_click', { device_id: getDeviceId() }); onOpen(); }}
             onPointerDown={(e) => e.stopPropagation()}
-            className="group pointer-events-auto relative flex max-w-[16.5rem] items-center gap-2.5 rounded-[1.25rem] bg-[#E8F8F5] py-2 pl-2 pr-3.5 text-left shadow-xl shadow-[#2AB5A0]/20 ring-1 ring-[#3CDBC0]/35 animate-fade-in-up active:scale-[0.97]"
+            className="group pointer-events-auto relative flex max-w-[16.5rem] items-center gap-2.5 rounded-[1.25rem] bg-mint-100 py-2 pl-2 pr-3.5 text-left shadow-xl shadow-mint-600/20 ring-1 ring-mint-500/35 animate-fade-in-up active:scale-[0.97]"
           >
             {/* 우리 마스코트(민트 병아리) — 옅은 민트 카드 위에서 묻히지 않게 흰 원 위에 얹는다 */}
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white shadow-sm shadow-[#2AB5A0]/25 ring-1 ring-[#3CDBC0]/20">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white shadow-sm shadow-mint-600/25 ring-1 ring-mint-500/20">
               <img src="/image/mascot-bird.webp" alt="" aria-hidden="true" className="h-7 w-7 select-none" />
             </span>
             <span className="min-w-0">
               <span className="block text-[13px] font-black leading-tight text-gray-800">어떤 피드백이든 남겨주세요!</span>
-              <span className="mt-0.5 flex items-center gap-1 text-[11px] font-bold text-[#1A7A6E]">
+              <span className="mt-0.5 flex items-center gap-1 text-[11px] font-bold text-mint-800">
                 짧은 한마디도 큰 힘이 돼요
                 <span className="transition-transform group-active:translate-x-0.5">→</span>
               </span>
@@ -115,7 +115,7 @@ export default function FeedbackFab({ hidden, onOpen }: Props) {
                 카드 본문 위에 겹쳐 그려져 안쪽 이음새는 보이지 않고 바깥 모서리만 point가 된다. */}
             <span
               aria-hidden
-              className="absolute -right-[5px] top-1/2 h-3 w-3 -translate-y-1/2 rotate-45 rounded-[3px] bg-[#E8F8F5]"
+              className="absolute -right-[5px] top-1/2 h-3 w-3 -translate-y-1/2 rotate-45 rounded-[3px] bg-mint-100"
             />
           </button>
         )}
@@ -123,14 +123,14 @@ export default function FeedbackFab({ hidden, onOpen }: Props) {
         {/* 버튼 + 시선 유도용 펄스 링(말풍선이 떠 있는 동안만) */}
         <div className="pointer-events-none relative shrink-0">
           {nudge && !hidden && (
-            <span aria-hidden className="absolute inset-0 rounded-full bg-[#3CDBC0] opacity-50 animate-ping" />
+            <span aria-hidden className="absolute inset-0 rounded-full bg-mint-500 opacity-50 animate-ping" />
           )}
           <button
             onClick={onOpen}
             onPointerDown={(e) => e.stopPropagation()}
             aria-label="피드백 남기기"
             tabIndex={hidden ? -1 : 0}
-            className={`relative flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#3CDBC0] to-[#2AB5A0] text-white shadow-lg shadow-[#2AB5A0]/30 transition-[opacity,transform] duration-200 ${
+            className={`relative flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-mint-500 to-mint-600 text-white shadow-lg shadow-mint-600/30 transition-[opacity,transform] duration-200 ${
               hidden ? 'opacity-0' : 'pointer-events-auto'
             } ${!hidden && scrolling ? 'scale-90 opacity-50' : ''} active:scale-95`}
           >
