@@ -21,6 +21,14 @@ concurrency:
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  # Vercel CLI는 GitHub Actions에서 돌 때 GITHUB_ACTOR(=push/리런한 사람)를 읽어 배포의
+  # 작성자로 붙인다. Hobby에서 팀원(비소유자) 명의 배포는 소유자 소유의 prebuilt/빌드 캐시
+  # 재사용에서 밀려나 매번 소스 재빌드(12~18분)한다. 소유자 push는 그대로 prebuilt 재사용(초 단위).
+  # 커밋 author를 amend해도 소용없다 — Vercel이 보는 건 커밋 author가 아니라 GITHUB_ACTOR다.
+  # 그래서 build/deploy 단계에서 소유자 GitHub 로그인으로 강제 고정한다.
+  # ⚠️ 아래 값은 Vercel 계정에 연결된 소유자의 GitHub 로그인이어야 한다(추정: QWER-ASDF-1234).
+  #    틀리면 효과가 없으니 실배포 1회로 확인할 것.
+  OWNER_GH_LOGIN: QWER-ASDF-1234
 
 jobs:
   deploy:
@@ -95,8 +103,17 @@ jobs:
       - name: Pull Vercel project settings and env
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
+      # 배포 작성자를 소유자로 고정한다(위 OWNER_GH_LOGIN 주석 참고). GITHUB_ACTOR가 1순위이고,
+      # VERCEL_GIT_COMMIT_AUTHOR_LOGIN은 Vercel이 명시적으로 읽는 보조 키라 같이 덮는다.
+      # SHA·저장소 등 나머지 git 메타데이터(GITHUB_SHA 등)는 그대로 둬서 배포 기록은 정확히 유지한다.
       - name: Build
+        env:
+          GITHUB_ACTOR: ${{ env.OWNER_GH_LOGIN }}
+          VERCEL_GIT_COMMIT_AUTHOR_LOGIN: ${{ env.OWNER_GH_LOGIN }}
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy
+        env:
+          GITHUB_ACTOR: ${{ env.OWNER_GH_LOGIN }}
+          VERCEL_GIT_COMMIT_AUTHOR_LOGIN: ${{ env.OWNER_GH_LOGIN }}
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
