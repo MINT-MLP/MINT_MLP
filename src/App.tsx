@@ -1,6 +1,6 @@
 import { Component, lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { requestAppFullscreen } from '@/utils/fullscreen';
-
+ 
 // 페이지별 코드 스플리팅 — 랜딩만 보는 방문자가 Home/Admin 번들까지 받지 않도록
 const AppShell = lazy(() => import('@/pages/AppShell'));
 const Landing = lazy(() => import('@/pages/Landing'));
