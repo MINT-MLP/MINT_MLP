@@ -26,9 +26,9 @@ env:
   # 재사용에서 밀려나 매번 소스 재빌드(12~18분)한다. 소유자 push는 그대로 prebuilt 재사용(초 단위).
   # 커밋 author를 amend해도 소용없다 — Vercel이 보는 건 커밋 author가 아니라 GITHUB_ACTOR다.
   # 그래서 build/deploy 단계에서 소유자 GitHub 로그인으로 강제 고정한다.
-  # ⚠️ 아래 값은 Vercel 계정에 연결된 소유자의 GitHub 로그인이어야 한다(추정: QWER-ASDF-1234).
-  #    틀리면 효과가 없으니 실배포 1회로 확인할 것.
-  OWNER_GH_LOGIN: QWER-ASDF-1234
+  # ⚠️ GITHUB_ACTOR는 GitHub 로그인(username)이지 표시 이름이 아니다.
+  #    소유자 계정: 표시이름 "QWER-ASDF-1234" / 로그인 "rladndus3" → 아래엔 로그인을 쓴다.
+  OWNER_GH_LOGIN: rladndus3
 
 jobs:
   deploy:
