@@ -69,10 +69,11 @@ export async function shareViaKakaoOrFallback(buildPayload: () => object, shareT
   const skipKakao = isIOS && isStandalone;
   const kakaoKey: string = import.meta.env.VITE_KAKAO_JS_API_KEY ?? '633de41eba4b85734a961345c0f55a7e';
 
-  if (!skipKakao && kakaoKey && window.Kakao?.Share) {
+  // v2 SDK는 init() 뒤에야 Share 모듈이 생긴다 — init 전에 Kakao.Share를 검사하면 항상 폴백으로 빠진다.
+  if (!skipKakao && kakaoKey && window.Kakao) {
     try {
       if (!window.Kakao.isInitialized()) window.Kakao.init(kakaoKey);
-      if (!window.Kakao.isInitialized()) throw new Error('kakao init failed');
+      if (!window.Kakao.isInitialized() || !window.Kakao.Share) throw new Error('kakao init failed');
       window.Kakao.Share.sendDefault(buildPayload());
       return;
     } catch {

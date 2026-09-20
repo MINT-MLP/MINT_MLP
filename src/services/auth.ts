@@ -3,7 +3,7 @@ import { supabase } from '@/services/supabase';
 import type { ActivityPayload, ActivityRow } from '@/types';
 
 // 인증 모델 — 모든 /app 방문자는 익명 사용자(auth.users, is_anonymous=true)로 시작한다.
-// 카카오 로그인은 그 익명 사용자에 identity를 '연결'하는 것이라 user.id가 바뀌지 않는다.
+// 카카오 로그인은 일반 로그인이라 세션이 익명 유저에서 회원 유저로 교체된다(user.id가 바뀐다).
 // public.users 행 생성과 kakao_id·닉네임 채움은 DB 트리거가 하므로 클라이언트는 여기에 쓰지 않는다.
 // supabase-js v2는 detectSessionInUrl/persistSession이 기본 true라 OAuth 콜백 파싱·세션 저장은 자동이다.
 
@@ -44,45 +44,12 @@ export async function ensureSession(): Promise<Session | null> {
   }
 }
 
-// 카카오 연결(linkIdentity)이 거부된 경우의 복구. 거부 여부는 카카오를 다녀온 뒤 복귀 URL의
-// error 파라미터로만 알 수 있다(호출 시점엔 error가 없다). 이 카카오 계정이 이미 다른 사용자에
-// 연결돼 있으면(identity_already_exists) 그 기존 사용자로 일반 로그인한다.
-// 리다이렉트를 시작했으면 true — 호출부는 익명 세션 발급 같은 후속 작업을 건너뛴다.
-export async function recoverFromLinkError(): Promise<boolean> {
-  const search = new URLSearchParams(window.location.search);
-  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-  const code = search.get('error_code') ?? hash.get('error_code');
-  const description = search.get('error_description') ?? hash.get('error_description') ?? '';
-  if (!code && !description) return false;
-
-  // 에러 파라미터를 지운다 — 새로고침마다 같은 복구를 반복하지 않도록.
-  window.history.replaceState(null, '', '/app');
-
-  if (code === 'identity_already_exists' || /already linked/i.test(description)) {
-    await supabase.auth.signInWithOAuth({
-      provider: 'kakao',
-      options: { redirectTo: kakaoRedirectTo(), scopes: KAKAO_SCOPES },
-    });
-    return true;
-  }
-  console.warn('[auth] OAuth 복귀 에러', code, description);
-  return false;
-}
-
+// 카카오 로그인은 항상 일반 로그인(signInWithOAuth)이다 — 기존 회원이면 그 계정으로, 아니면 새 계정.
+// 현재 익명 세션은 그대로 버려진다(고아 익명 유저는 정리 크론이 지운다). linkIdentity로 익명 세션에
+// 카카오를 '연결'하는 방식은 쓰지 않는다: 이미 가입된 카카오면 카카오를 두 번 다녀와야 하고,
+// 지금 익명 유저가 서버에 남기는 데이터는 events뿐이라 이어 줄 것이 없다.
+// 익명 상태로 포인트·방문 인증이 서버에 쌓이기 시작하면 그때 서버 병합 API를 붙인다.
 export async function signInWithKakao(): Promise<void> {
-  const session = await getSession();
-
-  // 익명 세션이면 같은 user.id에 카카오를 연결한다 — 익명 시절 데이터가 그대로 이어진다.
-  // 이 카카오 계정이 이미 다른 사용자에 연결돼 있으면(다른 폰에서 먼저 가입) 연결이 거부되므로
-  // 일반 로그인으로 폴백한다. 이때 이 기기의 익명 데이터는 잇지 않는다(기기 한정 데이터였으므로).
-  if (session?.user && session.user.is_anonymous) {
-    const { error } = await supabase.auth.linkIdentity({
-      provider: 'kakao',
-      options: { redirectTo: kakaoRedirectTo(), scopes: KAKAO_SCOPES },
-    });
-    if (!error) return;
-  }
-
   // 비즈앱 전환으로 account_email 권한이 열려 KOE205가 해소됐다. 그래도 scope는 계속 명시한다 —
   // 우리가 무엇을 받는지 코드에 남겨두기 위해서, 그리고 기본 scope가 바뀌어도 흔들리지 않기 위해서.
   // 이메일은 카카오에서 '선택 동의'라 거부하는 사용자가 있다. 그 경우 user.email이 비므로
