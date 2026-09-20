@@ -7,7 +7,7 @@ import MintShop from '@/pages/mock/MintShop';
 import Profile from '@/pages/Profile';
 import { clearRecommendSession, loadResultSummary } from '@/storage/history';
 import { trackEvent } from '@/services/analytics';
-import { ensureSession } from '@/services/auth';
+import { ensureSession, recoverFromLinkError } from '@/services/auth';
 import { bindOutboxExitFlush, flushOutbox } from '@/storage/feedback';
 import type { TabKey, ResultSummary } from '@/types';
 
@@ -32,7 +32,8 @@ export default function AppShell() {
   useEffect(() => {
     // /app에 들어온 방문자는 익명 사용자로 세션을 갖는다(랜딩만 보고 나가는 사람은 제외).
     // 이후 서버 저장은 전부 이 user.id 기준이고, 카카오 로그인은 여기에 identity를 연결하는 것.
-    void ensureSession();
+    // 카카오 연결이 거부돼 돌아온 경우(이미 가입된 카카오)는 먼저 일반 로그인으로 넘긴다.
+    void recoverFromLinkError().then((redirecting) => { if (!redirecting) void ensureSession(); });
     flushOutbox();
     bindOutboxExitFlush();
   }, []);

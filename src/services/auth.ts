@@ -44,6 +44,31 @@ export async function ensureSession(): Promise<Session | null> {
   }
 }
 
+// 카카오 연결(linkIdentity)이 거부된 경우의 복구. 거부 여부는 카카오를 다녀온 뒤 복귀 URL의
+// error 파라미터로만 알 수 있다(호출 시점엔 error가 없다). 이 카카오 계정이 이미 다른 사용자에
+// 연결돼 있으면(identity_already_exists) 그 기존 사용자로 일반 로그인한다.
+// 리다이렉트를 시작했으면 true — 호출부는 익명 세션 발급 같은 후속 작업을 건너뛴다.
+export async function recoverFromLinkError(): Promise<boolean> {
+  const search = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const code = search.get('error_code') ?? hash.get('error_code');
+  const description = search.get('error_description') ?? hash.get('error_description') ?? '';
+  if (!code && !description) return false;
+
+  // 에러 파라미터를 지운다 — 새로고침마다 같은 복구를 반복하지 않도록.
+  window.history.replaceState(null, '', '/app');
+
+  if (code === 'identity_already_exists' || /already linked/i.test(description)) {
+    await supabase.auth.signInWithOAuth({
+      provider: 'kakao',
+      options: { redirectTo: kakaoRedirectTo(), scopes: KAKAO_SCOPES },
+    });
+    return true;
+  }
+  console.warn('[auth] OAuth 복귀 에러', code, description);
+  return false;
+}
+
 export async function signInWithKakao(): Promise<void> {
   const session = await getSession();
 

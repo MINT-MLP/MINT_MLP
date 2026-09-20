@@ -71,7 +71,8 @@
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div id="root"></div>
     <!-- 카카오 공유 SDK (defer — 파싱 비차단). 지도 SDK는 kakaoLoader.ts에서 필요 시 동적 로드 -->
-    <script src="https://t1.kakaocdn.net/kakaojs/2.7.4/kakao.min.js" crossorigin="anonymous" defer></script>
+    <!-- v2 SDK 경로는 kakao_js_sdk. 이전 kakaojs/ 경로는 403이라 SDK가 한 번도 안 실려 공유가 항상 폴백(OS 시트)으로 나갔다. -->
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" crossorigin="anonymous" defer></script>
     <script type="module" src="/src/main.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
