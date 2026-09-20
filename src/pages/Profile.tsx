@@ -5,7 +5,7 @@ import { getBalance, getLedger } from '@/storage/points';
 import { loadHistory, openHistoryEntry } from '@/storage/history';
 import {
   getSession, onAuthChange, signInWithKakao, signOut, syncProfile, deleteAccount,
-  getNickname, getAvatarUrl, backfillHistoryIfNeeded, getActivityHistory, clearActivityCache,
+  getNickname, getAvatarUrl, getActivityHistory, clearActivityCache, isMember, ensureSession,
 } from '@/services/auth';
 import { IconUserCircle, IconGift, PointsBadge } from '@/components';
 import type { HistoryEntry, ActivityRow } from '@/types';
@@ -36,12 +36,11 @@ export default function Profile({ onChromeChange }: Props) {
   useEffect(() => {
     let alive = true;
 
-    // 로그인 사용자만: 최초 1회 로컬 기록을 계정으로 올린 뒤 계정 기록을 읽는다.
+    // 회원만: 계정에 저장된 기록을 읽는다.
     const loadServerHistory = async () => {
       if (!alive) return;
       setServerLoading(true);
       setServerError(false);
-      await backfillHistoryIfNeeded();
       try {
         const r = await getActivityHistory();
         if (!alive || !r) return;
@@ -54,16 +53,15 @@ export default function Profile({ onChromeChange }: Props) {
       }
     };
 
-    void getSession().then((s) => {
+    // 익명 세션은 user가 있어도 화면상 '비로그인'이다 — 회원(카카오 연결)일 때만 user를 세팅한다.
+    const applySession = (s: { user: User } | null) => {
       if (!alive) return;
-      setUser(s?.user ?? null);
-      if (s?.user) { void syncProfile(); void loadServerHistory(); }
-    });
-    const unsubscribe = onAuthChange((s) => {
-      if (!alive) return;
-      setUser(s?.user ?? null);
-      if (s?.user) { void syncProfile(); void loadServerHistory(); }
-    });
+      const member = isMember(s?.user) ? s!.user : null;
+      setUser(member);
+      if (member) { void syncProfile(); void loadServerHistory(); }
+    };
+    void getSession().then(applySession);
+    const unsubscribe = onAuthChange(applySession);
     return () => { alive = false; unsubscribe(); };
   }, []);
 
@@ -105,6 +103,8 @@ export default function Profile({ onChromeChange }: Props) {
   const handleSignOut = async () => {
     await signOut();
     setUser(null);
+    // 로그아웃 뒤에도 서버 저장이 되도록 새 익명 세션을 바로 만든다(새로고침 전까지 세션이 비지 않게).
+    void ensureSession();
     // 다른 계정으로 재로그인할 때 이전 계정 기록이 잠깐 보이지 않도록
     clearActivityCache();
     setServerRows([]);
