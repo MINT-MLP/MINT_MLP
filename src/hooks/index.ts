@@ -1,5 +1,7 @@
 // hooks 배럴. 사용: import { useRecommendFlow, useHomePersistence } from '@/hooks';
 export { useInstallPrompt } from './useInstallPrompt';
+export { useMediaQuery, useIsMobile } from './useMediaQuery';
+export { useRegionSearch } from './useRegionSearch';
 // 홈 — 1층(상태만)
 export { useRecommendFlow, type RecommendFlow } from './useRecommendFlow';
 export { useRecommendInput, type RecommendInput } from './useRecommendInput';
