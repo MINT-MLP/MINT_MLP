@@ -1,5 +1,5 @@
 {
-  "outputDirectory": "dist/web",
+  "outputDirectory": "dist",
   "regions": ["icn1"],
   "functions": {
     "api/recommend.ts": {

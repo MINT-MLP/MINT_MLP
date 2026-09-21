@@ -4,16 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "granite dev",
-    "build": "ait build",
+    "dev": "vite",
+    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "deploy": "ait deploy",
     "test": "vitest run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
-    "@apps-in-toss/web-framework": "^2.6.0",
     "@supabase/supabase-js": "^2.105.0",
     "autoprefixer": "^10.5.0",
     "axios": "^1.15.2",

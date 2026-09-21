@@ -28,6 +28,8 @@ dist-ssr
 *.sln
 *.sw?
 
+# 앱인토스 잔재 (2026-09-21 정리) — 예전 번들 파일이 다시 생기지 않게
+mint.ait
 .granite
 .vercel
 .env*
