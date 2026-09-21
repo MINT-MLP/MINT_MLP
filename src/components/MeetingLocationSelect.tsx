@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { searchRegions, matchHotplaces } from '@/services/kakaoMap';
 import type { RegionSuggestion, RegionLevel, MeetingLocation } from '@/types';
 import { ensureKakaoMaps } from '@/services/kakaoLoader';
+import AnchoredDropdown from '@/components/AnchoredDropdown';
 
 interface Props {
   value: MeetingLocation | null;
@@ -37,23 +37,18 @@ function badgeFor(s: RegionSuggestion): { text: string; cls: string } {
   return LEVEL_BADGE[s.level];
 }
 
-// 행정단위(시/구/동) 자동완성 드롭다운 (body 포털 + fixed 위치)
+// 행정단위(시/구/동) 자동완성 드롭다운 — 위치 추적(리사이즈·스크롤·줌)은 AnchoredDropdown이 맡는다
 function SuggestionDropdown({
   suggestions,
-  anchorEl,
+  getAnchor,
   onPick,
 }: {
   suggestions: RegionSuggestion[];
-  anchorEl: HTMLDivElement | null;
+  getAnchor: () => HTMLElement | null;
   onPick: (s: RegionSuggestion) => void;
 }) {
-  if (!suggestions.length || !anchorEl) return null;
-  const rect = anchorEl.getBoundingClientRect();
-  return createPortal(
-    <div
-      style={{ position: 'fixed', top: rect.bottom + 4, left: rect.left, width: rect.width, zIndex: 9999, maxHeight: 320, overflowY: 'auto' }}
-      className="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden"
-    >
+  return (
+    <AnchoredDropdown open={suggestions.length > 0} getAnchor={getAnchor} maxHeight={320}>
       {suggestions.map((s) => {
         const badge = badgeFor(s);
         return (
@@ -68,20 +63,20 @@ function SuggestionDropdown({
           </button>
         );
       })}
-    </div>,
-    document.body
+    </AnchoredDropdown>
   );
 }
 
 export default function MeetingLocationSelect({ value, onSelect }: Props) {
-  const [search, setSearch] = useState(
-    value?.type === 'manual' && value.regionId === '' ? value.area : ''
-  );
+  // 검색어는 검색에만 쓴다. 확정된 지역은 value(부모)에만 있고, 확정 상태에서는 입력창 대신 칩을 그린다 —
+  // 자유 입력이 값이 될 수 없으므로 없는 지역이 들어가거나, 글자를 지웠는데 선택이 남는 일이 구조적으로 없다.
+  const [search, setSearch] = useState('');
   const [suggestions, setSuggestions] = useState<RegionSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
   const [showMore, setShowMore] = useState(false);
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reqSeq = useRef(0);
 
@@ -94,9 +89,8 @@ export default function MeetingLocationSelect({ value, onSelect }: Props) {
 
   function handleSearchChange(v: string) {
     setSearch(v);
-    // 확정된 선택(직접 입력·프리셋·자동)과 글자가 달라지면 선택 해제 — 글자를 지운 뒤에도 '다음'이 살아 있던 버그
-    const confirmedLabel = value?.type === 'manual' ? value.area : '';
-    if (value && v.trim() !== confirmedLabel) onSelect(null);
+    // 타이핑을 시작하면 자동·프리셋 선택은 해제 — 검색으로 갈아타는 중이므로 제안을 고를 때까지 '다음'을 잠근다
+    if (value) onSelect(null);
     if (searchTimer.current) clearTimeout(searchTimer.current);
     const t = v.trim();
     if (t.length < 1) { setSuggestions([]); setSearching(false); return; }
@@ -131,6 +125,16 @@ export default function MeetingLocationSelect({ value, onSelect }: Props) {
 
   function isManualSelected(regionId: string) {
     return value?.type === 'manual' && (value as { type: 'manual'; regionId: string }).regionId === regionId;
+  }
+
+  // 칩의 ✕ — 확정 해제 후 빈 검색창으로 복귀
+  function clearCustom() {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    setSearch('');
+    setSuggestions([]);
+    setSearching(false);
+    onSelect(null);
+    setTimeout(() => inputRef.current?.focus(), 0);
   }
 
   function selectPreset(id: string, label: string) {
@@ -172,32 +176,48 @@ export default function MeetingLocationSelect({ value, onSelect }: Props) {
           </div>
           <div className="flex-1">
             <div className="font-black text-gray-800 text-base">직접 입력하기</div>
-            <div className="text-xs text-gray-400 mt-0.5">시·구·동 단위로 검색 (범위만큼 추천)</div>
+            <div className="text-xs text-gray-400 mt-0.5">시·구·동 단위로 검색해 목록에서 선택 (범위만큼 추천)</div>
           </div>
         </div>
 
-        {/* 검색창 — 자동완성(출발지 검색과 동일) */}
+        {/* 검색창 — 자동완성(출발지 검색과 동일). 확정되면 입력창 자리에 칩이 들어가고 ✕로만 해제한다 */}
         <div ref={wrapperRef} className="relative">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="예: 인천 · 인천 미추홀구 · 인천 미추홀구 학익동"
-            className={`w-full pl-4 pr-9 py-3 rounded-xl border-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none transition-colors bg-white ${
-              customSelected ? 'border-mint-500 bg-mint-100' : 'border-mint-500 focus:ring-2 focus:ring-mint-500/20'
-            }`}
-          />
-          {searching && (
-            <div className="absolute inset-y-0 right-3 flex items-center">
-              <div className="w-4 h-4 border-2 border-mint-500 border-t-transparent rounded-full animate-spin" />
+          {customSelected ? (
+            <div
+              role="status"
+              className="w-full flex items-center gap-2 pl-4 pr-2 py-2.5 rounded-xl border-2 border-mint-500 bg-mint-100"
+            >
+              <span className="text-mint-500 text-sm font-bold shrink-0">✓</span>
+              <span className="flex-1 min-w-0 truncate text-sm font-bold text-gray-800" title={(value as { area: string }).area}>
+                {(value as { area: string }).area}
+              </span>
+              <button
+                type="button"
+                onClick={clearCustom}
+                aria-label="선택한 지역 지우기"
+                className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-white active:scale-95 transition-all"
+              >
+                ✕
+              </button>
             </div>
+          ) : (
+            <>
+              <input
+                ref={inputRef}
+                type="text"
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder="예: 인천 · 인천 미추홀구 · 인천 미추홀구 학익동"
+                className="w-full pl-4 pr-9 py-3 rounded-xl border-2 border-mint-500 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-mint-500/20 transition-colors bg-white"
+              />
+              {searching && (
+                <div className="absolute inset-y-0 right-3 flex items-center">
+                  <div className="w-4 h-4 border-2 border-mint-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+              <SuggestionDropdown suggestions={suggestions} getAnchor={() => wrapperRef.current} onPick={pickPlace} />
+            </>
           )}
-          {customSelected && !searching && (
-            <div className="absolute inset-y-0 right-3 flex items-center">
-              <span className="text-mint-500 text-sm font-bold">✓</span>
-            </div>
-          )}
-          <SuggestionDropdown suggestions={suggestions} anchorEl={wrapperRef.current} onPick={pickPlace} />
         </div>
         {customSelected && (
           <p className="-mt-2 text-xs text-mint-600 font-medium">📍 {(value as { area: string }).area} 범위 안에서 추천해요</p>

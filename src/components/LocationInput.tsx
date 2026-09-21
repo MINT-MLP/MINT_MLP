@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { searchAddress } from '@/services/kakaoMap';
 import type { KakaoPlace, LocationEntry } from '@/types';
 import { trackEvent } from '@/services/analytics';
+import AnchoredDropdown from '@/components/AnchoredDropdown';
 
 interface Props {
   locations: LocationEntry[];
@@ -18,22 +18,18 @@ interface InputState {
   lng?: number;
 }
 
+// 출발지 자동완성 드롭다운 — 위치 추적(리사이즈·스크롤·줌)은 AnchoredDropdown이 맡는다
 function SuggestionDropdown({
   suggestions,
-  anchorEl,
+  getAnchor,
   onSelect,
 }: {
   suggestions: KakaoPlace[];
-  anchorEl: HTMLDivElement | null;
+  getAnchor: () => HTMLElement | null;
   onSelect: (place: KakaoPlace) => void;
 }) {
-  if (!suggestions.length || !anchorEl) return null;
-  const rect = anchorEl.getBoundingClientRect();
-  return createPortal(
-    <div
-      style={{ position: 'fixed', top: rect.bottom + 4, left: rect.left, width: rect.width, zIndex: 9999 }}
-      className="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden"
-    >
+  return (
+    <AnchoredDropdown open={suggestions.length > 0} getAnchor={getAnchor}>
       {suggestions.map((place) => (
         <button
           key={place.id}
@@ -44,8 +40,7 @@ function SuggestionDropdown({
           <div className="text-xs text-gray-400 mt-0.5">{place.road_address_name || place.address_name}</div>
         </button>
       ))}
-    </div>,
-    document.body
+    </AnchoredDropdown>
   );
 }
 
@@ -164,7 +159,7 @@ export default function LocationInput({ locations, onChange }: Props) {
           )}
           <SuggestionDropdown
             suggestions={inp.suggestions}
-            anchorEl={wrapperRefs.current[i] ?? null}
+            getAnchor={() => wrapperRefs.current[i] ?? null}
             onSelect={(place) => selectPlace(i, place)}
           />
         </div>

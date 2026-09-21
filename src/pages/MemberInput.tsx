@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { searchAddress } from '@/services/kakaoMap';
 import type { KakaoPlace, VibeState, GroupResult, GuestCtx } from '@/types';
-import { VibeSelect, StepProgress, GroupResultView } from '@/components';
+import { VibeSelect, StepProgress, GroupResultView, AnchoredDropdown } from '@/components';
 import { VIBE_KEY_TO_LABEL } from '@/constants/vibeOptions';
 // SECOND_KEYWORD_PREFIX는 더 이상 생성하지 않는다(1차/2차 키워드 입력 통합).
 // 파싱 쪽(groupAggregate)은 그대로 둔다 — 배포 시점에 구버전 링크로 제출 중인 게스트가 있을 수 있다.
@@ -14,22 +13,18 @@ import { getDeviceId } from '@/storage/device';
 
 type Phase = 'step0' | 'step1' | 'step2' | 'done';
 
+// 출발지 자동완성 드롭다운 — 위치 추적(리사이즈·스크롤·줌)은 AnchoredDropdown이 맡는다
 function SuggestionDropdown({
   suggestions,
-  anchorEl,
+  getAnchor,
   onSelect,
 }: {
   suggestions: KakaoPlace[];
-  anchorEl: HTMLDivElement | null;
+  getAnchor: () => HTMLElement | null;
   onSelect: (place: KakaoPlace) => void;
 }) {
-  if (!suggestions.length || !anchorEl) return null;
-  const rect = anchorEl.getBoundingClientRect();
-  return createPortal(
-    <div
-      style={{ position: 'fixed', top: rect.bottom + 4, left: rect.left, width: rect.width, zIndex: 9999 }}
-      className="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden"
-    >
+  return (
+    <AnchoredDropdown open={suggestions.length > 0} getAnchor={getAnchor}>
       {suggestions.map((place) => (
         <button
           key={place.id}
@@ -40,8 +35,7 @@ function SuggestionDropdown({
           <div className="text-xs text-gray-400 mt-0.5">{place.road_address_name || place.address_name}</div>
         </button>
       ))}
-    </div>,
-    document.body
+    </AnchoredDropdown>
   );
 }
 
@@ -529,7 +523,7 @@ export default function MemberInput() {
                   )}
                   <SuggestionDropdown
                     suggestions={suggestions}
-                    anchorEl={wrapperRef.current}
+                    getAnchor={() => wrapperRef.current}
                     onSelect={selectPlace}
                   />
                 </div>

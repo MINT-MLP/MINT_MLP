@@ -7,6 +7,7 @@ export { default as AdminMiniStat } from './AdminMiniStat';
 export { default as AdminPasswordChangeCard } from './AdminPasswordChangeCard';
 export { default as AdminPasswordGate } from './AdminPasswordGate';
 export { default as AdminStatCard } from './AdminStatCard';
+export { default as AnchoredDropdown } from './AnchoredDropdown';
 export { default as BottomTabBar } from './BottomTabBar';
 export { default as CertShowcase } from './CertShowcase';
 export { default as FeedbackFab } from './FeedbackFab';
