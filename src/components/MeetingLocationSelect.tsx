@@ -6,7 +6,7 @@ import { ensureKakaoMaps } from '@/services/kakaoLoader';
 
 interface Props {
   value: MeetingLocation | null;
-  onSelect: (loc: MeetingLocation) => void;
+  onSelect: (loc: MeetingLocation | null) => void;
 }
 
 const HOT_REGIONS = [
@@ -94,6 +94,9 @@ export default function MeetingLocationSelect({ value, onSelect }: Props) {
 
   function handleSearchChange(v: string) {
     setSearch(v);
+    // 확정된 선택(직접 입력·프리셋·자동)과 글자가 달라지면 선택 해제 — 글자를 지운 뒤에도 '다음'이 살아 있던 버그
+    const confirmedLabel = value?.type === 'manual' ? value.area : '';
+    if (value && v.trim() !== confirmedLabel) onSelect(null);
     if (searchTimer.current) clearTimeout(searchTimer.current);
     const t = v.trim();
     if (t.length < 1) { setSuggestions([]); setSearching(false); return; }
