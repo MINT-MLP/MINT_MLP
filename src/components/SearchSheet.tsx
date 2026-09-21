@@ -89,10 +89,10 @@ export default function SearchSheet({
         <h2 className="flex-1 text-base font-black text-gray-800">{title}</h2>
       </div>
 
-      {/* 검색창 — 16px 이상이어야 iOS가 포커스 시 확대하지 않는다 */}
+      {/* 검색창 — 16px 이상이어야 iOS가 포커스 시 확대하지 않는다. type="search"는 브라우저가 자체 ✕(취소 버튼)를 하나 더 그려 ✕가 둘이 되므로 text로 둔다 */}
       <div className="relative px-4 py-3 shrink-0">
         <input
-          type="search"
+          type="text"
           enterKeyHint="search"
           autoComplete="off"
           autoFocus
