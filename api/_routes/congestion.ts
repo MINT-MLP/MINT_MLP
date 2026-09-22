@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { fetchCongestion, UNKNOWN_CONGESTION } from './_lib/congestion.js';
+import { fetchCongestion, UNKNOWN_CONGESTION } from '../_lib/congestion.js';
 
 // 서울 실시간 도시데이터(citydata_ppltn) 혼잡도 조회.
 // 기존에는 클라이언트가 vite dev 프록시(/api/seoul)로 직접 호출했는데, 그 프록시는

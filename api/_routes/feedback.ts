@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { clientIp, checkRateLimit } from './_lib/guard.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { clientIp, checkRateLimit } from '../_lib/guard.js';
 
 // 상시 유저 피드백 수집 — POST only. pilot-feedback.ts 컨벤션(service role, clientIp, 한국어 에러) 그대로.
 //

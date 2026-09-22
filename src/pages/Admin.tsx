@@ -6,7 +6,7 @@ import { pct, pctLabel, formatDuration, formatDate, formatRelative } from '@/uti
 import { downloadCsv } from '@/utils/csv';
 import { callAdmin } from '@/services/admin';
 
-// 어드민 — 모든 데이터 접근은 /api/admin-data(서버 비밀번호 검증 + service role) 경유.
+// 어드민 — 모든 데이터 접근은 /api/admin/data(서버 비밀번호 검증 + service role) 경유.
 // 클라이언트 하드코딩 비밀번호와 anon 키 직접 select는 보안 문제로 제거됨.
 //
 // 기획점검(fable5) 반영: analytics.ts 이벤트 15종을 퍼널·거절사유·재시도 관점으로 노출.

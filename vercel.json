@@ -1,14 +1,10 @@
 {
   "outputDirectory": "dist",
-  "regions": ["icn1"],
+  "regions": [
+    "icn1"
+  ],
   "functions": {
-    "api/recommend.ts": {
-      "maxDuration": 60
-    },
-    "api/session.ts": {
-      "maxDuration": 10
-    },
-    "api/admin-batch.ts": {
+    "api/**/*.ts": {
       "maxDuration": 60
     }
   },
@@ -32,7 +28,7 @@
   ],
   "crons": [
     {
-      "path": "/api/admin-batch",
+      "path": "/api/admin/batch",
       "schedule": "0 18 * * *"
     }
   ]

@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { clientIp, checkRateLimit } from './_lib/guard.js';
-import { verifyAdminPassword } from './_lib/adminAuth.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { clientIp, checkRateLimit } from '../_lib/guard.js';
+import { verifyAdminPassword } from '../_lib/adminAuth.js';
 
 const FEEDBACK_BUCKET = 'pilot-feedback'; // 인증 이미지(공개)
 const PRIZE_BUCKET = 'pilot-prizes';       // 기프티콘(비공개 — 서명 URL로만)

@@ -130,4 +130,4 @@ export function trackSessionDuration(seconds: number): void {
   });
 }
 
-// 분석 지표 조회는 /api/admin-data(서버)로 이전 — anon select 제거
+// 분석 지표 조회는 /api/admin/data(서버)로 이전 — anon select 제거

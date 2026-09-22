@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getBubbleScoreCached } from './_lib/blogBuzz.js';
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { tmToWgs84 } from './_lib/coords.js';
+import { getBubbleScoreCached } from '../_lib/blogBuzz.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { tmToWgs84 } from '../_lib/coords.js';
 
 // 어드민·배치 전용 통합 엔드포인트 — 원래 admin-warm-buzz-cache / admin-refresh-license-cache
 // 두 파일이었다. Vercel Hobby 플랜은 배포당 서버리스 함수 12개가 상한인데 api/*.ts가 13개가 되어

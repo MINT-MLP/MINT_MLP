@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
 
 // 랜딩 소셜 프루프용 누적 방문 카운트.
 // events 테이블의 landing_view 행 수를 그대로 사용한다 (head+count 쿼리라 데이터 전송 없음).

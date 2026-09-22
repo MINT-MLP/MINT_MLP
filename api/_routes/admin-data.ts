@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { verifyAdminPassword, validateNewPassword, setAdminPassword } from './_lib/adminAuth.js';
-import { clientIp, checkRateLimit } from './_lib/guard.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { verifyAdminPassword, validateNewPassword, setAdminPassword } from '../_lib/adminAuth.js';
+import { clientIp, checkRateLimit } from '../_lib/guard.js';
 
 // 어드민 데이터 API — 비밀번호는 Supabase admin_credentials(없으면 env ADMIN_PASSWORD 폴백)로 검증
 // — api/_lib/adminAuth.ts.

@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
 
 // 예약(오픈 알림) 수요 기록 — 기존 클라이언트 anon insert를 서버 경유로 이전.
 

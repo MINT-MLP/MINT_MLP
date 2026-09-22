@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { clientIp, checkRateLimit } from './_lib/guard.js';
+import { clientIp, checkRateLimit } from '../_lib/guard.js';
 
 // ── 그룹 세션 단일 엔드포인트 ────────────────────────────────────────────────
 // Vercel Hobby 플랜의 서버리스 함수 상한(12개)에 딱 차서 새 기능을 못 붙이는 상태였다.

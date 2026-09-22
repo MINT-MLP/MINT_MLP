@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { clientIp, checkRateLimit } from './_lib/guard.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { clientIp, checkRateLimit } from '../_lib/guard.js';
 
 // 공유 결과 페이지 멤버 투표.
 // GET  ?id=<shareId>            → { counts: { [choice]: number } } (테이블 미생성/오류 시 { disabled: true })

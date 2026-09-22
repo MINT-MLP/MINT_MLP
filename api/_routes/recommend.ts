@@ -1,14 +1,14 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { askClaude, CLAUDE_MODELS } from '../_lib/claude.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { clientIp, checkRateLimit, validateRecommendBody } from './_lib/guard.js';
-import { getBubbleScoresCacheOnly } from './_lib/blogBuzz.js';
-import { fetchStoresInRadius, matchStoreToPlace, lookupYearsAlive, computeLocalGem } from './_lib/publicData.js';
-import { isStoreAllowedForPurpose, isGloballyExcludedStore, classifyStoreGroup } from './_lib/purposeGate.js';
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { placeKey } from './_lib/placeKey.js';
-import { computeFinalScores } from './_lib/scoring.js';
-import { fetchCongestion } from './_lib/congestion.js';
-import { safeEqualStr } from './_lib/adminAuth.js';
+import { clientIp, checkRateLimit, validateRecommendBody } from '../_lib/guard.js';
+import { getBubbleScoresCacheOnly } from '../_lib/blogBuzz.js';
+import { fetchStoresInRadius, matchStoreToPlace, lookupYearsAlive, computeLocalGem } from '../_lib/publicData.js';
+import { isStoreAllowedForPurpose, isGloballyExcludedStore, classifyStoreGroup } from '../_lib/purposeGate.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { placeKey } from '../_lib/placeKey.js';
+import { computeFinalScores } from '../_lib/scoring.js';
+import { fetchCongestion } from '../_lib/congestion.js';
+import { safeEqualStr } from '../_lib/adminAuth.js';
 
 interface NaverPlace {
   name: string;
@@ -852,8 +852,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return { level: r.level, matchTokens: tokens, centerLat: r.centerLat, centerLng: r.centerLng };
     })();
 
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
     const now = new Date();
     const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
@@ -1247,10 +1245,8 @@ ${fitScoreGuide}
       && typeof headerKey === 'string'
       && safeEqualStr(headerKey, benchKey)
       ? req.body._benchModel : null;
-    // 후보 선별+L3 재정렬 구조라 모델 상한에 둔감 → 로딩 최적화를 위해 가장 빠른 haiku-4.5로.
-    // (Claude는 서버가 준 실존 후보에서 '선택·채점'만 하므로 저지연 모델로도 품질 유지)
-    // 이전: sonnet-5(2026-07-06 A/B로 opus-4-8과 동률·저지연이었으나 haiku가 더 빠름).
-    const model = benchModel ?? 'claude-haiku-4-5-20251001';
+    // 기본 모델·폴백 규칙은 _lib/claude.ts에 있다. 여기서는 A/B 오버라이드만 얹는다.
+    const model = benchModel ?? CLAUDE_MODELS.fast;
 
     // 레이트리밋 확인 — 과금되는 Claude 호출 직전에. (데이터 fetch와 병렬로 이미 돌고 있었음)
     const gate = await gatePromise;
@@ -1262,37 +1258,15 @@ ${fitScoreGuide}
       });
     }
 
-    const aiStart = Date.now();
-    let message;
-    try {
-      message = await client.messages.create({
-        model,
-        max_tokens: MAX_TOKENS,
-        // sonnet-5는 thinking 생략 시 adaptive가 기본 — JSON 선택 작업이라 저지연을 위해 비활성화
-        ...(model.startsWith('claude-sonnet-5') ? { thinking: { type: 'disabled' as const } } : {}),
-        messages: [{ role: 'user', content: prompt }],
-      });
-    } catch (e) {
-      if (e instanceof Anthropic.APIError && e.status === 529) {
-        message = await client.messages.create({
-          model: 'claude-sonnet-4-6',
-          max_tokens: MAX_TOKENS,
-          messages: [{ role: 'user', content: prompt }],
-        });
-      } else {
-        throw e;
-      }
-    }
-    const aiMs = Date.now() - aiStart;
+    // 호출·529 폴백·텍스트 추출은 공용 모듈. 프롬프트와 응답 해석(extractPlaces)만 여기 남는다.
+    const ai = await askClaude(prompt, { model, maxTokens: MAX_TOKENS });
+    const aiMs = ai.ms;
 
-    if (message.stop_reason === 'max_tokens') {
+    if (ai.truncated) {
       console.warn('[recommend] 응답이 max_tokens에서 잘림 — 부분 복구 시도');
     }
 
-    const text = message.content
-      .filter((b) => b.type === 'text')
-      .map((b) => 'text' in b ? b.text : '')
-      .join('');
+    const text = ai.text;
 
     const finalists = extractPlaces(text);
     if (!finalists || finalists.length === 0) {
@@ -1628,7 +1602,7 @@ ${fitScoreGuide}
         ? { _debug: { naverPlacesCount: naverFirstPlaces.length, bubbleScores: debugBubbleScores } }
         : {}),
       // 모델 실험 시에만 측정 메타 노출
-      ...(benchModel ? { _bench: { model, aiMs, outputTokens: message.usage?.output_tokens ?? null } } : {}),
+      ...(benchModel ? { _bench: { model, aiMs, outputTokens: ai.outputTokens } } : {}),
       // 스코프 진단 — 요청에 _diag가 있을 때만: 후보 풀의 구 분포(시 전체 구 스프레드 확인용)
       ...(req.body._diag ? { _diag: (() => {
         const g: Record<string, number> = {};
