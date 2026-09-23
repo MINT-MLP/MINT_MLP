@@ -27,7 +27,7 @@ interface WeatherInfo {
   isCold: boolean;
 }
 
-interface FinalistPlace extends Record<string, unknown> {
+export interface FinalistPlace extends Record<string, unknown> {
   slotRank?: number;
   purposeSlot?: number;
   sourceIndex?: number;
@@ -65,7 +65,7 @@ const MIDPOINT_RADIUS_KM = 1.5;
 const FINALIST_COUNT_SINGLE = 6;
 const FINALIST_COUNT_PER_PURPOSE = 4;
 
-function distKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+export function distKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
@@ -75,7 +75,7 @@ function distKm(lat1: number, lng1: number, lat2: number, lng2: number): number 
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function walkingMinutes(lat1: number, lng1: number, lat2: number, lng2: number): number {
+export function walkingMinutes(lat1: number, lng1: number, lat2: number, lng2: number): number {
   return Math.round((distKm(lat1, lng1, lat2, lng2) / 4) * 60);
 }
 
@@ -96,7 +96,7 @@ function filterByRadius(places: NaverPlace[], midLat: number, midLng: number): N
 // ── 행정단위 스코프(시/구/동) ──
 // 클라이언트가 선택한 행정단위에 맞춰 추천 범위를 고정한다. 고정 반경 대신
 // "결과 주소에 그 시/구/동 이름이 들어있는지"로 걸러 '구 전체 / 동 전체'가 진짜로 성립하게 한다.
-interface RegionScope {
+export interface RegionScope {
   level: 'city' | 'district' | 'dong';
   matchTokens: string[];   // 결과 주소에 모두 포함돼야 하는 행정 토큰 (예: ['인천','미추홀구'])
   centerLat: number;
@@ -224,7 +224,7 @@ function thirdCourseSpec(
 }
 
 // 시 전체 추천 시 구/군이 한쪽에 쏠리지 않게 골고루 섞는다(점수순 유지하며 라운드로빈).
-function spreadByGu<T extends { address: string }>(sorted: T[]): T[] {
+export function spreadByGu<T extends { address: string }>(sorted: T[]): T[] {
   const groups = new Map<string, T[]>();
   for (const p of sorted) {
     const gu = guOfAddress(p.address) || '__none__';
@@ -251,7 +251,7 @@ const PAIR_MAX_KM = 2.0;        // 하드캡(도보 ~30분 / 택시 기본요금
 const PAIR_WALK_PENALTY = 0.5;  // 점(0~110 스케일)/도보 1분
 const PAIR_SCORE_FLOOR = 15;    // 1패스: 각 슬롯 최고점 대비 허용 하락폭
 
-function pickClosePrimaryPair(
+export function pickClosePrimaryPair(
   first: FinalistPlace[], second: FinalistPlace[], numScore: (p: FinalistPlace) => number,
 ): { f: FinalistPlace; s: FinalistPlace } | null {
   const ok = (p: FinalistPlace) =>
@@ -374,7 +374,7 @@ const RELATION_EXTRA_KEYWORDS: Record<string, string[]> = {
 };
 
 // 행사별 Claude 힌트
-const OCCASION_HINT: Record<string, string> = {
+export const OCCASION_HINT: Record<string, string> = {
   '생일':   '프라이빗룸 또는 케이크 반입 가능 우선, 이벤트 연출 가능한 곳',
   '기념일': '분위기 있는 공간, 프라이빗 좌석, 조용한 환경 선호',
   '소개팅': '조용하고 대화하기 좋은 공간, 테이블 간격 넓은 곳',
@@ -724,7 +724,7 @@ async function searchKakaoPlaceUrl(
 // Claude 응답에서 places 배열을 추출한다. 정상이면 JSON.parse 한 방에 되지만,
 // max_tokens로 응답이 잘리면 마지막 객체가 불완전해 parse가 실패한다. 그럴 때
 // 균형 잡힌 중괄호로 "완전한 객체만" 골라 복구한다(장소 몇 곳이라도 건지는 게 500보다 낫다).
-function extractPlaces(text: string): FinalistPlace[] | null {
+export function extractPlaces(text: string): FinalistPlace[] | null {
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (jsonMatch) {
     try {
@@ -807,7 +807,7 @@ async function handleEnrich(req: VercelRequest, res: VercelResponse) {
 // 그룹 집계는 분위기 라벨을 승자 하나만 vibe.first에 남기고 나머지는 keywords로 흘려보내므로,
 // first만 보면 같은 의도가 통로에 따라 사라진다. 프롬프트가 정반대("활기찬")로 뒤집히는 항목이라
 // 판정은 넓게 잡는 쪽이 안전하다 — 조용한 곳을 원했는데 시끄러운 곳을 받는 실패가 훨씬 크다.
-function detectQuiet(...sources: (string[] | undefined)[]): boolean {
+export function detectQuiet(...sources: (string[] | undefined)[]): boolean {
   return sources.some((s) => Array.isArray(s) && s.some((v) => typeof v === 'string' && v.includes('조용')));
 }
 

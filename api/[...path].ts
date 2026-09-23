@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import recommend from './_routes/recommend.js';
+import recommendPrompt from './_routes/recommend-prompt.js';
 import congestion from './_routes/congestion.js';
 import count from './_routes/count.js';
 import feedback from './_routes/feedback.js';
@@ -14,7 +14,8 @@ import shareVote from './_routes/share-vote.js';
 type Handler = (req: VercelRequest, res: VercelResponse) => unknown;
 
 const ROUTES: Record<string, Handler> = {
-  recommend,
+  // 프롬프트 전용 실험 중. 네이버 지역검색 파이프라인(_routes/recommend.js)은 약관 검토로 빼 두었다 — 되돌리려면 import를 바꾼다.
+  recommend: recommendPrompt,
   congestion,
   count,
   feedback,
