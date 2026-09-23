@@ -288,7 +288,7 @@ export function pickClosePrimaryPair(
 }
 
 // 목적별 검색 키워드 (각 10개, 병렬 쿼리로 최대 50개 장소 확보)
-const PURPOSE_KEYWORDS: Record<string, string[]> = {
+export const PURPOSE_KEYWORDS: Record<string, string[]> = {
   '밥':    ['맛집', '식당', '한식', '일식당', '고깃집', '파스타', '이탈리안', '삼겹살', '스시', '해산물'],
   // 타깃은 2030 MZ. 단, 특정 유형(포차·소주방=남성/특정문화 편중)에 가중치를 주지 않고 모든 술집 유형을 동등하게 둔다.
   // 여성친화(와인바·칵테일바·하이볼바·루프탑바)와 캐주얼(술집·호프·펍·포차)을 균형 배치 → 실제 차별화는 분위기/모임조건이 결정.
@@ -299,7 +299,7 @@ const PURPOSE_KEYWORDS: Record<string, string[]> = {
 
 // 장르 좁히기 — 사용자가 밥/술의 장르를 지정하면 검색 키워드 풀을 통째로 교체한다.
 // 키(라벨)는 클라이언트 PURPOSE_GENRES와 반드시 일치.
-const GENRE_KEYWORDS: Record<string, string[]> = {
+export const GENRE_KEYWORDS: Record<string, string[]> = {
   '한식':      ['한식', '한식 맛집', '국밥', '고깃집', '삼겹살', '한정식', '찌개', '백반', '족발', '갈비'],
   '중식':      ['중식당', '중국집', '짬뽕', '마라탕', '딤섬', '양꼬치', '중화요리', '탕수육'],
   '일식':      ['일식당', '스시', '초밥', '라멘', '돈카츠', '우동', '텐동', '오마카세', '덮밥'],
@@ -337,7 +337,7 @@ const EXCLUDE_FOOD_EXPANSIONS: [string, string[]][] = [
   ['소고기', ['소고기', '한우', '갈비', '스테이크']],
 ];
 
-function excludeFoodTokens(excludeFoods: string[]): string[] {
+export function excludeFoodTokens(excludeFoods: string[]): string[] {
   const tokens = new Set<string>();
   for (const raw of excludeFoods) {
     const food = raw.trim();

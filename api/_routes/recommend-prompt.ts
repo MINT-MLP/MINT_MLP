@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
 import { placeKey } from '../_lib/placeKey.js';
 import { safeEqualStr } from '../_lib/adminAuth.js';
 import { askLlm, type LlmProvider } from '../_lib/llm.js';
+import { seededRandom, weightedPick, addressInScope } from '../_lib/pick.js';
 import {
   extractPlaces, spreadByGu, pickClosePrimaryPair, walkingMinutes, distKm, OCCASION_HINT, detectQuiet,
   type FinalistPlace, type RegionScope,
@@ -18,10 +19,19 @@ const GATE_RADIUS_M: Record<RegionScope['level'] | 'none', number> = {
   city: 20000, district: 6000, dong: 2500, none: 3000,
 };
 
-const FINALIST_SINGLE = 10;
-const FINALIST_PER_PURPOSE = 6;
-const FINALIST_SINGLE_CITY = 12;
-const FINALIST_PER_PURPOSE_CITY = 9;
+// 후보를 넉넉히 받는다 — 실존 게이트·스코프에서 절반쯤 떨어지고, 남은 풀에서 샘플링해야 다양성이 생긴다.
+const FINALIST_SINGLE = 16;
+const FINALIST_PER_PURPOSE = 10;
+const FINALIST_SINGLE_CITY = 18;
+const FINALIST_PER_PURPOSE_CITY = 12;
+// 생성 temperature. 게이트가 뒤에 있어 지어낸 이름은 어차피 탈락하므로 후보 단계는 넓게 뽑는다.
+// 결정론은 최종 선택(세션키 시드 샘플링)에서 확보한다.
+const GEN_TEMPERATURE = 0.8;
+// 최종 선택: 상위 PICK_POOL 안에서 점수 비례 샘플링. 온도가 낮을수록 1위에 쏠린다.
+const PICK_POOL = 5;
+const PICK_TEMPERATURE = 8;
+// 스코프 필터로 후보가 이 수 미만이면 반경만으로 완화(희소 지역 보호)
+const SCOPE_MIN_KEEP = 3;
 
 const PLACE_SCHEMA = {
   type: 'object',
@@ -78,20 +88,48 @@ function validCoord(lat: unknown, lng: unknown): lat is number {
     && lat >= 33 && lat <= 39 && lng >= 124 && lng <= 132;
 }
 
-interface KakaoHit { placeUrl: string; lat: number; lng: number; match: 'exact' | 'brand' }
+// 카카오 응답에서 런타임에만 쓰는 값. 저장은 id·placeUrl만 허용(카카오 로컬 정책), 나머지는 응답·판정에 쓰고 버린다.
+interface KakaoHit {
+  id: string;
+  placeUrl: string;
+  lat: number;
+  lng: number;
+  roadAddress: string;   // 도로명 (표시용)
+  address: string;       // 지번 — 행정구역 토큰 판정용
+  categoryName: string;  // "음식점 > 한식 > 국밥"
+  match: 'exact' | 'brand';
+}
+
+interface KakaoDoc {
+  id: string; place_name: string; place_url: string; x: string; y: string;
+  road_address_name?: string; address_name?: string; category_name?: string;
+}
 
 // 실존 게이트. 상호가 반경 안에서 검색되고 이름이 맞으면 통과. 응답은 여기서만 쓰고 버린다.
-async function kakaoLookup(name: string, lat: number, lng: number, radiusM: number, key: string): Promise<KakaoHit | null> {
+// query가 있으면 그걸로 검색하되 이름 비교는 name으로 한다(동네명을 덧붙인 재시도용).
+async function kakaoLookup(
+  name: string, lat: number, lng: number, radiusM: number, key: string, query = name,
+): Promise<KakaoHit | null> {
   try {
-    const url = `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(name)}&x=${lng}&y=${lat}&radius=${Math.min(radiusM, 20000)}&size=3`;
+    const url = `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&x=${lng}&y=${lat}&radius=${Math.min(radiusM, 20000)}&size=5`;
     const res = await fetch(url, { headers: { Authorization: `KakaoAK ${key}` } });
     if (!res.ok) return null;
-    const data = await res.json() as { documents?: { place_name: string; place_url: string; x: string; y: string }[] };
+    const data = await res.json() as { documents?: KakaoDoc[] };
     const docs = data.documents ?? [];
     const exact = docs.find((d) => sameName(normName(d.place_name), normName(name)));
     const brand = exact ? null : docs.find((d) => sameName(brandName(d.place_name), brandName(name)));
     const hit = exact ?? brand;
-    return hit ? { placeUrl: hit.place_url, lat: parseFloat(hit.y), lng: parseFloat(hit.x), match: exact ? 'exact' : 'brand' } : null;
+    if (!hit) return null;
+    return {
+      id: hit.id,
+      placeUrl: hit.place_url,
+      lat: parseFloat(hit.y),
+      lng: parseFloat(hit.x),
+      roadAddress: hit.road_address_name ?? '',
+      address: hit.address_name ?? '',
+      categoryName: hit.category_name ?? '',
+      match: exact ? 'exact' : 'brand',
+    };
   } catch {
     return null;
   }
@@ -226,7 +264,9 @@ ${regionSection}
 3. address는 아는 만큼 정확히(도로명 또는 지번). lat/lng는 아는 값만, 모르면 0
 4. category는 업종(예: 이자카야, 파스타, 카페)
 5. fitScore는 0~100 정수. 분위기·목적·예산·인원 적합도. rank 1이 가장 높게, 장소마다 차별화
-6. 일행이 앉아서 머물 수 있는 곳만. 테이크아웃·포장·배달 전문점, 좌석 없는 매장, 푸드코트, 저가 테이크아웃 커피 체인(메가커피·컴포즈·빽다방·더벤티·매머드 등)은 절대 금지`;
+6. 일행이 앉아서 머물 수 있는 곳만. 테이크아웃·포장·배달 전문점, 좌석 없는 매장, 푸드코트, 저가 테이크아웃 커피 체인(메가커피·컴포즈·빽다방·더벤티·매머드 등)은 절대 금지
+7. 절반은 널리 알려진 곳, 나머지 절반은 그 동네 사람들만 아는 곳으로 섞을 것. 매번 같은 유명 가게만 내지 말 것
+8. area에는 동네명이나 가까운 지하철역 이름을 넣을 것(예: "성수동", "합정역"). 좌표보다 이게 더 중요함`;
 
     const schemaText = `{"slotRank": 1, "purposeSlot": 1, "placeName": "장소명", "category": "업종", "address": "주소", "area": "동네명", "lat": 0, "lng": 0, "description": "한 줄 설명 20자 내외", "priceRange": "1인 예상 가격대", "vibeTags": ["태그1", "태그2", "태그3"], "fitScore": 0}`;
 
@@ -268,7 +308,7 @@ places 배열에 slotRank 1~${count} 순으로 ${count}개, purposeSlot은 모�
     const results = await Promise.all(prompts.map(({ prompt }) => askLlm(prompt, {
       provider: providerOverride,
       maxTokens: 4096,
-      temperature: 0.3,
+      temperature: GEN_TEMPERATURE,
       system: '당신은 한국 모임 장소 큐레이터입니다. 실제로 아는 장소만 JSON으로 답합니다.',
       jsonSchema: RESPONSE_SCHEMA,
     })));
@@ -299,10 +339,19 @@ places 배열에 slotRank 1~${count} 순으로 ${count}개, purposeSlot은 모�
       delete f.sourceIndex;
     }
 
+    // 모델이 낸 원본 주소·좌표는 로그·오차 측정용으로만 따로 둔다(응답 전 제거).
+    // 카카오 값은 응답에만 싣고 저장하지 않는다 — 로그는 모델 원본만 쓴다.
+    for (const f of finalists) {
+      f._modelAddress = f.address;
+      f._modelLat = f.lat;
+      f._modelLng = f.lng;
+    }
+
     // 실존 게이트 — 모델이 낸 이름을 상권 중심 반경으로 카카오에 실시간 조회. 미확인은 탈락.
-    // 모델 좌표는 표시·기록에 그대로 쓰고, 카카오 좌표는 오차 측정 로그에만 쓴 뒤 버린다.
+    // 통과하면 표시용 좌표·주소를 카카오 값으로 교체한다. 모델 좌표는 늘 틀리거나 0이라 지도·도보 계산에 못 쓴다.
     const kakaoKey = process.env.VITE_KAKAO_REST_API_KEY;
     let verified: FinalistPlace[] = finalists;
+    let scopeDropped = 0;
     if (kakaoKey) {
       const isExcluded = (name: string) => excludeNames.some((ex) => name.includes(ex) || ex.includes(name));
       const checked = await Promise.all(finalists.map(async (f) => {
@@ -311,14 +360,35 @@ places 배열에 slotRank 1~${count} 순으로 ${count}개, purposeSlot은 모�
           console.log(`[recommend-prompt] gate "${f.placeName}" slot=${f.purposeSlot} dropped=takeout`);
           return null;
         }
-        const hit = await kakaoLookup(f.placeName, gateLat, gateLng, gateRadius, kakaoKey);
-        const errKm = hit && validCoord(f.lat, f.lng) ? distKm(f.lat as number, f.lng as number, hit.lat, hit.lng) : null;
+        let hit = await kakaoLookup(f.placeName, gateLat, gateLng, gateRadius, kakaoKey);
+        // 이름만으로 못 찾으면 모델이 준 동네명을 붙여 한 번 더 — 흔한 상호가 다른 동네 가게에 밀리는 경우
+        const area = typeof f.area === 'string' ? f.area.trim() : '';
+        if (!hit && area) hit = await kakaoLookup(f.placeName, gateLat, gateLng, gateRadius, kakaoKey, `${area} ${f.placeName}`);
+        const mLat = f._modelLat; const mLng = f._modelLng;
+        const errKm = hit && validCoord(mLat, mLng) ? distKm(mLat as number, mLng as number, hit.lat, hit.lng) : null;
         console.log(`[recommend-prompt] gate "${f.placeName}" slot=${f.purposeSlot} found=${!!hit}${hit ? ` match=${hit.match}` : ''}${errKm != null ? ` modelCoordErrKm=${errKm.toFixed(2)}` : ''}`);
         if (!hit) return null;
+        f.kakaoPlaceId = hit.id;
         f.kakaoPlaceUrl = hit.placeUrl;
+        f.lat = hit.lat;
+        f.lng = hit.lng;
+        f.address = hit.roadAddress || hit.address || (f._modelAddress as string);
+        f._jibun = hit.address;   // 행정구역 토큰 판정용. 응답 전 제거
         return f;
       }));
       verified = checked.filter((f): f is FinalistPlace => f !== null);
+
+      // 행정단위 스코프 — 프롬프트 지시만으로는 못 믿는다. 카카오 지번 주소에 시·구·동 토큰이 전부 있어야 통과.
+      // 희소 지역에서 너무 적게 남으면 반경만으로 완화한다(옛 파이프라인의 scopePlaces와 같은 규칙).
+      if (regionScope) {
+        const inScope = verified.filter((f) => addressInScope(f._jibun as string, regionScope.matchTokens));
+        if (inScope.filter((f) => f.purposeSlot !== 2).length >= SCOPE_MIN_KEEP) {
+          scopeDropped = verified.length - inScope.length;
+          verified = inScope;
+        } else {
+          console.log(`[recommend-prompt] scope relaxed: inScope=${inScope.length} < ${SCOPE_MIN_KEEP}, radius only`);
+        }
+      }
     } else {
       console.warn('[recommend-prompt] VITE_KAKAO_REST_API_KEY 없음, 실존 게이트 생략');
       verified = finalists.filter((f) => !isTakeoutOnly(f));
@@ -346,12 +416,19 @@ places 배열에 slotRank 1~${count} 순으로 ${count}개, purposeSlot은 모�
       return cityWide ? spreadByGu(sorted) : sorted;
     };
 
+    // 최종 선택 — 매번 1위만 내면 같은 유명 가게가 반복된다. 상위 PICK_POOL 안에서 점수 비례로 뽑되
+    // 시드를 세션키로 고정해 새로고침엔 같고 다음 모임엔 달라지게 한다. 재추천(excludeNames 증가)마다 시드가 바뀐다.
+    // 시 전체는 구 분산·도보 쌍 규칙이 우선이라 샘플링하지 않는다.
+    const rnd = seededRandom(`${sessionKey ?? 'anon'}:${excludeNames.length}`);
+    const pickOne = (sorted: FinalistPlace[]): FinalistPlace | undefined =>
+      cityWide ? sorted[0] : weightedPick(sorted.slice(0, PICK_POOL), numScore, 1, rnd, PICK_TEMPERATURE)[0];
+
     let places: FinalistPlace[];
     if (effectiveTwoPurposes) {
       const firstSorted = bySlot(1);
       const secondSorted = bySlot(2);
-      let f0 = firstSorted[0];
-      let s0 = secondSorted[0];
+      let f0 = pickOne(firstSorted);
+      let s0 = pickOne(secondSorted);
       if (cityWide) {
         const pair = pickClosePrimaryPair(firstSorted, secondSorted, numScore);
         if (pair) { f0 = pair.f; s0 = pair.s; }
@@ -367,13 +444,22 @@ places 배열에 slotRank 1~${count} 순으로 ${count}개, purposeSlot은 모�
         restSecond[1] && { ...restSecond[1], rank: 6 },
       ].filter(Boolean) as FinalistPlace[]);
     } else {
-      places = bySlot(1).slice(0, 3).map((p, i) => ({ ...p, rank: i + 1 }));
+      const sorted = bySlot(1);
+      const chosen = cityWide
+        ? sorted.slice(0, 3)
+        : weightedPick(sorted.slice(0, PICK_POOL + 1), numScore, 3, rnd, PICK_TEMPERATURE)
+            .sort((a, b) => numScore(b) - numScore(a));
+      places = chosen.map((p, i) => ({ ...p, rank: i + 1 }));
     }
 
     for (const p of places) {
       delete p.slotRank;
       delete p.purposeSlot;
       delete p.congestionLevel;
+      delete p._jibun;
+      delete p._modelAddress;
+      delete p._modelLat;
+      delete p._modelLng;
     }
 
     if (effectiveTwoPurposes) {
@@ -392,15 +478,18 @@ places 배열에 slotRank 1~${count} 순으로 ${count}개, purposeSlot은 모�
     };
     let serial = makeSerial();
 
-    // 기록 — 모델 출력과 우리 판정만 저장한다(카카오 응답은 URL 외 아무것도 남기지 않음)
+    // 기록 — 모델 출력과 우리 판정만 저장한다. 카카오 응답은 id·URL 외 아무것도 남기지 않는다.
+    // 주소는 게이트 전 모델 원본(_modelAddress)을 쓴다 — 응답의 address는 카카오 값이라 저장 불가.
     try {
       const supabase = getSupabaseAdmin();
       if (supabase) {
-        const displayedByKey = new Map(places.map((p) => [`${p.placeName}|${p.address}`, p.rank as number]));
+        const displayedRank = new Map(places.map((p) => [normName(p.placeName), p.rank as number]));
         const candidates = finalists.map((f) => {
-          const key = `${f.placeName}|${f.address}`;
+          const key = normName(f.placeName);
+          const modelAddress = typeof f._modelAddress === 'string' ? f._modelAddress : '';
           return {
-            place_key: placeKey(f.placeName, f.address),
+            place_key: placeKey(f.placeName, modelAddress),
+            kakao_place_id: f.kakaoPlaceId ?? null,
             purposeSlot: f.purposeSlot ?? null,
             slotRank: f.slotRank ?? null,
             fitScore: f.fitScore ?? null,
@@ -409,18 +498,19 @@ places 배열에 slotRank 1~${count} 순으로 ${count}개, purposeSlot은 모�
             naverRank: null,
             isPublicGem: false,
             finalScore: f.fitScore ?? null,
-            finalRank: displayedByKey.get(key) ?? null,
-            displayed: displayedByKey.has(key),
+            finalRank: displayedRank.get(key) ?? null,
+            displayed: displayedRank.has(key),
           };
         });
         if (sessionKey) {
           await supabase.from('recommendation_log').update({ retried: true }).eq('session_key', sessionKey);
         }
+        const modelAddressByName = new Map(finalists.map((f) => [normName(f.placeName), f._modelAddress]));
         const placesDisplay = places.slice(0, 8).map((p) => ({
           rank: (p.rank as number) ?? null,
           placeName: p.placeName,
           category: p.category ?? null,
-          address: p.address ?? null,
+          address: (modelAddressByName.get(normName(p.placeName)) as string | undefined) ?? null,
         }));
         const baseRow = {
           session_key: sessionKey,
@@ -454,7 +544,7 @@ places 배열에 slotRank 1~${count} 순으로 ${count}개, purposeSlot은 모�
       thirdLabel: null,
       weather: null,
       // 실험 측정용 — 벤더·모델·소요·후보 대비 실존 확인 수
-      _llm: { provider: ai.provider, model: ai.model, ms: ai.ms, outputTokens: ai.outputTokens, asked: finalists.length, verified: verified.length },
+      _llm: { provider: ai.provider, model: ai.model, ms: ai.ms, outputTokens: ai.outputTokens, asked: finalists.length, verified: verified.length, scopeDropped },
     });
   } catch (e) {
     console.error('[recommend-prompt] failed', e);
