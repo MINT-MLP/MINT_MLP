@@ -329,20 +329,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!row) unmappedPaths++;
     };
 
-    // ── 후보 수집 (1차·2차 병렬). 부족하면 반경 2배로 한 번 더 ──
+    // ── 후보 수집 (1차·2차 병렬). 완화 사다리: 반경 2배 → 장르 해제(목적만) → 반경 2배 ──
+    // 예: 2차 "밥 > 뷔페 > 고기뷔페"인데 반경 안에 고기뷔페가 없으면 밥 전체에서 찾는다.
+    // 그러지 않으면 2차 후보 0 → 단일 모드 → 화면이 1차 후보를 2차 자리에 그리는 사고가 난다.
     const fetchSlot = async (p: string, genre: string | null, excl: string[]) => {
-      const opts: FetchOpts = {
+      const base: FetchOpts = {
         key: kakaoKey, purpose: p, genre, customMenus: customMenusOf(p), areas: areaList, regionScope,
         centerLat, centerLng, radiusM: baseRadius, excludeTokens, excludeNames: excl,
       };
-      let r = await fetchCandidates(opts);
-      let widened = false;
-      if (r.list.length < MIN_CANDIDATES) {
-        const again = await fetchCandidates({ ...opts, radiusM: baseRadius * 2, regionScope: null });
-        r = { list: again.list, calls: r.calls + again.calls, scopeRelaxed: true };
-        widened = true;
+      const ladder: { opts: FetchOpts; widened: boolean; genreRelaxed: boolean }[] = [
+        { opts: base, widened: false, genreRelaxed: false },
+        { opts: { ...base, radiusM: baseRadius * 2, regionScope: null }, widened: true, genreRelaxed: false },
+        ...(genre ? [
+          { opts: { ...base, genre: null }, widened: false, genreRelaxed: true },
+          { opts: { ...base, genre: null, radiusM: baseRadius * 2, regionScope: null }, widened: true, genreRelaxed: true },
+        ] : []),
+      ];
+      let calls = 0;
+      let last = { list: [] as Candidate[], scopeRelaxed: false };
+      for (const step of ladder) {
+        const r = await fetchCandidates(step.opts);
+        calls += r.calls;
+        last = { list: r.list, scopeRelaxed: r.scopeRelaxed || step.widened };
+        if (r.list.length >= MIN_CANDIDATES) {
+          return { ...last, calls, widened: step.widened, genreRelaxed: step.genreRelaxed };
+        }
       }
-      return { ...r, widened };
+      return { ...last, calls, widened: true, genreRelaxed: !!genre };
     };
     const [slot1, slot2] = await Promise.all([
       fetchSlot(purpose.first, firstGenre, excludeNames),
@@ -352,7 +365,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     slot1.list.forEach(tagCategory);
     slot2?.list.forEach(tagCategory);
     console.log(`[recommend-search] purpose="${purpose.first}"${firstGenre ? `/${firstGenre}` : ''} second="${purpose.second ?? ''}"${secondGenre ? `/${secondGenre}` : ''} scope=${regionScope ? `${regionScope.level}:${regionScope.matchTokens.join(' ')}` : 'none'} areas=${areaList.join(',')} excludeFoods=${excludeFoods.join(',')}`);
-    console.log(`[recommend-search] candidates slot1=${slot1.list.length}${slot1.scopeRelaxed ? '(relaxed)' : ''}${slot1.widened ? '(widened)' : ''} slot2=${slot2?.list.length ?? '-'} kakaoCalls=${kakaoCalls} categoryRows=${categories?.rows.length ?? 0} unmapped=${unmappedPaths} slot1Cats=${[...new Set(slot1.list.map((c) => c.path.slice(1, 3).join('>')))].slice(0, 12).join('|')}`);
+    console.log(`[recommend-search] candidates slot1=${slot1.list.length}${slot1.scopeRelaxed ? '(relaxed)' : ''}${slot1.widened ? '(widened)' : ''}${slot1.genreRelaxed ? '(genre-off)' : ''} slot2=${slot2?.list.length ?? '-'}${slot2?.genreRelaxed ? '(genre-off)' : ''} kakaoCalls=${kakaoCalls} categoryRows=${categories?.rows.length ?? 0} unmapped=${unmappedPaths} slot1Cats=${[...new Set(slot1.list.map((c) => c.path.slice(1, 3).join('>')))].slice(0, 12).join('|')}`);
 
     if (slot1.list.length === 0) {
       return res.status(500).json({ error: '조건에 맞는 장소를 찾지 못했어요. 지역이나 조건을 바꿔 다시 시도해주세요.' });
@@ -628,9 +641,14 @@ places는 적합한 순서대로 ${Math.min(count, list.length)}개`;
 
     console.log(`[recommend-search] provider=${ai.provider} model=${ai.model} ms=${ai.ms} candidates=${slot1.list.length}+${slot2?.list.length ?? 0} known=${knownCount} llmFailed=${llmFailed}`);
 
+    // 2차를 골랐는데 끝내 후보가 없으면 courses=1. 클라이언트는 이 값으로 2차 카드를 그리지 말아야 한다.
+    const courses = effectiveTwoPurposes && places.some((p) => p.rank === 2) ? 2 : 1;
     return res.status(200).json({
       places,
       serial,
+      courses,
+      secondUnavailable: hasTwoPurposes && courses === 1,
+      genreRelaxed: { first: slot1.genreRelaxed, second: !!slot2?.genreRelaxed },
       thirdStop: null,
       thirdLabel: null,
       weather: null,
@@ -644,6 +662,7 @@ places는 적합한 순서대로 ${Math.min(count, list.length)}개`;
         unmappedPaths,
         scopeRelaxed: slot1.scopeRelaxed || !!slot2?.scopeRelaxed,
         widened: slot1.widened || !!slot2?.widened,
+        genreRelaxed: slot1.genreRelaxed || !!slot2?.genreRelaxed,
         llmFailed,
         kakaoCalls,
       },
