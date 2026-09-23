@@ -16,7 +16,8 @@ export interface PurposeValue {
   secondRaw: '밥' | '술' | '카페' | '기타' | '없음' | null;
   relation: string | null;
   occasion: string | null;
-  // (구버전 호환용 — 현재는 항상 null. 세부 메뉴는 first/second에 쉼표로 저장한다)
+  // 카테고리 선택(선택사항). 분류 경로 문자열 — "한식", "한식 > 국밥", "술집 > 와인바". 서버가 접두어 일치로 거른다.
+  // 메뉴 콕(기타)일 땐 항상 null(세부 메뉴는 first/second에 쉼표로 저장).
   firstGenre?: string | null;
   secondGenre?: string | null;
 }

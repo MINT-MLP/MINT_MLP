@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { PurposeValue } from '@/types';
+import CategoryChips from '@/components/CategoryChips';
 
 interface Props {
   value: PurposeValue;
@@ -76,6 +77,16 @@ export default function PurposeSelect({ value, onChange }: Props) {
           })}
         </div>
 
+        {/* 카테고리 좁히기(선택) — 밥/술/카페일 때만. 안 고르면 목적만으로 추천 */}
+        {(value.firstRaw === '밥' || value.firstRaw === '술' || value.firstRaw === '카페') && (
+          <CategoryChips
+            purpose={value.firstRaw}
+            value={value.firstGenre ?? null}
+            onChange={(p) => onChange({ ...value, firstGenre: p })}
+            color="mint"
+          />
+        )}
+
         {/* 메뉴 콕 모드: 세부 메뉴 태그 입력 */}
         {value.firstRaw === '기타' && (
           <div className="mt-2.5 animate-fade-in-up">
@@ -118,6 +129,17 @@ export default function PurposeSelect({ value, onChange }: Props) {
             );
           })}
         </div>
+
+        {(value.secondRaw === '밥' || value.secondRaw === '술' || value.secondRaw === '카페') && (
+          <div className="mb-2.5">
+            <CategoryChips
+              purpose={value.secondRaw}
+              value={value.secondGenre ?? null}
+              onChange={(p) => onChange({ ...value, secondGenre: p })}
+              color="orange"
+            />
+          </div>
+        )}
 
         {/* 2차 메뉴 콕 모드 */}
         {value.secondRaw === '기타' && (

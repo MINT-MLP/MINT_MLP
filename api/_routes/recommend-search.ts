@@ -49,8 +49,20 @@ const GENRE_MATCH: Record<string, (p: string[]) => boolean> = {
   '이자카야':  (p) => p[1] === '술집' && p[2] === '일본식주점',
 };
 
+// 장르가 분류 경로("한식 > 국밥", "술집 > 와인바")면 접두어 일치. 옛 라벨(한식·와인·이자카야)은 GENRE_MATCH.
+function genrePath(genre: string | null): string[] | null {
+  if (!genre) return null;
+  if (GENRE_MATCH[genre]) return null;
+  return genre.split('>').map((s) => s.trim()).filter(Boolean);
+}
+function matchesGenrePath(path: string[], gp: string[]): boolean {
+  return gp.every((seg, i) => path[i + 1] === seg);   // path[0]은 '음식점'
+}
+
 function matchesPurpose(path: string[], purpose: string, genre: string | null): boolean {
   if (path[0] !== '음식점') return false;
+  const gp = genrePath(genre);
+  if (gp && gp.length) return matchesGenrePath(path, gp);
   if (genre && GENRE_MATCH[genre]) return GENRE_MATCH[genre](path);
   if (purpose === '밥') return !NOT_MEAL.has(path[1] ?? '');
   if (purpose === '술') return path[1] === '술집' || (path[1] === '한식' && path[2] === '육류,고기');
@@ -135,11 +147,18 @@ async function fetchCandidates(o: FetchOpts): Promise<{ list: Candidate[]; calls
   const base = { x: o.centerLng, y: o.centerLat, radius: Math.min(o.radiusM, 20000), size: 15 };
 
   // 1) 키워드 검색: 지역명 × 키워드 (관련도순). 장르가 있으면 장르 풀, 없으면 목적 풀, 직접 입력이면 그 메뉴.
+  // 분류 경로 장르("한식 > 해물,생선 > 게,대게")는 가장 깊은 단계의 이름을 검색어로("게", "대게").
+  const gp = genrePath(o.genre);
+  const pathKeywords = gp && gp.length
+    ? [...new Set(gp[gp.length - 1].split(',').map((s) => s.trim()).filter((s) => s.length >= 2))]
+    : [];
   const keywords = o.customMenus.length
     ? o.customMenus
-    : o.genre && GENRE_KEYWORDS[o.genre]
-      ? GENRE_KEYWORDS[o.genre].slice(0, 4)
-      : (PURPOSE_KEYWORDS[o.purpose] ?? PURPOSE_KEYWORDS['기타']).slice(0, 5);
+    : pathKeywords.length
+      ? [...pathKeywords, ...(PURPOSE_KEYWORDS[o.purpose] ?? []).slice(0, 2)]
+      : o.genre && GENRE_KEYWORDS[o.genre]
+        ? GENRE_KEYWORDS[o.genre].slice(0, 4)
+        : (PURPOSE_KEYWORDS[o.purpose] ?? PURPOSE_KEYWORDS['기타']).slice(0, 5);
   const areaNames = o.areas.length ? o.areas.slice(0, 2) : [o.regionScope?.matchTokens.join(' ') ?? ''];
   const keywordQueries: string[] = [];
   for (const area of areaNames) for (const kw of keywords) keywordQueries.push(`${area} ${kw}`.trim());

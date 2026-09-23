@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import recommendSearch from './_routes/recommend-search.js';
+import placeCategories from './_routes/place-categories.js';
 import congestion from './_routes/congestion.js';
 import count from './_routes/count.js';
 import feedback from './_routes/feedback.js';
@@ -17,6 +18,7 @@ const ROUTES: Record<string, Handler> = {
   // 검색 우선(카카오 후보 → LLM 순위) 실험 중. 이전 경로: 모델 기억 후보(_routes/recommend-prompt.js),
   // 네이버 지역검색 파이프라인(_routes/recommend.js, 약관 검토로 제외). 되돌리려면 import를 바꾼다.
   recommend: recommendSearch,
+  'place-categories': placeCategories,
   congestion,
   count,
   feedback,
