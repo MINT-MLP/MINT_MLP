@@ -15,7 +15,7 @@ export interface HcxOptions {
   maxTokens?: number;
   temperature?: number;
   system?: string;
-  /** HCX-007 전용 구조화 출력(JSON Schema). 추론·function calling과 동시 사용 불가라 thinking을 끈다 */
+  /** 구조화 출력(JSON Schema). HCX-007만 지원하므로 다른 모델에는 보내지 않는다 */
   jsonSchema?: Record<string, unknown>;
   apiKey?: string;
 }
@@ -53,16 +53,18 @@ export async function askHcx(prompt: string, opts: HcxOptions = {}, fetchImpl: F
   if (!apiKey) throw new HcxError('CLOVA_STUDIO_API_KEY 미설정', 0, '');
   const model = opts.model ?? process.env.CLOVA_MODEL ?? HCX_MODELS.default;
 
+  // HCX-007(추론 모델)만 maxCompletionTokens·thinking을 받고, 그 외 모델은 maxTokens다
+  const reasoning = model.startsWith('HCX-007');
+  const limit = opts.maxTokens ?? 4096;
   const body = {
     messages: [
       ...(opts.system ? [{ role: 'system', content: opts.system }] : []),
       { role: 'user', content: prompt },
     ],
-    maxCompletionTokens: opts.maxTokens ?? 4096,
+    ...(reasoning ? { maxCompletionTokens: limit, thinking: { effort: 'none' } } : { maxTokens: Math.min(limit, 4096) }),
     temperature: opts.temperature ?? 0.5,
     topP: 0.8,
-    ...(model.startsWith('HCX-007') ? { thinking: { effort: 'none' } } : {}),
-    ...(opts.jsonSchema ? { responseFormat: { type: 'json', schema: opts.jsonSchema } } : {}),
+    ...(opts.jsonSchema && reasoning ? { responseFormat: { type: 'json', schema: opts.jsonSchema } } : {}),
   };
 
   const start = Date.now();

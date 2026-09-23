@@ -46,11 +46,14 @@ describe('askHcx', () => {
     expect(calls[0].body.temperature).toBe(0.2);
   });
 
-  it('HCX-007이 아닌 모델에는 thinking을 보내지 않는다', async () => {
+  it('HCX-007이 아닌 모델에는 thinking 없이 maxTokens(상한 4096)로 보낸다', async () => {
     const { impl, calls } = fakeFetch({ body: ok('x') });
-    await askHcx('q', { apiKey: 'k', model: HCX_MODELS.light }, impl);
+    await askHcx('q', { apiKey: 'k', model: HCX_MODELS.light, maxTokens: 6144, jsonSchema: { type: 'object' } }, impl);
     expect(calls[0].url.endsWith('/HCX-DASH-002')).toBe(true);
     expect(calls[0].body.thinking).toBeUndefined();
+    expect(calls[0].body.maxCompletionTokens).toBeUndefined();
+    expect(calls[0].body.maxTokens).toBe(4096);
+    expect(calls[0].body.responseFormat).toBeUndefined();
   });
 
   it('finishReason length는 truncated', async () => {

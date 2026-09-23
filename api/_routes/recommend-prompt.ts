@@ -59,7 +59,18 @@ function isTakeoutOnly(p: { placeName?: string; category?: string; description?:
 
 // "북창동순두부 강남신사점" → "북창동순두부". 지점명만 틀린 경우를 살리기 위한 비교용
 function brandName(s: string): string {
-  return normName(s).replace(/(본점|\S{1,6}점)$/, '');
+  const parts = (s || '').trim().split(/\s+/);
+  if (parts.length > 1 && /점$/.test(parts[parts.length - 1])) parts.pop();
+  return normName(parts.join(' '));
+}
+
+// 카카오 이름이 모델 이름을 통째로 담으면 같은 가게. 반대 방향(모델 이름이 카카오 이름을 담음)은
+// 카카오 이름이 충분히 길 때만 — "논현이자카야"가 "이자카야"라는 가게에 걸리는 오판을 막는다.
+function sameName(got: string, want: string): boolean {
+  if (got.length < 2 || want.length < 2) return false;
+  if (want.length < 3) return got === want;
+  if (got.includes(want)) return true;
+  return want.includes(got) && got.length >= 3 && got.length >= want.length * 0.7;
 }
 
 function validCoord(lat: unknown, lng: unknown): lat is number {
@@ -77,16 +88,8 @@ async function kakaoLookup(name: string, lat: number, lng: number, radiusM: numb
     if (!res.ok) return null;
     const data = await res.json() as { documents?: { place_name: string; place_url: string; x: string; y: string }[] };
     const docs = data.documents ?? [];
-    const want = normName(name);
-    const exact = docs.find((d) => {
-      const got = normName(d.place_name);
-      return got.length >= 2 && (got.includes(want) || want.includes(got));
-    });
-    const wantBrand = brandName(name);
-    const brand = exact ? null : docs.find((d) => {
-      const got = brandName(d.place_name);
-      return got.length >= 2 && wantBrand.length >= 2 && (got.includes(wantBrand) || wantBrand.includes(got));
-    });
+    const exact = docs.find((d) => sameName(normName(d.place_name), normName(name)));
+    const brand = exact ? null : docs.find((d) => sameName(brandName(d.place_name), brandName(name)));
     const hit = exact ?? brand;
     return hit ? { placeUrl: hit.place_url, lat: parseFloat(hit.y), lng: parseFloat(hit.x), match: exact ? 'exact' : 'brand' } : null;
   } catch {
@@ -227,27 +230,23 @@ ${regionSection}
 
     const schemaText = `{"slotRank": 1, "purposeSlot": 1, "placeName": "장소명", "category": "업종", "address": "주소", "area": "동네명", "lat": 0, "lng": 0, "description": "한 줄 설명 20자 내외", "priceRange": "1인 예상 가격대", "vibeTags": ["태그1", "태그2", "태그3"], "fitScore": 0}`;
 
-    const prompt = hasTwoPurposes
-      ? `당신은 한국 모임 장소 큐레이터입니다. 1차·2차 코스 장소를 각각 선호 순서대로 ${finalistPer}곳씩 추천해주세요.
+    // 2코스는 1차·2차를 따로 물어 병렬로 보낸다. 한 번에 12곳을 묻는 것보다 응답 시간이 절반이다.
+    const slotPrompt = (slot: 1 | 2, count: number) => {
+      const label = slot === 1 ? purposeFirstLabel : purposeSecondLabel;
+      const lead = slot === 2 ? `1차 "${purposeFirstLabel}" 다음에 이어갈 2차 코스 ` : '';
+      return `당신은 한국 모임 장소 큐레이터입니다. ${lead}"${label}" 장소를 선호 순서대로 ${count}곳 추천해주세요.
 ${commonInfo}
 
-## 응답 구성 (총 ${finalistPer * 2}곳)
-- purposeSlot 1(1차 "${purposeFirstLabel}") ${finalistPer}곳: slotRank 1이 가장 적합, 내림차순. 장소 중복 금지
-- purposeSlot 2(2차 "${purposeSecondLabel}") ${finalistPer}곳: slotRank 1이 가장 적합, 내림차순. 장소 중복 금지
-- 각 슬롯의 slotRank 1은 서로 도보 15분 이내로 이어질 수 있는 조합을 우선${guSpreadLine}
-
-## 응답 형식 (JSON만, 다른 텍스트 없이)
-{"places": [ ${schemaText}, ... ]}
-places 배열에 purposeSlot 1의 slotRank 1~${finalistPer}, 이어서 purposeSlot 2의 slotRank 1~${finalistPer} 순으로 ${finalistPer * 2}개`
-      : `당신은 한국 모임 장소 큐레이터입니다. "${purposeFirstLabel}" 장소를 선호 순서대로 ${finalistSingle}곳 추천해주세요.
-${commonInfo}
-
-## 응답 구성 (서로 다른 ${finalistSingle}곳, purposeSlot은 항상 1)
+## 응답 구성 (서로 다른 ${count}곳, purposeSlot은 모두 ${slot})
 - slotRank 1이 가장 적합, 내림차순. 장소 중복 금지${guSpreadLine}
 
 ## 응답 형식 (JSON만, 다른 텍스트 없이)
 {"places": [ ${schemaText}, ... ]}
-places 배열에 slotRank 1~${finalistSingle} 순으로 ${finalistSingle}개, purposeSlot은 모두 1`;
+places 배열에 slotRank 1~${count} 순으로 ${count}개, purposeSlot은 모두 ${slot}`;
+    };
+    const prompts: { slot: 1 | 2; prompt: string }[] = hasTwoPurposes
+      ? [{ slot: 1, prompt: slotPrompt(1, finalistPer) }, { slot: 2, prompt: slotPrompt(2, finalistPer) }]
+      : [{ slot: 1, prompt: slotPrompt(1, finalistSingle) }];
 
     // 벤더 A/B — 관리자 키가 맞을 때만 요청 본문의 _provider로 바꾼다
     const benchKey = (process.env.ADMIN_BENCH_KEY ?? process.env.ADMIN_PASSWORD ?? '').trim();
@@ -266,18 +265,29 @@ places 배열에 slotRank 1~${finalistSingle} 순으로 ${finalistSingle}개, pu
       });
     }
 
-    const ai = await askLlm(prompt, {
+    const results = await Promise.all(prompts.map(({ prompt }) => askLlm(prompt, {
       provider: providerOverride,
-      maxTokens: 6144,
+      maxTokens: 4096,
       temperature: 0.3,
       system: '당신은 한국 모임 장소 큐레이터입니다. 실제로 아는 장소만 JSON으로 답합니다.',
       jsonSchema: RESPONSE_SCHEMA,
-    });
-    if (ai.truncated) console.warn('[recommend-prompt] 응답이 토큰 상한에서 잘림, 부분 복구 시도');
+    })));
+    const ai = {
+      provider: results[0].provider,
+      model: results[0].model,
+      ms: Math.max(...results.map((r) => r.ms)),
+      outputTokens: results.reduce<number>((s, r) => s + (r.outputTokens ?? 0), 0),
+    };
 
-    const finalists = extractPlaces(ai.text);
-    if (!finalists || finalists.length === 0) {
-      console.error('[recommend-prompt] places 추출 실패. 응답 앞부분:', ai.text.slice(0, 300));
+    const finalists: FinalistPlace[] = [];
+    results.forEach((r, i) => {
+      const slot = prompts[i].slot;
+      if (r.truncated) console.warn(`[recommend-prompt] slot ${slot} 응답이 토큰 상한에서 잘림, 부분 복구 시도`);
+      const got = extractPlaces(r.text) ?? [];
+      if (got.length === 0) console.error(`[recommend-prompt] slot ${slot} places 추출 실패. 응답 앞부분:`, r.text.slice(0, 300));
+      for (const f of got) { f.purposeSlot = slot; finalists.push(f); }
+    });
+    if (!finalists.some((f) => f.purposeSlot === 1)) {
       return res.status(500).json({ error: '추천 결과를 정리하지 못했어요. 다시 시도해주세요.' });
     }
     for (const f of finalists) {
@@ -313,6 +323,16 @@ places 배열에 slotRank 1~${finalistSingle} 순으로 ${finalistSingle}개, pu
       console.warn('[recommend-prompt] VITE_KAKAO_REST_API_KEY 없음, 실존 게이트 생략');
       verified = finalists.filter((f) => !isTakeoutOnly(f));
     }
+    // 1차·2차를 따로 물었으니 같은 가게가 양쪽에 올 수 있다. 먼저 온 슬롯(1차)만 남긴다.
+    const seenNames = new Set<string>();
+    verified = [...verified]
+      .sort((a, b) => (a.purposeSlot ?? 1) - (b.purposeSlot ?? 1))
+      .filter((f) => {
+        const k = normName(f.placeName);
+        if (seenNames.has(k)) return false;
+        seenNames.add(k);
+        return true;
+      });
     console.log(`[recommend-prompt] provider=${ai.provider} model=${ai.model} ms=${ai.ms} asked=${finalists.length} verified=${verified.length}`);
 
     const effectiveTwoPurposes = hasTwoPurposes && verified.some((p) => p.purposeSlot === 2);
