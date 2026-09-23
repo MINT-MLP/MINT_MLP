@@ -351,7 +351,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const kakaoCalls = slot1.calls + (slot2?.calls ?? 0);
     slot1.list.forEach(tagCategory);
     slot2?.list.forEach(tagCategory);
-    console.log(`[recommend-search] candidates slot1=${slot1.list.length}${slot1.scopeRelaxed ? '(relaxed)' : ''}${slot1.widened ? '(widened)' : ''} slot2=${slot2?.list.length ?? '-'} kakaoCalls=${kakaoCalls} categoryRows=${categories?.rows.length ?? 0} unmapped=${unmappedPaths}`);
+    console.log(`[recommend-search] purpose="${purpose.first}"${firstGenre ? `/${firstGenre}` : ''} second="${purpose.second ?? ''}"${secondGenre ? `/${secondGenre}` : ''} scope=${regionScope ? `${regionScope.level}:${regionScope.matchTokens.join(' ')}` : 'none'} areas=${areaList.join(',')} excludeFoods=${excludeFoods.join(',')}`);
+    console.log(`[recommend-search] candidates slot1=${slot1.list.length}${slot1.scopeRelaxed ? '(relaxed)' : ''}${slot1.widened ? '(widened)' : ''} slot2=${slot2?.list.length ?? '-'} kakaoCalls=${kakaoCalls} categoryRows=${categories?.rows.length ?? 0} unmapped=${unmappedPaths} slot1Cats=${[...new Set(slot1.list.map((c) => c.path.slice(1, 3).join('>')))].slice(0, 12).join('|')}`);
 
     if (slot1.list.length === 0) {
       return res.status(500).json({ error: '조건에 맞는 장소를 찾지 못했어요. 지역이나 조건을 바꿔 다시 시도해주세요.' });
