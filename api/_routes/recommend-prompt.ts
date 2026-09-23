@@ -51,6 +51,12 @@ function normName(s: string): string {
   return (s || '').replace(/\s+/g, '').toLowerCase();
 }
 
+// 모임 장소가 못 되는 곳. 프롬프트로도 막지만 모델이 흘리면 여기서 한 번 더 거른다.
+const TAKEOUT_RE = /테이크아웃|포장전문|배달전문|푸드코트|무인|키오스크|메가커피|메가mgc|컴포즈|빽다방|더벤티|매머드/i;
+function isTakeoutOnly(p: { placeName?: string; category?: string; description?: string }): boolean {
+  return TAKEOUT_RE.test(normName(`${p.placeName ?? ''}|${p.category ?? ''}|${p.description ?? ''}`));
+}
+
 // "북창동순두부 강남신사점" → "북창동순두부". 지점명만 틀린 경우를 살리기 위한 비교용
 function brandName(s: string): string {
   return normName(s).replace(/(본점|\S{1,6}점)$/, '');
@@ -216,7 +222,8 @@ ${regionSection}
 2. 유명하지 않아도 되지만 지어낸 이름은 절대 금지. 프랜차이즈는 지점명까지(예: "OO 성수점")
 3. address는 아는 만큼 정확히(도로명 또는 지번). lat/lng는 아는 값만, 모르면 0
 4. category는 업종(예: 이자카야, 파스타, 카페)
-5. fitScore는 0~100 정수. 분위기·목적·예산·인원 적합도. rank 1이 가장 높게, 장소마다 차별화`;
+5. fitScore는 0~100 정수. 분위기·목적·예산·인원 적합도. rank 1이 가장 높게, 장소마다 차별화
+6. 일행이 앉아서 머물 수 있는 곳만. 테이크아웃·포장·배달 전문점, 좌석 없는 매장, 푸드코트, 저가 테이크아웃 커피 체인(메가커피·컴포즈·빽다방·더벤티·매머드 등)은 절대 금지`;
 
     const schemaText = `{"slotRank": 1, "purposeSlot": 1, "placeName": "장소명", "category": "업종", "address": "주소", "area": "동네명", "lat": 0, "lng": 0, "description": "한 줄 설명 20자 내외", "priceRange": "1인 예상 가격대", "vibeTags": ["태그1", "태그2", "태그3"], "fitScore": 0}`;
 
@@ -290,6 +297,10 @@ places 배열에 slotRank 1~${finalistSingle} 순으로 ${finalistSingle}개, pu
       const isExcluded = (name: string) => excludeNames.some((ex) => name.includes(ex) || ex.includes(name));
       const checked = await Promise.all(finalists.map(async (f) => {
         if (!f.placeName || isExcluded(f.placeName)) return null;
+        if (isTakeoutOnly(f)) {
+          console.log(`[recommend-prompt] gate "${f.placeName}" slot=${f.purposeSlot} dropped=takeout`);
+          return null;
+        }
         const hit = await kakaoLookup(f.placeName, gateLat, gateLng, gateRadius, kakaoKey);
         const errKm = hit && validCoord(f.lat, f.lng) ? distKm(f.lat as number, f.lng as number, hit.lat, hit.lng) : null;
         console.log(`[recommend-prompt] gate "${f.placeName}" slot=${f.purposeSlot} found=${!!hit}${hit ? ` match=${hit.match}` : ''}${errKm != null ? ` modelCoordErrKm=${errKm.toFixed(2)}` : ''}`);
@@ -300,6 +311,7 @@ places 배열에 slotRank 1~${finalistSingle} 순으로 ${finalistSingle}개, pu
       verified = checked.filter((f): f is FinalistPlace => f !== null);
     } else {
       console.warn('[recommend-prompt] VITE_KAKAO_REST_API_KEY 없음, 실존 게이트 생략');
+      verified = finalists.filter((f) => !isTakeoutOnly(f));
     }
     console.log(`[recommend-prompt] provider=${ai.provider} model=${ai.model} ms=${ai.ms} asked=${finalists.length} verified=${verified.length}`);
 

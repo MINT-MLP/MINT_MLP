@@ -22,7 +22,7 @@
       "destination": "/api/session"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
