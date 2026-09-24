@@ -1,5 +1,6 @@
 // 추천 플로우 — 입력(사용자 선택)부터 결과(장소)까지의 도메인 타입
 import type { Coordinates, RegionLevel } from '@/types/geo';
+import type { IconName } from '@/components/icons';
 
 // ── 입력 ──────────────────────────────────────────────────────────────
 
@@ -104,7 +105,7 @@ export interface PlaceEnrichment {
 }
 
 // 스텝2 2층 '특별한 날' 칩 (constants/occasion). occasion: null 은 "평범/그냥".
-export interface OccChip { key: string; occasion: string | null; emoji: string; }
+export interface OccChip { key: string; occasion: string | null; icon: string; }
 
 // ── 홈 화면 흐름 ───────────────────────────────────────────────────────
 
@@ -121,7 +122,7 @@ export type PurposeCtx = { first: string | null; second?: string | null };
 
 export interface VibePreset {
   id: string;
-  emoji: string;
+  icon: IconName;
   title: string;
   desc: string;
   mood: string[];       // '분위기' — 지금 보고 있는 코스에 채운다

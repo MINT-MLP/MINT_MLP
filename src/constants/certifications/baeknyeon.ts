@@ -86,12 +86,12 @@ const ENTRIES: CertEntry[] = [
 export const BAEKNYEON: CertSource = {
   id: 'baeknyeon',
   label: '백년가게',
-  emoji: '🏛️',
+  icon: 'landmark',
   badgeTextColor: '#8A5A2B',
   priority: 2,
   sheetTitle: '백년가게',
   sheetBody:
-    '30년 넘게 한자리를 지켜온 노포예요. 정부가 오랜 내공과 지속가능성을 직접 심사해 인증한, 세월이 보증하는 진짜 맛집이랍니다 🏛️',
+    '30년 넘게 한자리를 지켜온 노포예요. 정부가 오랜 내공과 지속가능성을 직접 심사해 인증한, 세월이 보증하는 진짜 맛집이랍니다',
   sourceLine: '중소벤처기업부·소상공인시장진흥공단 백년가게 선정',
   ctaLabel: '오래된 맛, 기대돼요!',
   entries: ENTRIES,

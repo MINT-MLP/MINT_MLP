@@ -195,9 +195,9 @@ export function findBalancedAreas(
   //  · hubGap > 5km — 중앙에 상권이 없어 공평한 곳으로 옮겼다는 사실을 설명(부천/안양이 왜 나왔는지).
   //    3~5km는 체감 차이가 없어 조용히 스냅만 한다.
   const compromiseMessage = maxPairDist > FAR_WARNING_KM
-    ? `출발지가 서로 ${Math.round(maxPairDist)}km나 떨어져 있어요. 그나마 공평한 ${areaName} 근처로 찾았는데, 다들 멀다면 지역을 직접 골라도 좋아요 📍`
+    ? `출발지가 서로 ${Math.round(maxPairDist)}km나 떨어져 있어요. 그나마 공평한 ${areaName} 근처로 찾았는데, 다들 멀다면 지역을 직접 골라도 좋아요`
     : (departures.length >= 2 && hubGap > EXPLAIN_HUB_KM)
-      ? `딱 중간엔 마땅한 상권이 없어서, 모두에게 가장 공평한 ${areaName} 근처로 찾았어요 🧭`
+      ? `딱 중간엔 마땅한 상권이 없어서, 모두에게 가장 공평한 ${areaName} 근처로 찾았어요`
       : undefined;
 
   return { areas, midpoint, areaName, compromiseMessage, snapHubs };

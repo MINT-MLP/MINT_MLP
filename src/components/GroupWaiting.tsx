@@ -1,4 +1,5 @@
 import type { GroupMember } from '@/types';
+import { Icon } from '@/components/icons';
 
 interface Props {
   shareLink: string;
@@ -37,7 +38,7 @@ export default function GroupWaiting({
             onClick={onCopy}
             className="flex-1 px-4 py-2.5 rounded-xl bg-mint-100 text-mint-600 text-sm font-bold transition-all active:scale-95 hover:bg-mint-200"
           >
-            {copied ? '복사됨!' : '🔗 링크 복사'}
+            {copied ? '복사됨!' : <><Icon name="link" className="mr-1" />링크 복사</>}
           </button>
           <button
             onClick={onKakaoShare}
@@ -101,7 +102,7 @@ export default function GroupWaiting({
         <div className="p-4 bg-mint-100 border border-mint-500/40 rounded-2xl text-center">
           {allVoted ? (
             <>
-              <p className="text-base font-black text-mint-600">🎉 전원 완료!</p>
+              <p className="text-base font-black text-mint-600"><Icon name="party" className="mr-1" />전원 완료!</p>
               <p className="text-xs text-mint-600/70 mt-0.5">모두의 취향이 모였어요. 바로 추천받을 수 있어요.</p>
             </>
           ) : (

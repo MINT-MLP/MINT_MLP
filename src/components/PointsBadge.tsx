@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { getDeviceId } from '@/storage/device';
 import { getBalance, getLedger } from '@/storage/points';
 import { trackEvent } from '@/services/analytics';
+import { Icon } from '@/components/icons';
 
 // 헤더 포인트 배지 + 탭 시 적립 내역 시트. 스토어는 아직 없음 — "곧 쓸 수 있다" 예고만.
 // onOpenChange: 시트 열림 상태를 부모에 알린다(탭 화면에서 하단 탭바를 내리기 위해).
@@ -27,7 +28,7 @@ export default function PointsBadge({
         aria-label="내 포인트"
         className="flex items-center gap-1 rounded-full bg-mint-100 border border-mint-500/40 px-2.5 py-1.5 text-xs font-black text-mint-600 active:scale-95 transition-transform"
       >
-        <span className="text-sm leading-none">🌿</span>
+        <Icon name="leaf" className="text-sm" />
         {balance.toLocaleString()}P
       </button>
       {open && <PointsSheet onClose={() => setSheetOpen(false)} />}
@@ -45,7 +46,7 @@ function PointsSheet({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-1">
-          <h3 className="text-lg font-black text-gray-900">🌿 내 포인트</h3>
+          <h3 className="text-lg font-black text-gray-900"><Icon name="leaf" className="mr-1" />내 포인트</h3>
           <button onClick={onClose} className="text-gray-400 text-sm font-bold px-2 active:scale-95">닫기</button>
         </div>
         <p className="text-3xl font-black text-mint-600 mb-3">{balance.toLocaleString()}P</p>
@@ -55,7 +56,7 @@ function PointsSheet({ onClose }: { onClose: () => void }) {
           onClick={() => trackEvent('points_store_teaser_click', { device_id: getDeviceId(), balance })}
           className="w-full text-left bg-gradient-to-r from-mint-100 to-yellow-50 border border-mint-500/30 rounded-2xl px-4 py-3 mb-3 active:scale-[0.99] transition-transform"
         >
-          <p className="text-sm font-black text-gray-800">🎁 포인트 스토어 준비 중</p>
+          <p className="text-sm font-black text-gray-800"><Icon name="gift" className="mr-1" />포인트 스토어 준비 중</p>
           <p className="text-xs text-gray-500 mt-0.5">방문 인증으로 쌓은 포인트를 곧 기프티콘·골목 쿠폰으로 바꿀 수 있어요.</p>
         </button>
 

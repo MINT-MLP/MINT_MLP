@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 import type { MintCoupon } from '@/pages/mock/data/coupons';
-import { IconMapPin, IconClock, IconUtensils, IconBell, IconCheck } from '@/components';
+import { Icon, IconMapPin, IconClock, IconUtensils, IconBell, IconCheck } from '@/components';
 import type { IconProps } from '@/components';
 
 interface Props {
@@ -34,7 +34,7 @@ export default function CouponDetailSheet({
         <div className="flex-1 overflow-y-auto px-5 pb-4">
           <h2 className="text-[20px] font-black leading-snug text-gray-900 break-keep">{coupon.shopName}</h2>
           <p className="mt-0.5 text-sm text-gray-400">{coupon.area} · {coupon.category}</p>
-          <p className="mt-1 text-xs text-gray-500">⭐ {coupon.rating.toFixed(1)}</p>
+          <p className="mt-1 text-xs text-gray-500"><Icon name="star" className="mr-1" />{coupon.rating.toFixed(1)}</p>
 
           <div className="mt-4 flex flex-col gap-2.5 rounded-2xl border border-gray-100 bg-white p-4">
             <InfoRow icon={<IconMapPin className="h-4 w-4" />} label="주소" value={coupon.address} />

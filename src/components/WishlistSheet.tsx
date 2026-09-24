@@ -3,6 +3,7 @@ import { getWishlist, removeWish, wishMapLink } from '@/storage/wishlist';
 import { getDeviceId } from '@/storage/device';
 import { trackEvent } from '@/services/analytics';
 import type { WishItem } from '@/types';
+import { Icon } from '@/components/icons';
 
 // 내 찜 목록 바텀시트 — 저장한 곳을 모아 보고 지도로 바로 열기.
 export default function WishlistSheet({ onClose }: { onClose: () => void }) {
@@ -24,13 +25,13 @@ export default function WishlistSheet({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-black text-gray-900">🤍 내가 찜한 곳</h3>
+          <h3 className="text-lg font-black text-gray-900"><Icon name="heart" className="mr-1" />내가 찜한 곳</h3>
           <button onClick={onClose} className="text-gray-400 text-sm font-bold px-2 active:scale-95">닫기</button>
         </div>
 
         {items.length === 0 ? (
           <div className="py-14 text-center">
-            <p className="text-4xl mb-3">🫧</p>
+            <p className="text-4xl mb-3 text-gray-300"><Icon name="inbox" /></p>
             <p className="text-sm text-gray-500 leading-relaxed">
               아직 찜한 곳이 없어요.<br />
               마음에 드는 곳의 하트를 눌러 저장해보세요.

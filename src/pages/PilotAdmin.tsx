@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { supabase } from '@/services/supabase';
 import type { CoursePick, PilotPrize } from '@/types';
+import { Icon } from '@/components/icons';
 
 interface PilotFeedback {
   id: string;
@@ -86,7 +87,7 @@ export default function PilotAdmin() {
       <div className="min-h-[100dvh] bg-mint-50 flex items-center justify-center px-4">
         <form onSubmit={(e) => { e.preventDefault(); if (password.trim()) loadAll(password.trim()); }}
           className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-xs text-center">
-          <div className="text-3xl mb-3">🔒</div>
+          <Icon name="lock" className="text-3xl mb-3 text-gray-400" />
           <h1 className="text-lg font-black text-gray-800 mb-1">선발대 어드민</h1>
           <p className="text-sm text-gray-400 mb-6">비밀번호를 입력해주세요</p>
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="비밀번호" autoFocus
@@ -116,7 +117,7 @@ export default function PilotAdmin() {
           {([['feedback', `제출 ${records.length}`], ['stock', '재고 등록'], ['status', `지급 현황`]] as [Tab, string][]).map(([t, label]) => (
             <button key={t} onClick={() => setTab(t)}
               className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${tab === t ? 'bg-mint-500 text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'}`}>
-              {label}{t === 'stock' && lowStock ? ' ⚠️' : ''}
+              {label}{t === 'stock' && lowStock && <Icon name="alert" className="ml-1" />}
             </button>
           ))}
         </div>
@@ -124,7 +125,8 @@ export default function PilotAdmin() {
         {error && <div className="mb-4 bg-red-50 border border-red-200 rounded-2xl p-4 text-sm text-red-600">{error}</div>}
         {lowStock && (
           <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-700 font-bold flex items-center gap-2">
-            ⚠️ 남은 재고 {counts.available}개! 품절대기가 생기기 전에 기프티콘을 충전해주세요.
+            <Icon name="alert" />
+            남은 재고 {counts.available}개! 품절대기가 생기기 전에 기프티콘을 충전해주세요.
           </div>
         )}
 
@@ -170,7 +172,7 @@ function FeedbackTab({ records, summary }: { records: PilotFeedback[]; summary: 
       )}
 
       {records.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-2xl border border-gray-100"><div className="text-4xl mb-3">📋</div><p className="text-gray-400">아직 제출된 피드백이 없어요.</p></div>
+        <div className="text-center py-20 bg-white rounded-2xl border border-gray-100"><Icon name="clipboard" className="text-4xl mb-3 text-gray-300" /><p className="text-gray-400">아직 제출된 피드백이 없어요.</p></div>
       ) : (
         <div className="flex flex-col gap-4">
           {records.map((r) => (
@@ -199,10 +201,10 @@ function FeedbackTab({ records, summary }: { records: PilotFeedback[]; summary: 
                 if (!purpose && !relation && !region && vibes.length === 0) return null;
                 return (
                   <div className="flex flex-wrap gap-1.5 mb-3">
-                    {purpose && <Chip>🍽️ {purpose}</Chip>}
-                    {relation && <Chip>👥 {relation}</Chip>}
-                    {region && <Chip>📍 {region}</Chip>}
-                    {c?.budget && <Chip>💰 {c.budget}</Chip>}
+                    {purpose && <Chip><Icon name="meal" className="mr-1" />{purpose}</Chip>}
+                    {relation && <Chip><Icon name="users" className="mr-1" />{relation}</Chip>}
+                    {region && <Chip><Icon name="pin" className="mr-1" />{region}</Chip>}
+                    {c?.budget && <Chip><Icon name="wallet" className="mr-1" />{c.budget}</Chip>}
                     {vibes.map((v) => <Chip key={v}>#{v}</Chip>)}
                   </div>
                 );
@@ -219,7 +221,7 @@ function FeedbackTab({ records, summary }: { records: PilotFeedback[]; summary: 
                         <span className="text-[11px] font-bold text-gray-500">{course}: </span>
                         {picks.map((p) => {
                           const went = v?.choice === p.placeName;
-                          return <span key={p.placeName} className={`text-[11px] mr-1.5 ${went ? 'font-black text-mint-600' : 'text-gray-400'}`}>{went ? '✅ ' : ''}{p.rank}.{p.placeName}</span>;
+                          return <span key={p.placeName} className={`text-[11px] mr-1.5 ${went ? 'font-black text-mint-600' : 'text-gray-400'}`}>{went && <Icon name="checkCircle" className="mr-1" />}{p.rank}.{p.placeName}</span>;
                         })}
                         {v?.choice === '__other' && <span className="text-[11px] font-black text-orange-500">→ 다른 곳{v.otherName ? `: ${v.otherName}` : ''}</span>}
                         {v?.choice === '__none' && <span className="text-[11px] text-gray-400">→ 안 감</span>}

@@ -5,6 +5,7 @@ import { AdminPasswordGate, AdminPasswordChangeCard, AdminStatCard, AdminBarRow,
 import { pct, pctLabel, formatDuration, formatDate, formatRelative } from '@/utils/format';
 import { downloadCsv } from '@/utils/csv';
 import { callAdmin } from '@/services/admin';
+import { Icon, type IconName } from '@/components/icons';
 
 // 어드민 — 모든 데이터 접근은 /api/admin/data(서버 비밀번호 검증 + service role) 경유.
 // 클라이언트 하드코딩 비밀번호와 anon 키 직접 select는 보안 문제로 제거됨.
@@ -53,11 +54,11 @@ interface UserFeedbackRow {
 }
 
 // 미분류(null)까지 한 자리를 준다 — 안 고르고 보낸 사람이 제일 많을 수 있다
-const FEEDBACK_CATEGORIES: { key: string; label: string; badge: string; bar: `bg-${string}` }[] = [
-  { key: 'bug', label: '🐞 버그', badge: 'bg-red-50 text-red-500', bar: 'bg-red-500' },
-  { key: 'pain', label: '😣 불편', badge: 'bg-amber-50 text-amber-600', bar: 'bg-amber-500' },
-  { key: 'idea', label: '💡 아이디어', badge: 'bg-blue-50 text-blue-500', bar: 'bg-blue-500' },
-  { key: 'praise', label: '💚 칭찬', badge: 'bg-mint-100 text-mint-600', bar: 'bg-mint-500' },
+const FEEDBACK_CATEGORIES: { key: string; icon?: IconName; label: string; badge: string; bar: `bg-${string}` }[] = [
+  { key: 'bug', icon: 'bug', label: '버그', badge: 'bg-red-50 text-red-500', bar: 'bg-red-500' },
+  { key: 'pain', icon: 'sad', label: '불편', badge: 'bg-amber-50 text-amber-600', bar: 'bg-amber-500' },
+  { key: 'idea', icon: 'bulb', label: '아이디어', badge: 'bg-blue-50 text-blue-500', bar: 'bg-blue-500' },
+  { key: 'praise', icon: 'heart', label: '칭찬', badge: 'bg-mint-100 text-mint-600', bar: 'bg-mint-500' },
   { key: '', label: '미분류', badge: 'bg-gray-100 text-gray-400', bar: 'bg-slate-400' },
 ];
 
@@ -522,7 +523,7 @@ export default function Admin() {
             잘렸는데 말이 없으면 "숫자가 작다"와 "숫자가 잘렸다"를 구분할 수 없어 예산 판단이 틀어진다. */}
         {a.eventsTruncated && (
           <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-4">
-            <div className="text-sm font-bold text-amber-700 mb-1">⚠️ 이벤트 상한에 걸렸어요</div>
+            <div className="text-sm font-bold text-amber-700 mb-1"><Icon name="alert" className="mr-1" />이벤트 상한에 걸렸어요</div>
             <div className="text-xs text-amber-600">
               이벤트 {a.eventsScanned.toLocaleString()}건 상한에 걸려 최근 것만 집계했어요.
               아래 숫자는 이 기간 전체가 아니라 최근 {a.eventsScanned.toLocaleString()}건 기준이에요 —
@@ -534,7 +535,7 @@ export default function Admin() {
         {/* 비밀번호가 아직 env에 있으면 운영자는 스스로 바꿀 수 없다 — 한 번 바꾸라고 계속 알린다. */}
         {passwordSource === 'env' && (
           <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-4">
-            <div className="text-sm font-bold text-amber-700 mb-1">⚠️ 비밀번호가 아직 Vercel 환경변수에 있어요</div>
+            <div className="text-sm font-bold text-amber-700 mb-1"><Icon name="alert" className="mr-1" />비밀번호가 아직 Vercel 환경변수에 있어요</div>
             <div className="text-xs text-amber-600">
               아래 "어드민 비밀번호"에서 한 번 바꾸면 이후엔 여기서 직접 관리할 수 있어요.
             </div>
@@ -550,7 +551,7 @@ export default function Admin() {
             }`}
           >
             <div className="flex items-center gap-3">
-              <span className="text-xl">{paused ? '⏸️' : '▶️'}</span>
+              <Icon name={paused ? 'pause' : 'play'} className="text-xl" />
               <div className="text-left">
                 <div className={`font-black text-sm ${paused ? 'text-orange-600' : 'text-gray-700'}`}>
                   이 기기 수집 {paused ? '일시정지 중' : '수집 중'}
@@ -569,7 +570,7 @@ export default function Admin() {
         {/* ── 퍼널 ── */}
         <section className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-black text-gray-600">🔻 전환 퍼널</h2>
+            <h2 className="text-sm font-black text-gray-600"><Icon name="funnel" className="mr-1" />전환 퍼널</h2>
             <button
               onClick={handleClearAnalytics}
               className="text-xs text-red-400 border border-red-200 px-2.5 py-1 rounded-full hover:bg-red-50 transition-colors"
@@ -592,7 +593,7 @@ export default function Admin() {
         {/* ── 유입 소스 — 퍼널 바로 아래. "어느 소재가 돈값을 하나"는 전환율 다음으로 먼저 볼 숫자다 ── */}
         <section className="mb-6">
           <h2 className="text-sm font-black text-gray-600 mb-3">
-            📣 유입 소스 <span className="text-gray-300 font-normal">(광고 소재 판단)</span>
+            <Icon name="megaphone" className="mr-1" />유입 소스 <span className="text-gray-300 font-normal">(광고 소재 판단)</span>
           </h2>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
             {attrRows.length === 0 ? (
@@ -654,7 +655,7 @@ export default function Admin() {
 
         {/* ── 거절 사유 (알고리즘 핵심 신호) ── */}
         <section className="mb-6">
-          <h2 className="text-sm font-black text-gray-600 mb-3">🚫 거절 사유 <span className="text-gray-300 font-normal">(추천 알고리즘 개선 신호)</span></h2>
+          <h2 className="text-sm font-black text-gray-600 mb-3"><Icon name="ban" className="mr-1" />거절 사유 <span className="text-gray-300 font-normal">(추천 알고리즘 개선 신호)</span></h2>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
             {rejectTotal === 0 ? (
               <p className="text-xs text-gray-400 text-center py-3">아직 거절 기록이 없어요.</p>
@@ -672,7 +673,7 @@ export default function Admin() {
         {/* ── 재시도 & 예약 채널 ── */}
         <div className="grid md:grid-cols-2 gap-3 mb-8">
           <section>
-            <h2 className="text-sm font-black text-gray-600 mb-3">🔄 재시도</h2>
+            <h2 className="text-sm font-black text-gray-600 mb-3"><Icon name="refresh" className="mr-1" />재시도</h2>
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
               {retryTotal === 0 ? (
                 <p className="text-xs text-gray-400 text-center py-3">기록 없음</p>
@@ -685,7 +686,7 @@ export default function Admin() {
             </div>
           </section>
           <section>
-            <h2 className="text-sm font-black text-gray-600 mb-3">🔗 예약 채널</h2>
+            <h2 className="text-sm font-black text-gray-600 mb-3"><Icon name="link" className="mr-1" />예약 채널</h2>
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
               {deeplinkTotal === 0 ? (
                 <p className="text-xs text-gray-400 text-center py-3">기록 없음</p>
@@ -702,7 +703,7 @@ export default function Admin() {
 
         {/* ── 추천 품질 (노출·성공률·선택 신호) ── */}
         <section className="mb-6">
-          <h2 className="text-sm font-black text-gray-600 mb-3">🎯 추천 품질 <span className="text-gray-300 font-normal">(랭킹 튜닝 신호)</span></h2>
+          <h2 className="text-sm font-black text-gray-600 mb-3"><Icon name="target" className="mr-1" />추천 품질 <span className="text-gray-300 font-normal">(랭킹 튜닝 신호)</span></h2>
           <div className="grid grid-cols-2 gap-3 mb-3">
             <AdminStatCard label="추천 노출" value={a.recommendShown} unit="회" sub={`요청 ${a.recommendRequests}회`} />
             <AdminStatCard label="추천 성공률" value={pctLabel(a.recommendShown, a.recommendRequests)} sub={a.recommendErrors > 0 ? `에러 ${a.recommendErrors}회` : '에러 없음'} highlight />
@@ -728,7 +729,7 @@ export default function Admin() {
         {/* ── 입력 단계 이탈 & 검색 실패 ── */}
         <div className="grid md:grid-cols-2 gap-3 mb-6">
           <section>
-            <h2 className="text-sm font-black text-gray-600 mb-3">📝 입력 단계 진행</h2>
+            <h2 className="text-sm font-black text-gray-600 mb-3"><Icon name="edit" className="mr-1" />입력 단계 진행</h2>
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col gap-2">
               <AdminFunnelStep label="1단계 통과" value={a.stepNext0} rate={null} />
               <AdminFunnelStep label="2단계 통과" value={a.stepNext1} rate={pctLabel(a.stepNext1, a.stepNext0)} />
@@ -736,7 +737,7 @@ export default function Admin() {
             </div>
           </section>
           <section>
-            <h2 className="text-sm font-black text-gray-600 mb-3">🔎 검색·설치·그룹</h2>
+            <h2 className="text-sm font-black text-gray-600 mb-3"><Icon name="search" className="mr-1" />검색·설치·그룹</h2>
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
               <AdminMiniStat label="검색 0건" value={a.locationSearchZero} />
               <AdminMiniStat label="검색 에러" value={a.locationSearchError} />
@@ -750,7 +751,7 @@ export default function Admin() {
 
         {/* ── 탭 사용 ── */}
         <section className="mb-6">
-          <h2 className="text-sm font-black text-gray-600 mb-3">📱 탭 사용 <span className="text-gray-300 font-normal">(어떤 탭이 실제로 쓰이나)</span></h2>
+          <h2 className="text-sm font-black text-gray-600 mb-3"><Icon name="phone" className="mr-1" />탭 사용 <span className="text-gray-300 font-normal">(어떤 탭이 실제로 쓰이나)</span></h2>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
             {tabTotal === 0 ? (
               <p className="text-xs text-gray-400 text-center py-3">아직 탭 이동 기록이 없어요.</p>
@@ -771,7 +772,7 @@ export default function Admin() {
 
         {/* ── 민트샵 반응 ── */}
         <section className="mb-6">
-          <h2 className="text-sm font-black text-gray-600 mb-3">🛍️ 민트샵 반응 <span className="text-gray-300 font-normal">(쿠폰 수요 = 가짜 문)</span></h2>
+          <h2 className="text-sm font-black text-gray-600 mb-3"><Icon name="bag" className="mr-1" />민트샵 반응 <span className="text-gray-300 font-normal">(쿠폰 수요 = 가짜 문)</span></h2>
           <div className="grid grid-cols-2 gap-3 mb-3">
             <AdminStatCard label="쿠폰 탭" value={a.shopCouponClicks} unit="회" sub={`페이지 이동 ${a.shopPageChanges}회`} />
             <AdminStatCard label="순 알림신청" value={a.couponNotifyAdds - a.couponNotifyRemoves} unit="건" sub={`신청 ${a.couponNotifyAdds} · 취소 ${a.couponNotifyRemoves}`} highlight />
@@ -820,7 +821,7 @@ export default function Admin() {
 
         {/* ── 총무 플랜 퍼널 ── */}
         <section className="mb-6">
-          <h2 className="text-sm font-black text-gray-600 mb-3">🙋 총무 플랜 퍼널 <span className="text-gray-300 font-normal">(가격 검증)</span></h2>
+          <h2 className="text-sm font-black text-gray-600 mb-3"><Icon name="user" className="mr-1" />총무 플랜 퍼널 <span className="text-gray-300 font-normal">(가격 검증)</span></h2>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col gap-2">
             <AdminFunnelStep label="진입 클릭" value={a.planEntryClicks} rate={null} />
             <AdminFunnelStep label="상세 열람" value={a.planDetailViews} rate={pctLabel(a.planDetailViews, a.planEntryClicks)} />
@@ -834,7 +835,7 @@ export default function Admin() {
         {/* ── 발굴·찜·방문인증 ── */}
         <div className="grid md:grid-cols-2 gap-3 mb-6">
           <section>
-            <h2 className="text-sm font-black text-gray-600 mb-3">🧭 발굴·찜</h2>
+            <h2 className="text-sm font-black text-gray-600 mb-3"><Icon name="compass" className="mr-1" />발굴·찜</h2>
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
               <AdminMiniStat label="찜 추가" value={a.wishlistAdds} />
               <AdminMiniStat label="찜 해제" value={a.wishlistRemoves} />
@@ -845,7 +846,7 @@ export default function Admin() {
             </div>
           </section>
           <section>
-            <h2 className="text-sm font-black text-gray-600 mb-3">📍 방문 인증</h2>
+            <h2 className="text-sm font-black text-gray-600 mb-3"><Icon name="pin" className="mr-1" />방문 인증</h2>
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col gap-2">
               <AdminFunnelStep label="인증 시작" value={a.visitCertOpens} rate={null} />
               <AdminFunnelStep label="인증 완료" value={a.visitCertDones} rate={pctLabel(a.visitCertDones, a.visitCertOpens)} last />
@@ -858,7 +859,7 @@ export default function Admin() {
 
         {/* ── 참석 확정 ── */}
         <section className="mb-8">
-          <h2 className="text-sm font-black text-gray-600 mb-3">🗳️ 참석 확정 <span className="text-gray-300 font-normal">(가요/못가요)</span></h2>
+          <h2 className="text-sm font-black text-gray-600 mb-3"><Icon name="vote" className="mr-1" />참석 확정 <span className="text-gray-300 font-normal">(가요/못가요)</span></h2>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
             {rsvpTotal === 0 ? (
               <p className="text-xs text-gray-400 text-center py-3">아직 참석 응답이 없어요.</p>
@@ -877,7 +878,7 @@ export default function Admin() {
         {/* 🔎 검색·설치·그룹 카드에 끼우지 않는다 — 거긴 이미 6칸이라 11칸이 되면 아무도 못 읽는다 */}
         <section className="mb-8">
           <h2 className="text-sm font-black text-gray-600 mb-3">
-            🧷 복귀·게스트 동선 <span className="text-gray-300 font-normal">(로그인 왕복 후 이탈 방지)</span>
+            <Icon name="bookmark" className="mr-1" />복귀·게스트 동선 <span className="text-gray-300 font-normal">(로그인 왕복 후 이탈 방지)</span>
           </h2>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
             <AdminMiniStat label="이어보기 제안 노출" value={a.resumePromptShown} />
@@ -894,7 +895,7 @@ export default function Admin() {
         {/* ── 상시 유저 피드백 ── */}
         <section className="mb-8">
           <h2 className="text-sm font-black text-gray-600 mb-3">
-            💬 유저 피드백 <span className="text-mint-600">{feedback.length}건</span>
+            <Icon name="chat" className="mr-1" />유저 피드백 <span className="text-mint-600">{feedback.length}건</span>
           </h2>
           {/* 퍼널을 원문 목록과 한 섹션에 둔다 — 목적이 "어제 만든 피드백 기능이 살아 있나"의 확인이라
               원문이 0건일 때 열림/제출 숫자가 바로 옆에 있어야 원인을 가릴 수 있다. */}
@@ -935,7 +936,7 @@ export default function Admin() {
                     <div key={f.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                       <div className="flex items-center justify-between gap-2 mb-2">
                         <span className={`text-[11px] font-black px-2 py-0.5 rounded-full shrink-0 ${meta.badge}`}>
-                          {meta.label}
+                          {meta.icon && <Icon name={meta.icon} className="mr-1" />}{meta.label}
                         </span>
                         <span className="text-[11px] text-gray-300 shrink-0">{formatRelative(f.createdAt)}</span>
                       </div>
@@ -946,7 +947,7 @@ export default function Admin() {
                       {f.contact && (
                         // 연락처를 남겼다는 건 답을 기다린다는 뜻이다 — 목록에서 눈에 띄어야 한다
                         <div className="mt-1.5 text-xs font-bold text-mint-600 bg-mint-100 rounded-lg px-2.5 py-1.5">
-                          ✉️ 답장 대상 · {f.contact}
+                          <Icon name="mail" className="mr-1" />답장 대상 · {f.contact}
                         </div>
                       )}
                     </div>
@@ -959,7 +960,7 @@ export default function Admin() {
 
         {/* ── 예약 목록 ── */}
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-black text-gray-600">📋 예약 요청 <span className="text-mint-600">{records.length}건</span></h2>
+          <h2 className="text-sm font-black text-gray-600"><Icon name="clipboard" className="mr-1" />예약 요청 <span className="text-mint-600">{records.length}건</span></h2>
           {records.length > 0 && (
             <button
               onClick={handleClear}
@@ -971,7 +972,7 @@ export default function Admin() {
         </div>
         {records.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-            <div className="text-4xl mb-3">📋</div>
+            <Icon name="clipboard" className="text-4xl mb-3 text-gray-300" />
             <p className="text-gray-400">이 기간에 예약 요청이 없어요.</p>
             <a href="/app" className="inline-block mt-4 text-sm text-mint-500 underline">
               MINT로 장소 추천받기 →
@@ -1057,7 +1058,7 @@ export default function Admin() {
         {/* ── 어드민 비밀번호 ── */}
         {/* 예약/피드백이 한 건도 없어도 보여야 하므로 목록 조건 밖(상시)에 둔다. */}
         <section className="mt-8">
-          <h2 className="text-sm font-black text-gray-600 mb-3">🔐 어드민 비밀번호</h2>
+          <h2 className="text-sm font-black text-gray-600 mb-3"><Icon name="lock" className="mr-1" />어드민 비밀번호</h2>
           <AdminPasswordChangeCard onChange={handleChangePassword} source={passwordSource} />
         </section>
       </div>

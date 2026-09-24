@@ -7,6 +7,7 @@
 import { getDeviceId } from '@/storage/device';
 import { getSessionKey, trackEvent } from '@/services/analytics';
 import type { FeedbackCategory, FeedbackDraft, FeedbackPayload, FeedbackInput } from '@/types';
+import type { IconName } from '@/components/icons';
 
 const DRAFT_KEY = 'mint_feedback_draft';
 const OUTBOX_KEY = 'mint_feedback_outbox';
@@ -34,11 +35,11 @@ export const FEEDBACK_MAX_LEN = 500;
 export const FEEDBACK_COUNTER_FROM = 400;
 
 // 미선택 허용 — 자동 추론은 오분류 시 어드민 데이터만 오염시킨다. 어차피 원문은 사람이 읽는다.
-export const CATEGORY_OPTIONS: { value: FeedbackCategory; emoji: string; label: string }[] = [
-  { value: 'bug', emoji: '🐞', label: '버그' },
-  { value: 'pain', emoji: '😣', label: '불편해요' },
-  { value: 'idea', emoji: '💡', label: '아이디어' },
-  { value: 'praise', emoji: '💚', label: '칭찬' },
+export const CATEGORY_OPTIONS: { value: FeedbackCategory; icon: IconName; label: string }[] = [
+  { value: 'bug', icon: 'bug', label: '버그' },
+  { value: 'pain', icon: 'sad', label: '불편해요' },
+  { value: 'idea', icon: 'bulb', label: '아이디어' },
+  { value: 'praise', icon: 'heart', label: '칭찬' },
 ];
 
 function isCategory(v: unknown): v is FeedbackCategory {

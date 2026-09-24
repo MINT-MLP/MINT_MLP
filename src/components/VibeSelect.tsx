@@ -3,6 +3,7 @@ import type { VibeState, GroupVibeState, PurposeCtx, VibePreset } from '@/types'
 import { GROUPS, CONDITION_OPTIONS, VIBE_PRESETS, RECOMMENDED_KEYWORDS, MAX_PER_COURSE, BUDGET_OPTIONS } from '@/constants/vibeOptions';
 import { orderByPurpose, orderConditionsByPurpose, orderKeywordsByPurpose } from '@/utils/vibeOrder';
 import VibeKeywordTagInput from '@/components/VibeKeywordTagInput';
+import { Icon } from '@/components/icons';
 
 // 코스별로 여러 개 고를 수 있다. 예전엔 슬롯 2칸이라 3번째를 누르면 첫 선택이 말없이 밀려났다.
 
@@ -109,7 +110,7 @@ export default function VibeSelect({
     <div className="px-4 pt-3 pb-6 flex flex-col gap-5">
       {showMood && (
         <div>
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">✨ 무드 프리셋</p>
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2"><Icon name="sparkle" className="mr-1" />무드 프리셋</p>
           <div className="grid grid-cols-2 gap-2.5 mb-3">
             {VIBE_PRESETS.map((preset) => {
               const on = activePreset === preset.id;
@@ -123,7 +124,7 @@ export default function VibeSelect({
                   }`}
                 >
                   <span className="flex items-center gap-1.5">
-                    <span className="text-base leading-none">{preset.emoji}</span>
+                    <Icon name={preset.icon} className="text-base" />
                     <span className={`text-sm font-black break-keep ${on ? 'text-mint-600' : 'text-gray-800'}`}>{preset.title}</span>
                   </span>
                   <span className={`text-[11px] leading-snug break-keep ${on ? 'text-mint-600/70' : 'text-gray-400'}`}>{preset.desc}</span>
@@ -152,7 +153,7 @@ export default function VibeSelect({
                       activeCourse === 'first' ? 'bg-mint-600 text-white shadow-sm' : 'bg-white border-2 border-gray-200 text-gray-500'
                     }`}
                   >
-                    🍀 1차{purpose?.first ? ` · ${purpose.first}` : ''}
+                    <Icon name="clover" className="mr-1" />1차{purpose?.first ? ` · ${purpose.first}` : ''}
                   </button>
                   <button
                     onClick={() => setCourseTab('second')}
@@ -161,7 +162,7 @@ export default function VibeSelect({
                       activeCourse === 'second' ? 'bg-orange-400 text-white shadow-sm' : 'bg-white border-2 border-gray-200 text-gray-500'
                     }`}
                   >
-                    🔥 2차{purpose?.second ? ` · ${purpose.second}` : ''}
+                    <Icon name="flame" className="mr-1" />2차{purpose?.second ? ` · ${purpose.second}` : ''}
                   </button>
                 </div>
               )}
@@ -195,7 +196,7 @@ export default function VibeSelect({
                                 activeCourse === 'first' ? 'bg-orange-400' : 'bg-mint-500'
                               }`} />
                             )}
-                            <span className="text-sm leading-none">{opt.emoji}</span>
+                            <Icon name={opt.icon} className="text-sm" />
                             <span>{opt.label}</span>
                           </button>
                         );
@@ -232,7 +233,7 @@ export default function VibeSelect({
                                 : 'border-gray-200 bg-white text-gray-700 hover:border-mint-500/50'
                             }`}
                           >
-                            <span className="text-sm leading-none">{opt.emoji}</span>
+                            <Icon name={opt.icon} className="text-sm" />
                             <span>{opt.label}</span>
                           </button>
                         );
@@ -250,7 +251,7 @@ export default function VibeSelect({
       {showExtras && onBudgetChange && (
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">💰 예산</p>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest"><Icon name="wallet" className="mr-1" />예산</p>
             <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full font-medium">1인 기준 · 선택사항</span>
           </div>
           <div className="grid grid-cols-3 gap-2">
@@ -267,7 +268,7 @@ export default function VibeSelect({
                       : 'border-gray-200 bg-white text-gray-700 hover:border-mint-500/50'
                   }`}
                 >
-                  <span className="text-lg mb-0.5 leading-none">{opt.emoji}</span>
+                  <Icon name={opt.icon} className="text-lg mb-0.5" />
                   <span>{opt.label}</span>
                   <span className={`text-[9px] font-medium ${isActive ? 'text-mint-600/70' : 'text-gray-400'}`}>{opt.sub}</span>
                 </button>
@@ -280,7 +281,7 @@ export default function VibeSelect({
       {/* 키워드 — 추천 칩을 앞에 둬서 타이핑 없이 끝낼 수 있게. 자유 입력은 탈출구로 아래에 남긴다 */}
       {showExtras && onKeywordsChange && (
         <div className="rounded-2xl border border-gray-200 bg-gray-50/60 p-4">
-          <p className="text-sm font-bold text-gray-700 mb-1 break-keep">🔎 더 필요한 조건 추가</p>
+          <p className="text-sm font-bold text-gray-700 mb-1 break-keep"><Icon name="search" className="mr-1" />더 필요한 조건 추가</p>
           <p className="text-xs text-gray-500 mb-3 leading-relaxed break-keep">추천 칩을 탭하거나, 없으면 직접 입력하세요</p>
           <div className="flex flex-wrap gap-1.5 mb-3">
             {orderKeywordsByPurpose(RECOMMENDED_KEYWORDS, purpose).map((kw) => {

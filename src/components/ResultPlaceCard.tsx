@@ -6,7 +6,8 @@ import { findCertifications } from '@/constants/certifications';
 import { trackEvent } from '@/services/analytics';
 import WishlistButton from '@/components/WishlistButton';
 import ResultCertSheet from '@/components/ResultCertSheet';
-import { GpsPin, hideOnError, parseOpenStatus, congestionInfo, FitScoreBar, kakaoUrl, openPlace, certPrefix } from '@/components/placeCardBits';
+import { Icon } from '@/components/icons';
+import { GpsPin, hideOnError, parseOpenStatus, congestionInfo, FitScoreBar, kakaoUrl, openPlace, CertIcons } from '@/components/placeCardBits';
 import { COURSE_TONE, type CourseTone } from '@/constants/colors';
 import { cn } from '@/utils/cn';
 
@@ -63,7 +64,7 @@ export default function ResultPlaceCard({ place, extraResults = [], tone, wishRa
                 style={{ color: c.source.badgeTextColor }}
                 aria-label={`${c.source.label} 인증 안내 열기`}
               >
-                {c.source.emoji} {c.source.label}
+                <Icon name={c.source.icon} className="mr-1" />{c.source.label}
               </button>
             ))}
           </div>
@@ -107,13 +108,13 @@ export default function ResultPlaceCard({ place, extraResults = [], tone, wishRa
           <div className="flex items-center gap-3 text-xs text-white/80 flex-wrap">
             {place.priceRange && (
               <span className="flex items-center gap-1">
-                <span>💰</span>
+                <Icon name="wallet" />
                 <span>{place.priceRange}</span>
               </span>
             )}
             {place.openingHours && (
               <span className="flex items-center gap-1">
-                <span>🕐</span>
+                <Icon name="clock" />
                 <span>{place.openingHours}</span>
                 {openStatus && (
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
@@ -149,7 +150,7 @@ export default function ResultPlaceCard({ place, extraResults = [], tone, wishRa
             >
               <div className="flex items-start justify-between mb-1">
                 <div>
-                  <p className="text-sm font-black">{certPrefix(p)}{p.placeName}</p>
+                  <p className="text-sm font-black"><CertIcons place={p} />{p.placeName}</p>
                   <p className="text-xs text-white/70">{p.category}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -168,7 +169,7 @@ export default function ResultPlaceCard({ place, extraResults = [], tone, wishRa
               </div>
               <p className="text-xs text-white/70 mb-1.5 leading-relaxed">{p.description}</p>
               <div className="flex items-center gap-3 text-xs text-white/60">
-                <span>💰 {p.priceRange}</span>
+                <span><Icon name="wallet" className="mr-1" />{p.priceRange}</span>
                 {p.address && (
                   <span className="flex items-center gap-1 truncate flex-1">
                     <GpsPin className="opacity-60" /> {p.address}

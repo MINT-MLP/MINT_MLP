@@ -3,6 +3,7 @@ import ResultCard from '@/components/ResultCard';
 import RetryWeightModal from '@/components/RetryWeightModal';
 import PointsBadge from '@/components/PointsBadge';
 import WishlistSheet from '@/components/WishlistSheet';
+import { Icon } from '@/components/icons';
 import type { PlaceRecommendation } from '@/types';
 import { VIBE_KEY_TO_LABEL } from '@/constants/vibeOptions';
 import type { RecommendFlow, RecommendInput, ResultState, RecommendActions, StepNavigation } from '@/hooks';
@@ -33,7 +34,7 @@ export default function HomeResultView({ result, flow, input, resultState, actio
         {compromiseMessage && (
           <div className={`fixed top-[max(1rem,env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-sm transition-all duration-500 ${showCompromiseToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}`}>
             <div className="bg-mint-800 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-lg flex items-start gap-2">
-              <span className="text-base leading-none mt-0.5">📍</span>
+              <Icon name="pin" className="text-base mt-0.5" />
               <span className="leading-snug">{compromiseMessage}</span>
             </div>
           </div>
@@ -78,7 +79,7 @@ export default function HomeResultView({ result, flow, input, resultState, actio
               aria-label="내 찜 목록"
               className="flex items-center gap-1 rounded-full bg-white border border-gray-200 px-2.5 py-1.5 text-xs font-black text-gray-500 active:scale-95 transition-transform"
             >
-              <span className="text-sm leading-none">🤍</span>찜
+              <Icon name="heart" className="text-sm" />찜
             </button>
             <PointsBadge balance={pointsBalance} />
           </div>
@@ -95,9 +96,7 @@ export default function HomeResultView({ result, flow, input, resultState, actio
           {/* 날씨 반영 배너 — "모든 변수 반영"을 유저가 체감하게 */}
           {resultWeather && (resultWeather.isRainy || resultWeather.isHot || resultWeather.isCold) && (
             <div className="mb-2 bg-white border border-gray-100 rounded-2xl px-4 py-2.5 flex items-center gap-2 shadow-sm animate-fade-in-up">
-              <span className="text-base leading-none">
-                {resultWeather.isRainy ? '☔' : resultWeather.isHot ? '🥵' : '🥶'}
-              </span>
+              <Icon name={resultWeather.isRainy ? 'rain' : resultWeather.isHot ? 'sun' : 'cold'} className="text-base" />
               <p className="text-xs text-gray-600 leading-relaxed flex-1">
                 {resultWeather.isRainy
                   ? `오늘 ${resultWeather.description} 소식이 있어 실내 위주로 골랐어요`
@@ -111,7 +110,7 @@ export default function HomeResultView({ result, flow, input, resultState, actio
           {/* 재추천 변경점 한 줄 — 이전 결과 대비 뭐가 달라졌는지 */}
           {changeNote && (
             <div className="mb-2 bg-mint-100 border border-mint-500/40 rounded-2xl px-4 py-2.5 flex items-start gap-2 animate-fade-in-up">
-              <span className="text-base leading-none mt-0.5">🔁</span>
+              <Icon name="refresh" className="text-base mt-0.5" />
               <p className="text-xs text-mint-800 leading-relaxed flex-1">{changeNote}</p>
               <button
                 onClick={() => setChangeNote(null)}

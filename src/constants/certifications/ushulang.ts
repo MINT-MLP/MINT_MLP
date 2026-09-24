@@ -257,12 +257,12 @@ const ENTRIES: CertEntry[] = [
 export const USHULANG: CertSource = {
   id: 'ushulang',
   label: '우슐랭',
-  emoji: '📮',
+  icon: 'mailbox',
   badgeTextColor: '#DA291C',
   priority: 1,
   sheetTitle: '우슐랭 인증 맛집',
   sheetBody:
-    '우체국 집배원이 직접 다니며 인정한 진짜 로컬 맛집이에요! 골목 구석구석을 가장 잘 아는 사람들의 추천이라 믿어도 좋아요 🐤',
+    '우체국 집배원이 직접 다니며 인정한 진짜 로컬 맛집이에요! 골목 구석구석을 가장 잘 아는 사람들의 추천이라 믿어도 좋아요',
   sourceLine: '부산지방우정청 「2026 우체국 추천 맛집가이드」 · 부산·울산·경남',
   ctaLabel: '좋아요, 믿고 가볼게요!',
   entries: ENTRIES,

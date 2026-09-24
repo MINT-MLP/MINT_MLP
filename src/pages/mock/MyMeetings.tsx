@@ -3,7 +3,7 @@ import { MOCK_MEETINGS, type MockMeeting } from '@/pages/mock/data/meetings';
 import { getPlanFrame, isPreregistered, planPriceLabel } from '@/storage/treasurerPlan';
 import { getDeviceId } from '@/storage/device';
 import { trackEvent } from '@/services/analytics';
-import { TreasurerPlanSheet, IconCalendar, IconMapPin, IconChevronDown, IconUserCircle } from '@/components';
+import { TreasurerPlanSheet, Icon, IconCalendar, IconMapPin, IconChevronDown, IconUserCircle } from '@/components';
 import { buildMapLink } from '@/storage/wishlist';
 
 // 배지는 카드당 1개만 둔다. 색은 "지금 내 응답이 필요한 상태"(취합 중)에만 민트를 쓰고
@@ -85,7 +85,7 @@ export default function MyMeetings({ onGoHome, onChromeChange }: Props) {
             onClick={() => { trackEvent('plan_entry_click', { device_id: getDeviceId(), frame: planFrame, source: 'meetings_tab' }); setShowPlanSheet(true); }}
             className="mt-4 w-full text-left rounded-2xl bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 px-4 py-3 flex items-center gap-3 active:scale-[0.99] transition-all"
           >
-            <span className="text-2xl shrink-0">🙋</span>
+            <Icon name="user" className="text-2xl shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-black text-amber-800 leading-snug break-keep">매번 장소 정하는 거, 이제 독박 그만</p>
               <p className="text-xs text-amber-600 mt-0.5">

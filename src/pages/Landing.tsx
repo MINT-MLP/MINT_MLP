@@ -4,6 +4,7 @@ import { navigateInApp, requestAppFullscreen } from '@/utils/fullscreen';
 import { CertShowcase, LandingPhoneMockup, LandingHeroPhone, LandingKakaoBubble } from '@/components';
 import { useInstallPrompt } from '@/hooks';
 import { COMBOS } from '@/constants/landing';
+import { Icon } from '@/components/icons';
 
 async function goToApp() {
   trackEvent('cta_click');
@@ -112,7 +113,7 @@ export default function Landing() {
               <div key={comboIdx} className="animate-fade-in">
                 <div className="flex items-center justify-center gap-1.5 flex-wrap mb-2.5">
                   {combo.chips.map((c) => (
-                    <span key={c} className="bg-mint-100 text-mint-600 text-xs font-bold px-3 py-1.5 rounded-full">{c}</span>
+                    <span key={c.label} className="bg-mint-100 text-mint-600 text-xs font-bold px-3 py-1.5 rounded-full">{c.icon && <Icon name={c.icon} className="mr-1" />}{c.label}</span>
                   ))}
                 </div>
                 <div className="flex items-center justify-center gap-2 text-sm">
@@ -191,12 +192,13 @@ export default function Landing() {
 
             {/* 플로팅: 상단 배지 — 입력→결과를 잇는 위치 */}
             <div className="absolute left-[33%] top-6 z-30 flex items-center gap-1.5 rounded-full bg-mint-500 px-3.5 py-2 text-xs font-black text-white shadow-lg shadow-mint-500/40 rotate-[-4deg]">
-              🎯 조건 100% 반영
+              <Icon name="target" />
+              조건 100% 반영
             </div>
 
             {/* 플로팅: 하단 스탯 카드 */}
             <div className="absolute left-1 bottom-9 z-30 flex items-center gap-2.5 rounded-2xl bg-white/95 px-4 py-3 shadow-xl shadow-mint-900/10 ring-1 ring-black/5 backdrop-blur rotate-[-3deg]">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-mint-100 text-lg">⚡</span>
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-mint-100 text-lg"><Icon name="bolt" /></span>
               <span className="text-left">
                 <span className="block text-sm font-black leading-none text-gray-800">30초 만에 완성</span>
                 <span className="mt-1 block text-xs leading-none text-gray-500">조건 4개 → 딱 3곳</span>
@@ -245,13 +247,13 @@ export default function Landing() {
               </div>
               <div className="bg-[#B2C7D9] p-4 flex flex-col gap-3">
                 {[
-                  { emoji: '😎', name: '민준', msg: '이번주 토요일 다들 되지? 어디서 볼까', time: '오후 2:31' },
-                  { emoji: '🙂', name: '서연', msg: 'ㅇㅇ 난 아무데나~', time: '오후 2:33' },
-                  { emoji: '😊', name: '지훈', msg: '나도 다 좋은데.. 어디가 좋으려나', time: '오후 2:35' },
-                  { emoji: '🤔', name: '수빈', msg: '맛집 아는 사람? 나는 모르겠는데', time: '오후 2:38' },
+                  { name: '민준', msg: '이번주 토요일 다들 되지? 어디서 볼까', time: '오후 2:31' },
+                  { name: '서연', msg: 'ㅇㅇ 난 아무데나~', time: '오후 2:33' },
+                  { name: '지훈', msg: '나도 다 좋은데.. 어디가 좋으려나', time: '오후 2:35' },
+                  { name: '수빈', msg: '맛집 아는 사람? 나는 모르겠는데', time: '오후 2:38' },
                 ].map((m) => (
                   <div key={m.name} className="flex items-end gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-gray-300 flex items-center justify-center text-base flex-shrink-0">{m.emoji}</div>
+                    <div className="w-8 h-8 rounded-xl bg-gray-300 flex items-center justify-center text-base flex-shrink-0"><Icon name="user" /></div>
                     <div>
                       <div className="text-xs text-gray-600 mb-1">{m.name}</div>
                       <div className="bg-white rounded-2xl px-3 py-2 text-sm text-gray-800 shadow-sm">{m.msg}</div>
@@ -300,12 +302,12 @@ export default function Landing() {
             </p>
             <div className="grid grid-cols-3 gap-2 lg:gap-3">
               {[
-                { e: '🎯', t: '적합도 점수', d: '조건과 얼마나 맞는지 한눈에' },
-                { e: '🚦', t: '실시간 혼잡도', d: '지금 웨이팅인지 미리 확인' },
-                { e: '🚶', t: '2차 코스 연결', d: '도보 시간까지 계산된 동선' },
-              ].map(({ e, t, d }) => (
+                { icon: 'target' as const, t: '적합도 점수', d: '조건과 얼마나 맞는지 한눈에' },
+                { icon: 'traffic' as const, t: '실시간 혼잡도', d: '지금 웨이팅인지 미리 확인' },
+                { icon: 'walk' as const, t: '2차 코스 연결', d: '도보 시간까지 계산된 동선' },
+              ].map(({ icon, t, d }) => (
                 <div key={t} className="bg-white border border-gray-100 rounded-2xl p-3 lg:p-4 text-left">
-                  <div className="text-xl lg:text-2xl mb-1">{e}</div>
+                  <Icon name={icon} className="text-xl lg:text-2xl mb-1" />
                   <p className="text-sm lg:text-lg font-bold text-gray-800 mb-0.5">{t}</p>
                   <p className="text-[11px] lg:text-xs text-gray-500 leading-relaxed">{d}</p>
                 </div>
@@ -386,15 +388,19 @@ export default function Landing() {
               {/* 아무거나 */}
               <div className="rounded-2xl border-2 border-gray-100 bg-gray-50/50 p-5 lg:p-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-2xl">🤷</span>
+                  <Icon name="help" className="text-2xl" />
                   <p className="text-lg font-bold text-gray-800">뭘 먹을지 모르겠어요</p>
                 </div>
                 <p className="text-base text-gray-500 leading-relaxed mb-3">
                   <strong className="text-gray-700">밥 · 술 · 카페</strong>만 누르세요.<br />그 동네 찐맛집을 알아서 골라줘요.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {['🍽️ 밥', '🍻 술', '☕ 카페'].map((t) => (
-                    <span key={t} className="bg-white border border-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-full">{t}</span>
+                  {[
+                    { icon: 'meal' as const, label: '밥' },
+                    { icon: 'drink' as const, label: '술' },
+                    { icon: 'cafe' as const, label: '카페' },
+                  ].map((t) => (
+                    <span key={t.label} className="bg-white border border-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-full"><Icon name={t.icon} className="mr-1" />{t.label}</span>
                   ))}
                 </div>
               </div>
@@ -402,7 +408,7 @@ export default function Landing() {
               {/* 메뉴 콕 */}
               <div className="rounded-2xl border-2 border-mint-500 bg-mint-100 p-5 lg:p-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-2xl">🎯</span>
+                  <Icon name="target" className="text-2xl" />
                   <p className="text-lg font-bold text-gray-800">이건 꼭 먹고 싶어요</p>
                 </div>
                 <p className="text-base text-gray-600 leading-relaxed mb-3 break-keep">
@@ -451,7 +457,8 @@ export default function Landing() {
           const roleSteps = {
             host: {
               label: '호스트',
-              badge: '🧑‍💼 링크 만드는 사람',
+              icon: 'user' as const,
+              badge: '링크 만드는 사람',
               desc: '코스·지역만 정하고 링크 공유. 딱 한 번만.',
               cols: 'lg:grid-cols-4',
               max: 'lg:max-w-none',
@@ -464,7 +471,8 @@ export default function Landing() {
             },
             guest: {
               label: '친구들',
-              badge: '🙋 링크 받는 사람',
+              icon: 'user' as const,
+              badge: '링크 받는 사람',
               desc: '가입도, 출발지 고민도 없이 — 링크 열고 분위기만.',
               cols: 'lg:grid-cols-3',
               max: 'lg:max-w-[56.75rem] lg:mx-auto',
@@ -498,7 +506,7 @@ export default function Landing() {
                           : 'text-gray-500'
                       }`}
                     >
-                      {roleSteps[role].badge}
+                      <Icon name={roleSteps[role].icon} className="mr-1" />{roleSteps[role].badge}
                     </button>
                   );
                 })}
@@ -612,28 +620,28 @@ export default function Landing() {
             <div className="flex flex-col gap-2.5 lg:grid lg:grid-cols-2 lg:gap-4">
               {[
                 {
-                  e: '🫧',
+                  icon: 'inbox' as const,
                   t: '후기 거품 감지',
                   d: <>어느 날 갑자기 후기가 우르르 몰린 가게, 협찬 냄새 나죠? 그런 <strong className="text-yellow-200">거품은 점수를 깎고</strong>, 꾸준히 후기가 쌓인 가게만 올려요.</>,
                 },
                 {
-                  e: '🏅',
+                  icon: 'medal' as const,
                   t: '오래 버틴 가게 우대',
                   d: <>정부 인허가 데이터로 개업 연차를 확인해요. 유행 따라 생겼다 사라지는 곳 말고, <strong className="text-yellow-200">몇 년째 한자리를 지킨 가게에 가산점</strong>.</>,
                 },
                 {
-                  e: '📍',
+                  icon: 'pin' as const,
                   t: 'AI가 지어낸 가게 0곳',
                   d: <>그럴듯한 이름만 지어내는 AI 추천과 달라요. 네이버에 실제 등록된 전국 79만 곳과 대조해 <strong className="text-yellow-200">실존 장소만</strong> 보여줘요.</>,
                 },
                 {
-                  e: '🚦',
+                  icon: 'traffic' as const,
                   t: '지금 가도 되는지까지',
                   d: <>아무리 맛집이어도 웨이팅 2시간이면 꽝. <strong className="text-yellow-200">실시간 혼잡도와 오늘 날씨</strong>까지 보고 "지금" 좋은 곳을 골라요.</>,
                 },
-              ].map(({ e, t, d }) => (
+              ].map(({ icon, t, d }) => (
                 <div key={t} className="bg-white/15 rounded-2xl p-4 lg:p-5 flex items-start gap-3">
-                  <span className="text-2xl flex-shrink-0">{e}</span>
+                  <Icon name={icon} className="text-2xl flex-shrink-0" />
                   <div>
                     <p className="text-base lg:text-lg font-semibold text-white mb-1">{t}</p>
                     <p className="text-sm lg:text-base text-white/80 leading-relaxed">{d}</p>
@@ -666,14 +674,14 @@ export default function Landing() {
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-5">
             {[
-              { e: '🍻', t: '친구 모임', d: '"아무데나"의 늪 탈출, 2차까지 한 번에' },
-              { e: '💕', t: '연인 데이트', d: '기념일 · 100일 · 분위기 좋은 코스' },
-              { e: '🏢', t: '직장 회식', d: '단체룸 · 전원 퇴근길 중간지점' },
-              { e: '👨‍👩‍👧', t: '가족 모임', d: '넓은 공간 · 주차 · 부모님 취향까지' },
-            ].map(({ e, t, d }) => (
+              { icon: 'drink' as const, t: '친구 모임', d: '"아무데나"의 늪 탈출, 2차까지 한 번에' },
+              { icon: 'heart' as const, t: '연인 데이트', d: '기념일 · 100일 · 분위기 좋은 코스' },
+              { icon: 'briefcase' as const, t: '직장 회식', d: '단체룸 · 전원 퇴근길 중간지점' },
+              { icon: 'family' as const, t: '가족 모임', d: '넓은 공간 · 주차 · 부모님 취향까지' },
+            ].map(({ icon, t, d }) => (
               <button key={t} onClick={goToApp}
                 className="vibe-card bg-white border border-gray-100 rounded-2xl p-5 lg:p-8 text-center shadow-sm hover:border-mint-500 hover:shadow-md">
-                <div className="text-3xl lg:text-5xl mb-2 lg:mb-4">{e}</div>
+                <Icon name={icon} className="text-3xl lg:text-5xl mb-2 lg:mb-4 text-mint-500" />
                 <p className="text-base lg:text-lg font-bold text-gray-800 mb-1">{t}</p>
                 <p className="text-xs lg:text-sm text-gray-500 leading-relaxed">{d}</p>
               </button>
@@ -695,9 +703,9 @@ export default function Landing() {
             결과 나오면 버튼 하나로 단톡방에 공유.<br />'여기 어때?' 한 줄이면 약속 끝.
           </p>
           <div className="flex items-center justify-center gap-2 flex-nowrap">
-            <span className="bg-mint-100 border border-mint-200 text-mint-600 text-sm lg:text-base font-bold px-4 lg:px-5 py-2 lg:py-2.5 rounded-full whitespace-nowrap">🍃 조건 선택</span>
+            <span className="bg-mint-100 border border-mint-200 text-mint-600 text-sm lg:text-base font-bold px-4 lg:px-5 py-2 lg:py-2.5 rounded-full whitespace-nowrap"><Icon name="leaf" className="mr-1" />조건 선택</span>
             <span className="text-mint-500 font-bold flex-shrink-0">→</span>
-            <span className="bg-mint-100 border border-mint-200 text-mint-600 text-sm lg:text-base font-bold px-4 lg:px-5 py-2 lg:py-2.5 rounded-full whitespace-nowrap">✨ 장소 추천</span>
+            <span className="bg-mint-100 border border-mint-200 text-mint-600 text-sm lg:text-base font-bold px-4 lg:px-5 py-2 lg:py-2.5 rounded-full whitespace-nowrap"><Icon name="sparkle" className="mr-1" />장소 추천</span>
             <span className="text-mint-500 font-bold flex-shrink-0">→</span>
             <div className="flex items-center gap-1.5 bg-mint-100 border border-mint-200 text-mint-600 text-sm lg:text-base font-bold px-3 lg:px-4 py-2 lg:py-2.5 rounded-full whitespace-nowrap flex-shrink-0">
               <LandingKakaoBubble className="w-4 h-4" />
@@ -712,7 +720,7 @@ export default function Landing() {
                 <div className="w-full">
                   <div className="ml-auto max-w-[85%] overflow-hidden rounded-2xl rounded-tr-md bg-kakao shadow-sm">
                     <div className="px-3.5 py-3">
-                      <p className="text-[13px] font-bold text-gray-800">📍 오늘 여기 어때?</p>
+                      <p className="text-[13px] font-bold text-gray-800"><Icon name="pin" className="mr-1" />오늘 여기 어때?</p>
                     </div>
                     <div className="border-t border-black/5 bg-white px-3.5 py-3">
                       <p className="text-[13px] font-bold text-gray-800">안목 성수 · 시끌벅적 국밥</p>

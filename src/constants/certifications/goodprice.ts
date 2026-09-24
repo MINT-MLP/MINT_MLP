@@ -14,12 +14,12 @@ const ENTRIES: CertEntry[] = [
 export const GOODPRICE: CertSource = {
   id: 'goodprice',
   label: '착한가격',
-  emoji: '🪙',
+  icon: 'coins',
   badgeTextColor: 'rgb(var(--mint-600))',
   priority: 3,
   sheetTitle: '착한가격업소',
   sheetBody:
-    '지자체가 지정한 착한가격업소예요. 부담 없는 가격을 정직하게 지켜온 곳이라, 주머니 가볍게 즐기기 좋답니다 🪙 (맛이 아닌 가격·위생 기준 인증이에요)',
+    '지자체가 지정한 착한가격업소예요. 부담 없는 가격을 정직하게 지켜온 곳이라, 주머니 가볍게 즐기기 좋답니다 (맛이 아닌 가격·위생 기준 인증이에요)',
   sourceLine: '행정안전부·지방자치단체 착한가격업소 지정',
   ctaLabel: '가성비 좋네요!',
   entries: ENTRIES,

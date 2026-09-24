@@ -6,6 +6,7 @@ import {
   flushOutbox, loadDraft, saveDraftDebounced, submitFeedback, textLength,
 } from '@/storage/feedback';
 import type { FeedbackCategory } from '@/types';
+import { Icon } from '@/components/icons';
 
 interface Props {
   tab: string;          // AppShell의 activeTab — "어느 화면에서 나온 말인지" 자동으로 실린다
@@ -172,7 +173,7 @@ export default function FeedbackSheet({ tab, onClose }: Props) {
         {sent ? (
           // 성공은 토스트가 아니라 화면이다 — "빠르게 반영하겠다"는 약속은 한 박자 머물러야 전달된다.
           <div className="px-6 pb-[max(1.5rem,calc(env(safe-area-inset-bottom)+0.75rem))] pt-2 text-center">
-            <div className="mb-3 text-5xl">🌱</div>
+            <Icon name="sprout" className="mb-3 text-5xl text-mint-500" />
             <p id="feedback-sheet-title" className="text-lg font-black text-gray-900">잘 받았어요!</p>
             <p className="mt-1.5 text-sm leading-relaxed text-gray-500 break-keep">
               보내주신 의견은 <span className="font-black text-mint-600">전부 읽고</span>,<br />
@@ -192,7 +193,7 @@ export default function FeedbackSheet({ tab, onClose }: Props) {
               <h2 id="feedback-sheet-title" className="text-[20px] font-black leading-snug text-gray-900 break-keep">
                 어떤 피드백이든 남겨주세요
               </h2>
-              <p className="mt-1 text-sm text-gray-500 break-keep">한 줄이면 충분해요. 빠르게 반영할게요 🌱</p>
+              <p className="mt-1 text-sm text-gray-500 break-keep">한 줄이면 충분해요. 빠르게 반영할게요<Icon name="sprout" className="ml-1" /></p>
 
               <div className="relative mt-3">
                 <textarea
@@ -226,7 +227,7 @@ export default function FeedbackSheet({ tab, onClose }: Props) {
                         on ? 'border-mint-500 bg-mint-100 text-mint-600' : 'border-gray-200 bg-white text-gray-500'
                       }`}
                     >
-                      {opt.emoji} {opt.label}
+                      <Icon name={opt.icon} className="mr-1" />{opt.label}
                     </button>
                   );
                 })}

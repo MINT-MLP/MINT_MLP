@@ -4,6 +4,7 @@ import MiniMap from '@/components/MiniMap';
 import ResultPlaceCard from '@/components/ResultPlaceCard';
 import ResultAltsSection from '@/components/ResultAltsSection';
 import WishlistButton from '@/components/WishlistButton';
+import { Icon } from '@/components/icons';
 import VisitCertModal from '@/components/VisitCertModal';
 import TreasurerPlanSheet from '@/components/TreasurerPlanSheet';
 import { trackEvent } from '@/services/analytics';
@@ -276,10 +277,10 @@ export default function ResultCard({
                   <span className="leading-tight">{secondResult.address || secondResult.area}</span>
                 </div>
                 <div className="flex items-center gap-3 text-xs text-white/80 flex-wrap">
-                  <span className="flex items-center gap-1"><span>💰</span><span>{secondResult.priceRange}</span></span>
+                  <span className="flex items-center gap-1"><Icon name="wallet" /><span>{secondResult.priceRange}</span></span>
                   {secondResult.openingHours && (
                     <span className="flex items-center gap-1">
-                      <span>🕐</span><span>{secondResult.openingHours}</span>
+                      <Icon name="clock" /><span>{secondResult.openingHours}</span>
                       {(() => {
                         const s = parseOpenStatus(secondResult.openingHours);
                         return s ? (
@@ -368,16 +369,16 @@ export default function ResultCard({
             <p className="text-[10px] text-gray-400 text-center -mt-1">이유를 반영해 다른 곳으로 다시 골라드려요</p>
             <div className="grid grid-cols-3 gap-2 mt-0.5">
               {([
-                { reason: 'expensive', emoji: '💸', label: '너무 비싸' },
-                { reason: 'far',       emoji: '📍', label: '너무 멀어' },
-                { reason: 'vibe',      emoji: '🎭', label: '분위기 달라' },
-              ] as const).map(({ reason, emoji, label }) => (
+                { reason: 'expensive', icon: 'wallet', label: '너무 비싸' },
+                { reason: 'far',       icon: 'pin',    label: '너무 멀어' },
+                { reason: 'vibe',      icon: 'mask',   label: '분위기 달라' },
+              ] as const).map(({ reason, icon, label }) => (
                 <button
                   key={reason}
                   onClick={() => onReject(reason)}
                   className="flex flex-col items-center justify-center gap-0.5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs font-bold hover:border-mint-500 hover:text-mint-600 hover:bg-mint-100 transition-all active:scale-95"
                 >
-                  <span className="text-base leading-none">{emoji}</span>
+                  <Icon name={icon} className="text-base" />
                   <span>{label}</span>
                 </button>
               ))}
@@ -391,7 +392,7 @@ export default function ResultCard({
             onClick={onRetry}
             className="flex-1 py-2.5 rounded-xl bg-mint-100 text-mint-600 font-black text-sm flex items-center justify-center gap-1.5 hover:bg-mint-200 transition-all active:scale-95"
           >
-            <span className="text-base">🔄</span>
+            <Icon name="refresh" className="text-base" />
             <span>다른 곳 보기</span>
           </button>
           {onAdjust && (
@@ -399,7 +400,7 @@ export default function ResultCard({
               onClick={onAdjust}
               className="flex-1 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-500 font-bold text-sm flex items-center justify-center gap-1.5 hover:border-mint-500 hover:text-mint-600 transition-all active:scale-95"
             >
-              <span className="text-base">🎚️</span>
+              <Icon name="sliders" className="text-base" />
               <span>취향 조절</span>
             </button>
           )}
@@ -411,7 +412,7 @@ export default function ResultCard({
         onClick={() => { trackEvent('visit_cert_open', { device_id: getDeviceId(), place_key: `${result.placeName}|${result.address ?? ''}`, source: 'result' }); setShowVisitCert(true); }}
         className="w-full py-3 rounded-2xl bg-mint-100 border-2 border-mint-500/40 text-mint-600 font-black text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
       >
-        <span className="text-lg">📍</span>
+        <Icon name="pin" className="text-lg" />
         <span>여기 방문 인증하고 500P 받기</span>
       </button>
 
@@ -427,14 +428,14 @@ export default function ResultCard({
           }}
           className="flex-1 py-2.5 rounded-2xl bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-200 flex items-center justify-center gap-2 active:scale-95 transition-all"
         >
-          <span className="text-lg">💰</span>
+          <Icon name="wallet" className="text-lg" />
           <span className="text-sm font-black text-amber-700">오늘의 총무</span>
         </button>
         <button
           onClick={onReserve}
           className="flex-1 py-2.5 rounded-2xl border border-gray-200 bg-white text-gray-500 font-bold text-sm flex items-center justify-center gap-2 hover:border-mint-500 hover:text-mint-600 transition-all active:scale-95"
         >
-          <span className="text-lg">📋</span>
+          <Icon name="clipboard" className="text-lg" />
           <span>예약 문의</span>
         </button>
       </div>
@@ -444,7 +445,7 @@ export default function ResultCard({
         onClick={() => { trackEvent('plan_entry_click', { device_id: getDeviceId(), frame: planFrame }); setShowPlanSheet(true); }}
         className="w-full text-left rounded-2xl bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-200 px-4 py-3 flex items-center gap-3 active:scale-[0.99] transition-all"
       >
-        <span className="text-2xl shrink-0">🙋</span>
+        <Icon name="user" className="text-2xl shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-black text-amber-800 leading-snug break-keep">매번 장소 정하는 거, 이제 독박 그만</p>
           <p className="text-xs text-amber-600 mt-0.5">
@@ -483,7 +484,7 @@ export default function ResultCard({
             className="bg-white rounded-3xl p-7 w-full max-w-sm text-center shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-5xl mb-4">🎲</div>
+            <Icon name="dice" className="text-5xl mb-4 text-mint-500" />
             <p className="text-lg font-black text-gray-800 leading-snug break-keep">
               {treasurer
                 ? <>{treasurer}에서 출발하는 분이<br />오늘의 총무 당첨!</>

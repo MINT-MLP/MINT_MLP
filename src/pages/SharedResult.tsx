@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { congestionDotClass } from '@/services/seoulData';
-import { MiniMap, WishlistButton, VisitCertModal } from '@/components';
+import { MiniMap, WishlistButton, VisitCertModal, Icon } from '@/components';
 import { trackEvent } from '@/services/analytics';
 import { getDeviceId } from '@/storage/device';
 import type { VoteCandidate, SlimPlace, SnapshotPayload } from '@/types';
@@ -75,7 +75,7 @@ function VoteSection({ shareId, candidates }: { shareId: string; candidates: Vot
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm mb-4 animate-fade-in-up">
-      <p className="text-sm font-black text-gray-800 mb-0.5">🙌 어디가 제일 좋아요?</p>
+      <p className="text-sm font-black text-gray-800 mb-0.5"><Icon name="party" className="mr-1" />어디가 제일 좋아요?</p>
       <p className="text-[11px] text-gray-500 mb-3">
         투표하면 모두에게 집계가 보여요{total > 0 ? ` · 지금까지 ${total}표` : ''}
       </p>
@@ -102,7 +102,7 @@ function VoteSection({ shareId, candidates }: { shareId: string; candidates: Vot
               <div className="relative flex items-center justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm font-black truncate ${mine ? 'text-mint-800' : 'text-gray-800'}`}>
-                    {i === 0 ? '⭐ ' : ''}{c.n}
+                    {i === 0 && <Icon name="star" className="mr-1" />}{c.n}
                   </p>
                   {c.c && <p className="text-[10px] text-gray-500 truncate">{c.c}</p>}
                 </div>
@@ -113,7 +113,7 @@ function VoteSection({ shareId, candidates }: { shareId: string; candidates: Vot
                     </span>
                   )}
                   <span className={`text-xs font-black ${mine ? 'text-mint-600' : 'text-gray-500'}`}>
-                    👍 {n}
+                    <Icon name="thumbsUp" className="mr-1" />{n}
                   </span>
                 </div>
               </div>
@@ -162,7 +162,7 @@ export default function SharedResult() {
   if (error) {
     return (
       <div className="min-h-screen bg-mint-50 flex flex-col items-center justify-center p-8 text-center">
-        <div className="text-4xl mb-4">😔</div>
+        <Icon name="sad" className="text-4xl mb-4 text-gray-400" />
         <p className="text-gray-600 mb-6">링크가 올바르지 않아요.</p>
         <a href="/" className="px-6 py-3 bg-mint-500 text-white rounded-2xl font-bold">
           MINT로 직접 정하기
@@ -197,7 +197,7 @@ export default function SharedResult() {
         {/* 오늘의 총무 */}
         {result.treasurer && (
           <div className="mb-4 bg-yellow-100 border border-yellow-200 rounded-2xl px-4 py-2.5 text-center animate-fade-in-up">
-            <p className="text-sm font-bold text-yellow-800">🎲 오늘의 총무는 <strong>{result.treasurer}</strong>에서 출발!</p>
+            <p className="text-sm font-bold text-yellow-800"><Icon name="dice" className="mr-1" />오늘의 총무는 <strong>{result.treasurer}</strong>에서 출발!</p>
           </div>
         )}
 
@@ -227,7 +227,7 @@ export default function SharedResult() {
             </h2>
             {f.description && (
               <p className="text-sm font-semibold opacity-95 mb-3 leading-snug bg-white/15 rounded-xl px-3 py-2">
-                💬 {f.description}
+                <Icon name="chat" className="mr-1" />{f.description}
               </p>
             )}
 
@@ -239,12 +239,12 @@ export default function SharedResult() {
 
             <div className="bg-white/15 rounded-2xl p-3 flex flex-col gap-1.5">
               <div className="flex items-start gap-2 text-sm">
-                <span className="opacity-70 shrink-0">📍</span>
+                <span className="opacity-70 shrink-0"><Icon name="pin" /></span>
                 <span className="opacity-90">{f.address || f.area}</span>
               </div>
               {f.priceRange && (
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="opacity-70">💰</span>
+                  <Icon name="wallet" className="opacity-70" />
                   <span className="opacity-90">{f.priceRange}</span>
                 </div>
               )}
@@ -276,7 +276,7 @@ export default function SharedResult() {
           onClick={() => { trackEvent('visit_cert_open', { device_id: getDeviceId(), place_key: `${f.placeName}|${f.address ?? ''}`, source: 'shared' }); setShowCert(true); }}
           className="w-full mb-3 py-3.5 rounded-2xl bg-mint-100 border-2 border-mint-500/40 text-mint-600 font-black text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
         >
-          <span className="text-lg">📍</span>
+          <Icon name="pin" className="text-lg" />
           <span>여기 방문 인증하고 500P 받기</span>
         </button>
 
@@ -284,7 +284,7 @@ export default function SharedResult() {
           <p className="text-xs text-gray-500">AI가 이 모임에 딱 맞는 곳을 골라줬어요</p>
         </div>
         <a href="/app" className="block w-full py-4 rounded-2xl bg-mint-500 text-white font-black text-base text-center shadow-lg shadow-mint-500/30 hover:bg-mint-600 transition-colors active:scale-95">
-          🌿 나도 30초 만에 추천받기
+          <Icon name="leaf" className="mr-1" />나도 30초 만에 추천받기
         </a>
 
         {showCert && (
@@ -325,7 +325,7 @@ function CourseCard({ place, label, tone, mapLink }: { place: SlimPlace; label: 
           <p className="text-base font-black text-gray-800 leading-tight">{place.placeName}</p>
           {place.description && <p className="text-xs text-gray-500 leading-snug mt-0.5">{place.description}</p>}
           <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1.5">
-            <span>📍</span><span className="truncate">{place.address || place.area}</span>
+            <Icon name="pin" /><span className="truncate">{place.address || place.area}</span>
           </div>
         </div>
       </div>

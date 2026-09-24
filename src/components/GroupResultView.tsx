@@ -3,6 +3,7 @@ import type { GroupResult, GroupResultPlace, GuestCtx, MapPin, TravelTimeData } 
 import MiniMap from '@/components/MiniMap';
 import VisitCertModal from '@/components/VisitCertModal';
 import GuestPlaceCard from '@/components/GuestPlaceCard';
+import { Icon } from '@/components/icons';
 import { GpsPin, hideOnError, kakaoUrl } from '@/components/placeCardBits';
 import { COURSE_TONE } from '@/constants/colors';
 import { cn } from '@/utils/cn';
@@ -60,12 +61,12 @@ export default function GroupResultView({
       {/* 호스트가 장소를 바꾸면 알림 — 조용한 교체 대신 명시 */}
       {placeChanged && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-sm font-bold px-4 py-2.5 rounded-full shadow-lg animate-fade-in-up">
-          🔄 호스트가 장소를 바꿨어요 · 새 결과예요
+          <Icon name="refresh" className="mr-1" />호스트가 장소를 바꿨어요 · 새 결과예요
         </div>
       )}
       <div className="max-w-md mx-auto flex flex-col gap-2">
         <div className="text-center mb-2">
-          <div className="text-3xl mb-1">🎉</div>
+          <Icon name="party" className="text-3xl mb-1 text-mint-500" />
           <h1 className="text-xl font-black text-gray-800">모임 장소가 정해졌어요!</h1>
           <p className="text-sm text-gray-500 mt-1">
             {result.areaName ? `${result.areaName} · ` : ''}다 같이 고른 취향으로 골랐어요
@@ -123,7 +124,7 @@ export default function GroupResultView({
         {/* 날씨 한 줄 (있을 때만) */}
         {result.weather && (
           <div className="bg-white rounded-2xl border border-gray-100 px-4 py-2.5 shadow-sm flex items-center gap-2 text-xs text-gray-600">
-            <span>{result.weather.isRainy ? '🌧️' : '⛅'}</span>
+            <Icon name={result.weather.isRainy ? 'rain' : 'cloudSun'} />
             <span className="font-bold">{result.weather.temp}°</span>
             <span className="text-gray-400">{result.weather.description}</span>
           </div>
@@ -212,7 +213,7 @@ export default function GroupResultView({
         {/* 총무 발표 — 단톡방 스크린샷 감. 호스트 폰에서만 뜨던 재미 요소를 게스트도 */}
         {result.treasurer && (
           <div className="mt-1 rounded-2xl bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-200 px-4 py-3 flex items-center gap-3">
-            <span className="text-2xl shrink-0">🎲</span>
+            <Icon name="dice" className="text-2xl shrink-0" />
             <p className="text-sm font-black text-amber-800 leading-snug">
               {result.treasurer}에서 출발하는 분이 오늘의 총무 당첨!
             </p>
@@ -228,13 +229,13 @@ export default function GroupResultView({
             onClick={() => trackEvent('guest_directions_click', { device_id: getDeviceId(), place_key: `${f.placeName}|${f.address ?? ''}` })}
             className="flex-1 py-2.5 rounded-2xl bg-white border border-gray-200 text-gray-600 font-bold text-sm flex items-center justify-center gap-1.5 hover:border-mint-500 hover:text-mint-600 transition-all active:scale-95"
           >
-            <span className="text-base">🧭</span><span>길찾기</span>
+            <Icon name="compass" className="text-base" /><span>길찾기</span>
           </a>
           <button
             onClick={() => { trackEvent('guest_calendar_add', { device_id: getDeviceId() }); downloadMeetingIcs(f.placeName, f.address || f.area || ''); }}
             className="flex-1 py-2.5 rounded-2xl bg-white border border-gray-200 text-gray-600 font-bold text-sm flex items-center justify-center gap-1.5 hover:border-mint-500 hover:text-mint-600 transition-all active:scale-95"
           >
-            <span className="text-base">📅</span><span>캘린더 저장</span>
+            <Icon name="calendar" className="text-base" /><span>캘린더 저장</span>
           </button>
         </div>
 
@@ -243,7 +244,7 @@ export default function GroupResultView({
           onClick={() => { trackEvent('visit_cert_open', { device_id: getDeviceId(), place_key: `${f.placeName}|${f.address ?? ''}`, source: 'shared' }); setVisitPlace(f); }}
           className="w-full py-3 rounded-2xl bg-mint-100 border-2 border-mint-500/40 text-mint-600 font-black text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
         >
-          <span className="text-lg">📍</span>
+          <Icon name="pin" className="text-lg" />
           <span>여기 방문 인증하고 500P 받기</span>
         </button>
 
@@ -252,7 +253,7 @@ export default function GroupResultView({
           href="/app?ref=grp"
           className="block w-full mt-2 py-4 rounded-2xl bg-mint-500 text-white font-black text-base text-center shadow-lg shadow-mint-500/30 active:scale-95 transition-transform"
         >
-          🌿 다음엔 내가 모임 만들어보기 →
+          <Icon name="leaf" className="mr-1" />다음엔 내가 모임 만들어보기 →
         </a>
       </div>
 

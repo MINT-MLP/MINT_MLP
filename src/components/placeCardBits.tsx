@@ -7,6 +7,7 @@ import { safeKakaoPlaceUrl } from '@/utils/sharePayload';
 import type { PlaceRecommendation } from '@/types';
 import { trackEvent } from '@/services/analytics';
 import { findCertifications } from '@/constants/certifications';
+import { Icon } from '@/components/icons';
 
 // 깨진 이미지는 흔적 없이 숨긴다 (네이버 썸네일 만료 대응)
 export function hideOnError(e: React.SyntheticEvent<HTMLImageElement>) {
@@ -88,8 +89,9 @@ export function openPlace(url: string, type: PlaceClickEvent, place?: PlaceRecom
   window.open(url, '_blank');
 }
 
-// 매칭된 인증 이모지(최대 2개)를 리스트 행 앞에 붙일 접두사로 — 대안/더보기 행의 인증 표식.
-export function certPrefix(place: { placeName?: string; address?: string; area?: string }): string {
+// 매칭된 인증 아이콘(최대 2개)을 리스트 행 앞에 붙이는 접두 표식 — 대안/더보기 행의 인증 표식.
+export function CertIcons({ place }: { place: { placeName?: string; address?: string; area?: string } }) {
   const c = findCertifications(place).slice(0, 2);
-  return c.length ? c.map((m) => m.source.emoji).join('') + ' ' : '';
+  if (!c.length) return null;
+  return <>{c.map((m) => <Icon key={m.source.id} name={m.source.icon} className="mr-0.5" />)}</>;
 }

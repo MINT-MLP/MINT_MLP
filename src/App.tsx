@@ -1,5 +1,6 @@
 import { Component, lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { requestAppFullscreen } from '@/utils/fullscreen';
+import { Icon } from '@/components/icons';
 
 // 페이지별 코드 스플리팅 — 랜딩만 보는 방문자가 Home/Admin 번들까지 받지 않도록
 const AppShell = lazy(() => import('@/pages/AppShell'));
@@ -17,7 +18,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
     if (this.state.error) {
       return (
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', fontFamily: 'sans-serif' }}>
-          <p style={{ fontSize: '32px', marginBottom: '12px' }}>😓</p>
+          <Icon name="sad" size={32} style={{ marginBottom: '12px', color: '#9CA3AF' }} />
           <p style={{ fontWeight: 'bold', color: '#333', marginBottom: '8px' }}>페이지를 불러오지 못했어요</p>
           <p style={{ color: '#888', fontSize: '13px', marginBottom: '20px' }}>{(this.state.error as Error).message}</p>
           <button onClick={() => window.location.reload()} style={{ background: 'rgb(var(--mint-500))', color: '#fff', border: 'none', borderRadius: '12px', padding: '10px 24px', fontWeight: 'bold', cursor: 'pointer' }}>

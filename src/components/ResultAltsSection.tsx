@@ -1,6 +1,7 @@
 import type { PlaceRecommendation } from '@/types';
 import WishlistButton from '@/components/WishlistButton';
-import { GpsPin, hideOnError, kakaoUrl, openPlace, certPrefix } from '@/components/placeCardBits';
+import { Icon } from '@/components/icons';
+import { GpsPin, hideOnError, kakaoUrl, openPlace, CertIcons } from '@/components/placeCardBits';
 import { COURSE_TONE, type CourseTone } from '@/constants/colors';
 import { cn } from '@/utils/cn';
 
@@ -29,7 +30,7 @@ export default function ResultAltsSection({ alts, tone = 'first', label }: { alt
                 <span className={cn('text-[10px] font-black text-white px-2 py-0.5 rounded-full shrink-0', t.solid)}>
                   #{idx + 2}
                 </span>
-                <p className="text-sm font-black text-gray-800 truncate">{certPrefix(p)}{p.placeName}</p>
+                <p className="text-sm font-black text-gray-800 truncate"><CertIcons place={p} />{p.placeName}</p>
               </div>
               <p className="text-xs text-gray-400">{p.category}</p>
             </div>
@@ -51,7 +52,7 @@ export default function ResultAltsSection({ alts, tone = 'first', label }: { alt
           </div>
           <p className="text-xs text-gray-500 mb-2 leading-relaxed">{p.description}</p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400">
-            <span>💰 {p.priceRange}</span>
+            <span><Icon name="wallet" className="mr-1" />{p.priceRange}</span>
             {p.address && (
               <span className="flex items-center gap-1 truncate">
                 <GpsPin className="opacity-50 text-gray-400" />{p.address}

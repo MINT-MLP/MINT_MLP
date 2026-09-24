@@ -5,6 +5,8 @@ import VibeSelect from '@/components/VibeSelect';
 import MeetingLocationSelect from '@/components/MeetingLocationSelect';
 import GroupWaiting from '@/components/GroupWaiting';
 import type { OccChip } from '@/types';
+import { Icon } from '@/components/icons';
+import type { IconName } from '@/components/icons';
 import { VIBE_KEY_TO_LABEL } from '@/constants/vibeOptions';
 import { OCCASION_BY_RELATION, OCCASION_PREVIEW } from '@/constants/occasion';
 import { cancelGroupSessionOnServer } from '@/services/session';
@@ -129,7 +131,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                       : 'border-gray-200 bg-white hover:border-mint-500/50'
                   }`}
                 >
-                  <span className="text-lg">🙋</span>
+                  <Icon name="user" className="text-lg" />
                   <span className={`text-[13px] font-black ${appMode === 'solo' ? 'text-mint-600' : 'text-gray-700'}`}>혼자 정할게요</span>
                   <span className="text-[10px] text-gray-400">내가 직접 입력</span>
                 </button>
@@ -142,7 +144,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                       : 'border-gray-200 bg-white hover:border-mint-500/50'
                   }`}
                 >
-                  <span className="text-lg">👥</span>
+                  <Icon name="users" className="text-lg" />
                   <span className={`text-[13px] font-black ${isGroup ? 'text-mint-600' : 'text-gray-700'}`}>다같이 정할게요</span>
                   <span className="text-[10px] text-gray-400">링크로 친구 취향 모으기 →</span>
                 </button>
@@ -151,7 +153,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
               {/* 다같이 선택 시 미리보기 한 줄 — 진행 전에 그룹 모드가 어떻게 돌아가는지 체감시켜 진입률↑ */}
               {isGroup && (
                 <p className="text-xs text-mint-600 bg-mint-100 border border-mint-500/30 rounded-xl px-3 py-2.5 leading-relaxed animate-fade-in-up break-keep">
-                  💡 링크만 공유하면 친구들은 <strong className="font-black">가입 없이 분위기만 30초</strong>. 결과는 단톡방으로 와요!
+                  <Icon name="bulb" className="mr-1" />링크만 공유하면 친구들은 <strong className="font-black">가입 없이 분위기만 30초</strong>. 결과는 단톡방으로 와요!
                 </p>
               )}
 
@@ -231,10 +233,10 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
           {/* Step 1 (혼자): 오늘 모임 성격 — 한 줄 4개 (친목/데이트/가족/기타 콕!) */}
           {step === 1 && !isGroup && (() => {
             // relation 값은 recommend.ts의 키워드 매핑과 호환되게 매핑(연인·가족은 전용 키워드 있음)
-            const REL_OPTIONS = [
-              { key: '친목', relation: '친구들', emoji: '🍻' },
-              { key: '데이트', relation: '연인', emoji: '💑' },
-              { key: '가족', relation: '가족', emoji: '👨‍👩‍👧' },
+            const REL_OPTIONS: { key: string; relation: string; icon: IconName }[] = [
+              { key: '친목', relation: '친구들', icon: 'drink' },
+              { key: '데이트', relation: '연인', icon: 'heart' },
+              { key: '가족', relation: '가족', icon: 'family' },
             ];
             const curRelation = purpose?.relation ?? null;
             const occChips = curRelation ? (OCCASION_BY_RELATION[curRelation] ?? []) : [];
@@ -288,14 +290,14 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                     return (
                       <button key={opt.key} onClick={() => pickRel(opt.relation)}
                         className={`flex flex-col items-center justify-center gap-1 h-[72px] rounded-2xl border transition-all active:scale-[0.97] ${selected ? 'border-mint-500 bg-mint-100' : 'border-gray-200 bg-white hover:border-mint-500/50'}`}>
-                        <span className="text-xl leading-none">{opt.emoji}</span>
+                        <Icon name={opt.icon} className="text-xl" />
                         <span className={`text-xs font-bold leading-none ${selected ? 'text-mint-600' : 'text-gray-700'}`}>{opt.key}</span>
                       </button>
                     );
                   })}
                   <button onClick={openEtc}
                     className={`flex flex-col items-center justify-center gap-1 h-[72px] rounded-2xl border transition-all active:scale-[0.97] ${etcRelOpen ? 'border-mint-500 bg-mint-100' : 'border-gray-200 bg-white hover:border-mint-500/50'}`}>
-                    <span className="text-xl leading-none">🎯</span>
+                    <Icon name="target" className="text-xl" />
                     <span className={`text-xs font-bold leading-none ${etcRelOpen ? 'text-mint-600' : 'text-gray-700'}`}>기타 콕!</span>
                   </button>
                 </div>
@@ -310,7 +312,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                         return (
                           <button key={chip.key} onClick={() => pickOccasion(chip)}
                             className={`flex flex-col items-center justify-center gap-1 h-[64px] rounded-2xl border transition-all active:scale-[0.97] ${on ? 'border-mint-500 bg-mint-100' : 'border-gray-200 bg-white hover:border-mint-500/50'}`}>
-                            <span className="text-lg leading-none">{chip.emoji}</span>
+                            <Icon name={chip.icon as IconName} className="text-lg" />
                             <span className={`text-[11px] font-bold leading-none text-center px-0.5 ${on ? 'text-mint-600' : 'text-gray-700'}`}>{chip.key}</span>
                           </button>
                         );
@@ -319,7 +321,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                     {/* 살아있는 미리보기 — 선택 효과를 즉시 보여줌(입력 부담 0) */}
                     {previewHint && (
                       <div className="animate-fade-in-up flex items-center gap-1.5 rounded-xl bg-mint-100 px-3 py-2 mt-0.5">
-                        <span className="text-sm">✨</span>
+                        <Icon name="sparkle" className="text-sm" />
                         <span className="text-[12px] font-medium text-mint-600 leading-snug">{previewHint}</span>
                       </div>
                     )}
@@ -333,7 +335,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                       autoFocus
                       value={customOccasion}
                       onChange={(e) => handleEtcText(e.target.value)}
-                      placeholder="🔎 상황을 직접 적어요 (예: 회식, 상견례, 생일, 졸업)"
+                      placeholder="상황을 직접 적어요 (예: 회식, 상견례, 생일, 졸업)"
                       className={`w-full border rounded-xl px-4 py-3 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-mint-500 transition-colors ${
                         customOccasion.trim() ? 'border-mint-500 bg-mint-100' : 'border-gray-200'
                       }`}
@@ -367,7 +369,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
               {!sessionId ? (
                 <div className="flex flex-col gap-4">
                   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 text-center">
-                    <div className="text-3xl mb-2">🔗</div>
+                    <Icon name="link" className="text-3xl mb-2 text-mint-500" />
                     <p className="font-black text-gray-800 mb-1">참여 링크를 만들어요</p>
                     <p className="text-xs text-gray-400 leading-relaxed">
                       친구들은 가입 없이 링크만 열면 분위기만 고르면 끝.<br />
@@ -427,13 +429,13 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                 <p className="text-[10px] font-bold text-mint-600 uppercase tracking-widest mb-3">모임 요약</p>
                 <div className="flex flex-col gap-2.5 text-sm">
                   <div className="flex gap-2"><span className="text-gray-400 w-12 flex-shrink-0">코스</span>
-                    <span className="font-bold text-gray-800">🍀 {purpose?.first ?? '-'}{purpose?.firstGenre ? `(${purpose.firstGenre})` : ''}{purpose?.second && purpose.second !== '없음' ? ` → ${purpose.second}${purpose?.secondGenre ? `(${purpose.secondGenre})` : ''}` : ''}</span>
+                    <span className="font-bold text-gray-800"><Icon name="clover" className="mr-1" />{purpose?.first ?? '-'}{purpose?.firstGenre ? `(${purpose.firstGenre})` : ''}{purpose?.second && purpose.second !== '없음' ? ` → ${purpose.second}${purpose?.secondGenre ? `(${purpose.secondGenre})` : ''}` : ''}</span>
                   </div>
                   <div className="flex gap-2"><span className="text-gray-400 w-12 flex-shrink-0">지역</span>
-                    <span className="font-bold text-gray-800">📍 {meetingLocation?.type === 'auto' ? '중간지점 자동' : meetingLocation?.type === 'manual' ? meetingLocation.area : '-'}</span>
+                    <span className="font-bold text-gray-800"><Icon name="pin" className="mr-1" />{meetingLocation?.type === 'auto' ? '중간지점 자동' : meetingLocation?.type === 'manual' ? meetingLocation.area : '-'}</span>
                   </div>
                   <div className="flex gap-2"><span className="text-gray-400 w-12 flex-shrink-0">인원</span>
-                    <span className="font-bold text-gray-800">👥 {groupMembers.length}명 참여</span>
+                    <span className="font-bold text-gray-800"><Icon name="users" className="mr-1" />{groupMembers.length}명 참여</span>
                   </div>
                 </div>
               </div>
@@ -447,7 +449,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                     <p className="text-[10px] font-bold text-mint-600 uppercase tracking-widest mb-2.5">모두의 취향 (자동 종합)</p>
                     <div className="flex flex-wrap gap-1.5">
                       {vibeLabels.map((l) => <span key={l} className="bg-mint-100 text-mint-600 text-xs font-bold px-2.5 py-1 rounded-full">{l}</span>)}
-                      {budget && <span className="bg-mint-100 text-mint-600 text-xs font-bold px-2.5 py-1 rounded-full">💰 {budget}</span>}
+                      {budget && <span className="bg-mint-100 text-mint-600 text-xs font-bold px-2.5 py-1 rounded-full"><Icon name="wallet" className="mr-1" />{budget}</span>}
                       {keywords.map((k) => <span key={k} className="bg-mint-100 text-mint-600 text-xs font-bold px-2.5 py-1 rounded-full">{k}</span>)}
                     </div>
                   </div>
@@ -482,7 +484,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                 onClick={() => lastRecommendRef.current?.()}
                 className="mt-2.5 w-full py-2.5 rounded-xl bg-mint-500 text-white text-sm font-black active:scale-95 transition-transform hover:bg-mint-600"
               >
-                🔄 다시 시도
+                <Icon name="refresh" className="mr-1" />다시 시도
               </button>
             )}
           </div>
@@ -545,7 +547,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                   }}
                   className="flex-1 py-4 rounded-2xl font-black text-base bg-mint-500 text-white shadow-lg shadow-mint-500/30 hover:bg-mint-600 transition-all active:scale-95"
                 >
-                  ✨ 장소 추천받기
+                  <Icon name="sparkle" className="mr-1" />장소 추천받기
                 </button>
               </div>
             </div>

@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { getDeviceId } from '@/storage/device';
 import { placeKey, haversineMeters, creditVisit, VISIT_POINTS, CERT_RADIUS_M } from '@/storage/points';
 import { trackEvent } from '@/services/analytics';
+import { Icon } from '@/components/icons';
 
 interface CertPlace {
   placeName?: string;
@@ -84,7 +85,7 @@ export default function VisitCertModal({
       >
         {stage === 'success' ? (
           <>
-            <div className="text-5xl mb-3">🎉</div>
+            <Icon name="party" className="text-5xl mb-3 text-mint-500" />
             <p className="text-lg font-black text-gray-900">방문 인증 완료!</p>
             <p className="text-sm text-gray-500 mt-1 leading-relaxed">
               <span className="font-black text-mint-600">+{VISIT_POINTS}P</span> 적립됐어요.<br />
@@ -96,7 +97,7 @@ export default function VisitCertModal({
           </>
         ) : (
           <>
-            <div className="text-4xl mb-2">📍</div>
+            <Icon name="pin" className="text-4xl mb-2 text-mint-500" />
             <p className="text-lg font-black text-gray-900 leading-snug">
               {place.placeName ? `${place.placeName}에` : '이곳에'} 오셨나요?
             </p>
@@ -115,7 +116,7 @@ export default function VisitCertModal({
               <div className="flex flex-col gap-2 mt-5">
                 {stage !== 'photo' && (
                   <button onClick={certifyByGps} className="w-full py-3.5 rounded-2xl bg-mint-500 text-white font-black active:scale-[0.98] transition-transform">
-                    📍 위치로 인증하기
+                    <Icon name="pin" className="mr-1" />위치로 인증하기
                   </button>
                 )}
                 <button
@@ -124,7 +125,7 @@ export default function VisitCertModal({
                     stage === 'photo' ? 'bg-mint-500 text-white' : 'bg-mint-100 text-mint-600'
                   }`}
                 >
-                  📷 사진으로 인증하기
+                  <Icon name="camera" className="mr-1" />사진으로 인증하기
                 </button>
                 <input
                   ref={photoRef}

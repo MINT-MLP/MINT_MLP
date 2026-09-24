@@ -1,5 +1,6 @@
 import type { GroupResultPlace } from '@/types';
 import WishlistButton from '@/components/WishlistButton';
+import { Icon } from '@/components/icons';
 import { GpsPin, hideOnError, parseOpenStatus, congestionInfo, FitScoreBar, kakaoUrl } from '@/components/placeCardBits';
 import { COURSE_TONE, type CourseTone } from '@/constants/colors';
 import { cn } from '@/utils/cn';
@@ -67,11 +68,11 @@ export default function GuestPlaceCard({
           </div>
           <div className="flex items-center gap-3 text-xs text-white/80 flex-wrap">
             {place.priceRange && (
-              <span className="flex items-center gap-1"><span>💰</span><span>{place.priceRange}</span></span>
+              <span className="flex items-center gap-1"><Icon name="wallet" /><span>{place.priceRange}</span></span>
             )}
             {place.openingHours && (
               <span className="flex items-center gap-1">
-                <span>🕐</span><span>{place.openingHours}</span>
+                <Icon name="clock" /><span>{place.openingHours}</span>
                 {openStatus && (
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${openStatus.isOpen ? 'bg-green-400 text-white' : 'bg-red-400/80 text-white'}`}>
                     {openStatus.label}

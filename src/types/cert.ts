@@ -1,4 +1,5 @@
 // 인증 리스트 (우슐랭·백년가게·착한가격·미쉐린) — 결과 카드의 뱃지 매칭
+import type { IconName } from '@/components/icons';
 
 // 시·도 게이트 키 — 전국 17개 광역 지자체. 확장 시 값만 추가.
 export type Sido =
@@ -17,7 +18,7 @@ export interface CertEntry {
 export interface CertSource {
   id: string;             // 고유 식별자(상태 키로도 사용)
   label: string;          // 뱃지에 노출될 짧은 이름 (예: 우슐랭)
-  emoji: string;          // 뱃지·시트 아이콘
+  icon: IconName;         // 뱃지·시트 아이콘
   badgeTextColor: string; // 뱃지 글자/아이콘 색 (배경은 흰색 고정)
   priority: number;       // 낮을수록 먼저 노출(정렬·slice 기준)
   sheetTitle: string;     // 안내 시트 제목

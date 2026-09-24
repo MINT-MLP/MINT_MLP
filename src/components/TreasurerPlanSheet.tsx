@@ -2,15 +2,16 @@ import { useEffect, useRef, useState } from 'react';
 import { getDeviceId } from '@/storage/device';
 import { trackEvent } from '@/services/analytics';
 import { isPreregistered, markPreregistered, type PlanFrame } from '@/storage/treasurerPlan';
+import { Icon, type IconName } from '@/components/icons';
 
 // 총무 플랜 '자세히 알아보기' 상세 시트 — 구독하면 어떤 서비스가 실현되는지 보여준다.
 // 결제·기능은 없다(가짜 문). 순수 가격 검증 + 사전등록. 가격 프레임은 기기별 A/B 고정.
 
-const DOISS: { icon: string; pain: string; solve: string; live: boolean }[] = [
-  { icon: '💬', pain: '질문 폭탄에 1:1 답장', solve: '링크 하나로 취합 — 멤버가 각자 취향·출발지를 직접 입력', live: true },
-  { icon: '🧠', pain: '매번 취향 다시 물어보기', solve: '취향 자동 기억 — 지난 모임 조건을 그대로 불러오기', live: false },
-  { icon: '📢', pain: '공지 쓰고 리마인드 노동', solve: '공지·참석 마감 자동 — 가요/못가요 수합 + 마감 알림', live: false },
-  { icon: '🎯', pain: '"네가 고른 데 별로였어" 결정 책임', solve: '"MINT가 골랐어요" — 데이터 근거 카드로 책임 분산', live: true },
+const DOISS: { icon: IconName; pain: string; solve: string; live: boolean }[] = [
+  { icon: 'chat', pain: '질문 폭탄에 1:1 답장', solve: '링크 하나로 취합 — 멤버가 각자 취향·출발지를 직접 입력', live: true },
+  { icon: 'brain', pain: '매번 취향 다시 물어보기', solve: '취향 자동 기억 — 지난 모임 조건을 그대로 불러오기', live: false },
+  { icon: 'megaphone', pain: '공지 쓰고 리마인드 노동', solve: '공지·참석 마감 자동 — 가요/못가요 수합 + 마감 알림', live: false },
+  { icon: 'target', pain: '"네가 고른 데 별로였어" 결정 책임', solve: '"MINT가 골랐어요" — 데이터 근거 카드로 책임 분산', live: true },
 ];
 
 export default function TreasurerPlanSheet({ frame, onClose }: { frame: PlanFrame; onClose: () => void }) {
@@ -87,7 +88,7 @@ export default function TreasurerPlanSheet({ frame, onClose }: { frame: PlanFram
             {DOISS.map((d) => (
               <div key={d.pain} className="bg-white rounded-2xl border border-gray-100 p-3.5">
                 <div className="flex items-start gap-3">
-                  <span className="text-xl leading-none mt-0.5">{d.icon}</span>
+                  <Icon name={d.icon} className="text-xl mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-gray-400 line-through decoration-gray-300">{d.pain}</p>
                     <p className="text-sm font-bold text-gray-800 leading-snug mt-0.5 break-keep">{d.solve}</p>
@@ -148,7 +149,7 @@ export default function TreasurerPlanSheet({ frame, onClose }: { frame: PlanFram
               onClick={() => setShowEmail(true)}
               className="w-full py-4 rounded-2xl bg-mint-500 text-white font-black text-base shadow-lg shadow-mint-500/30 active:scale-95 transition-transform"
             >
-              출시되면 제일 먼저 알려주세요 🔔
+              출시되면 제일 먼저 알려주세요<Icon name="bell" className="ml-1" />
             </button>
           )}
         </div>

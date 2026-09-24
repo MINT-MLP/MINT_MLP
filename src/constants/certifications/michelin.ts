@@ -30,12 +30,12 @@ const ENTRIES: CertEntry[] = [
 export const MICHELIN: CertSource = {
   id: 'michelin',
   label: '미쉐린',
-  emoji: '⭐',
+  icon: 'star',
   badgeTextColor: '#111827',
   priority: 0,
   sheetTitle: '미쉐린 가이드 등재',
   sheetBody:
-    '미쉐린 가이드 서울·부산 셀렉션에 이름을 올린 곳이에요. 한 끼의 완성도를 세계적인 기준으로 검증받은 집이라는 뜻이랍니다 ✨',
+    '미쉐린 가이드 서울·부산 셀렉션에 이름을 올린 곳이에요. 한 끼의 완성도를 세계적인 기준으로 검증받은 집이라는 뜻이랍니다',
   sourceLine: '미쉐린 가이드 서울·부산 셀렉션',
   ctaLabel: '기대돼요, 가볼게요!',
   disclaimer: 'MINT는 미쉐린과 무관한 독립 서비스이며, 등재 정보를 참고용으로 안내해요.',

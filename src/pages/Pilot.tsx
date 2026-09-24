@@ -4,6 +4,7 @@ import {
   getPilotHandoffs, markPilotHandoffUsed, summaryLine, topPlaceName, relativeTime,
 } from '@/storage/pilotHandoff';
 import type { PilotHandoff, CoursePick, PilotPrizeReward } from '@/types';
+import { Icon } from '@/components/icons';
 
 type Phase = 'detect' | 'form-auto' | 'form-manual' | 'spinning' | 'reward' | 'soldout' | 'reclaim' | 'done';
 
@@ -113,7 +114,7 @@ export default function Pilot() {
                 }}
                 className="text-left border-2 border-gray-200 rounded-2xl p-4 hover:border-mint-500 active:scale-[0.99] transition-all">
                 <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className="text-base font-black text-gray-800 truncate">🍽️ {topPlaceName(h)}</span>
+                  <span className="text-base font-black text-gray-800 truncate"><Icon name="meal" className="mr-1" />{topPlaceName(h)}</span>
                   <span className="text-[11px] text-gray-400 shrink-0">{relativeTime(h.createdAt)}</span>
                 </div>
                 <p className="text-xs text-mint-600 font-bold">{summaryLine(h.conditions) || '추천 조건'}</p>
@@ -207,7 +208,7 @@ export default function Pilot() {
             <div className="flex gap-1.5">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button key={n} onClick={() => setFitRating(n)} aria-label={`${n}점`}
-                  className={`w-11 h-11 rounded-xl border-2 text-xl transition-all active:scale-95 ${fitRating >= n ? 'border-mint-500 bg-mint-100 text-mint-600' : 'border-gray-200 bg-white text-gray-300'}`}>★</button>
+                  className={`w-11 h-11 rounded-xl border-2 text-xl transition-all active:scale-95 ${fitRating >= n ? 'border-mint-500 bg-mint-100 text-mint-600' : 'border-gray-200 bg-white text-gray-300'}`}><Icon name="star" className={fitRating >= n ? 'fill-current' : undefined} /></button>
               ))}
             </div>
             {fitRating > 0 && fitRating <= 3 && (
@@ -287,7 +288,7 @@ export default function Pilot() {
         <div className="flex gap-1.5 mb-3">
           {[1, 2, 3, 4, 5].map((n) => (
             <button key={n} onClick={() => setFitRating(n)} aria-label={`${n}점`}
-              className={`w-11 h-11 rounded-xl border-2 text-xl transition-all active:scale-95 ${fitRating >= n ? 'border-mint-500 bg-mint-100 text-mint-600' : 'border-gray-200 bg-white text-gray-300'}`}>★</button>
+              className={`w-11 h-11 rounded-xl border-2 text-xl transition-all active:scale-95 ${fitRating >= n ? 'border-mint-500 bg-mint-100 text-mint-600' : 'border-gray-200 bg-white text-gray-300'}`}><Icon name="star" className={fitRating >= n ? 'fill-current' : undefined} /></button>
           ))}
         </div>
         <textarea value={fitText} onChange={(e) => setFitText(e.target.value)} placeholder="조건에 잘 맞았는지, 아쉬운 점은 없었는지 한 줄이면 충분해요."
@@ -399,7 +400,7 @@ function SubmitBtn({ onClick, disabled, submitting }: { onClick: () => void; dis
     <>
       <button onClick={onClick} disabled={disabled}
         className={`w-full mt-3 py-4 rounded-2xl font-black text-base transition-all active:scale-95 ${!disabled ? 'bg-mint-500 text-white shadow-lg shadow-mint-500/30 hover:bg-mint-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
-        {submitting ? '제출 중...' : '🎁 제출하고 룰렛 돌리기'}
+        {submitting ? '제출 중...' : <><Icon name="gift" className="mr-1" />제출하고 룰렛 돌리기</>}
       </button>
       <p className="text-center text-[11px] text-gray-400 mt-2">꽝 없는 룰렛 · 제출하면 그 자리에서 100% 당첨돼요</p>
     </>
@@ -448,7 +449,7 @@ function Roulette({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="min-h-[100dvh] bg-mint-50 flex flex-col items-center justify-center px-6">
-      <p className="text-2xl font-black text-gray-800 mb-1">🎉 꽝 없는 룰렛</p>
+      <p className="text-2xl font-black text-gray-800 mb-1"><Icon name="party" className="mr-1" />꽝 없는 룰렛</p>
       <p className="text-sm text-gray-500 mb-8">100% 당첨! 어떤 상품이 걸릴까요?</p>
       <div className="relative w-72 h-72">
         <div className="absolute left-1/2 -top-2 -translate-x-1/2 z-20"
@@ -462,13 +463,13 @@ function Roulette({ onDone }: { onDone: () => void }) {
             return (
               <div key={i} className="absolute left-1/2 top-1/2" style={{ transform: `rotate(${angle}deg) translateY(-92px)` }}>
                 <span className="block -translate-x-1/2 text-lg font-black" style={{ transform: `rotate(${-angle}deg)`, color: prize ? '#fff' : '#9CA3AF' }}>
-                  {prize ? '🎁' : '꽝'}
+                  {prize ? <Icon name="gift" /> : '꽝'}
                 </span>
               </div>
             );
           })}
         </div>
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow-md border-2 border-mint-500 flex items-center justify-center z-10 text-xl">🎯</div>
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow-md border-2 border-mint-500 flex items-center justify-center z-10 text-xl"><Icon name="target" /></div>
       </div>
     </div>
   );
@@ -491,7 +492,7 @@ function RewardView({ prize, onClose, reclaimed = false }: { prize: PilotPrizeRe
   return (
     <div className="min-h-[100dvh] bg-mint-50 flex items-center justify-center px-5 py-8">
       <div className="w-full max-w-sm bg-white rounded-3xl border border-mint-500/30 shadow-xl shadow-mint-500/10 px-6 py-7 text-center animate-fade-in-up">
-        <div className="inline-flex items-center gap-1.5 bg-mint-100 text-mint-600 text-xs font-black px-3 py-1 rounded-full mb-3">🎉 100% 당첨</div>
+        <div className="inline-flex items-center gap-1.5 bg-mint-100 text-mint-600 text-xs font-black px-3 py-1 rounded-full mb-3"><Icon name="party" />100% 당첨</div>
         <p className="text-2xl font-black text-gray-800 mb-1">{prize.title}</p>
         <p className="text-xs text-gray-400 mb-4">지금 <strong className="text-mint-600">스크린샷으로 저장</strong>하세요!</p>
         {prize.imageUrl ? (
@@ -540,7 +541,7 @@ function SoldOutView({ claimCode, onClose }: { claimCode: string; onClose: () =>
   return (
     <div className="min-h-[100dvh] bg-mint-50 flex items-center justify-center px-5 py-8">
       <div className="w-full max-w-sm bg-white rounded-3xl border border-mint-500/30 shadow-xl shadow-mint-500/10 px-6 py-7 text-center animate-fade-in-up">
-        <div className="text-4xl mb-3">🎁</div>
+        <Icon name="gift" className="text-4xl mb-3 text-mint-500" />
         <p className="text-2xl font-black text-gray-800 mb-1">당첨 확정!</p>
         <p className="text-sm text-gray-500 leading-relaxed mb-4">상품이 잠시 품절이라 <strong className="text-mint-600">충전 즉시 보내드릴게요.</strong> 이번만 연락처를 남겨주세요.</p>
         <div className="bg-mint-50 border border-mint-500/30 rounded-2xl px-4 py-3 mb-4">
@@ -578,7 +579,7 @@ function ReclaimView({ onBack }: { onBack: () => void }) {
   return (
     <div className="min-h-[100dvh] bg-mint-50 flex items-center justify-center px-5">
       <div className="w-full max-w-sm bg-white rounded-3xl border border-gray-100 shadow-sm px-6 py-8 text-center">
-        <div className="text-3xl mb-3">🎟️</div>
+        <Icon name="ticket" className="text-3xl mb-3 text-mint-500" />
         <h1 className="text-lg font-black text-gray-800 mb-1">당첨코드로 다시 받기</h1>
         <p className="text-sm text-gray-400 mb-5">받았던 당첨코드(MINT-XXXXX)를 입력하면 기프티콘을 다시 보여드려요.</p>
         <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="MINT-XXXXX" maxLength={10} onKeyDown={(e) => { if (e.key === 'Enter') lookup(); }}

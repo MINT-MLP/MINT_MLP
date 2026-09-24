@@ -1,4 +1,5 @@
 import { CERT_SOURCES } from '@/constants/certifications';
+import { Icon } from '@/components/icons';
 
 // 랜딩 "신뢰 큐레이션" 섹션 — 추천 카드에 뜨는 인증 뱃지를 미리 소개.
 // 데이터는 CERT_SOURCES 단일 출처에서 읽어, 새 인증을 추가하면 이 섹션도 자동 갱신된다.
@@ -40,10 +41,10 @@ export default function CertShowcase() {
                 한식
               </span>
               <span className="text-[11px] font-black bg-white text-[#DA291C] px-2.5 py-0.5 rounded-full shadow-sm">
-                📮 우슐랭
+                <Icon name="mailbox" className="mr-1" />우슐랭
               </span>
               <span className="text-[11px] font-black bg-white text-[#8A5A2B] px-2.5 py-0.5 rounded-full shadow-sm">
-                🏛️ 백년가게
+                <Icon name="landmark" className="mr-1" />백년가게
               </span>
             </div>
             <p className="text-lg font-black leading-tight">이 집, 믿고 가도 돼요</p>
@@ -63,7 +64,7 @@ export default function CertShowcase() {
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl leading-none">{s.emoji}</span>
+                  <Icon name={s.icon} className="text-2xl" style={{ color: empty ? '#9CA3AF' : s.badgeTextColor }} />
                   <span className="text-sm lg:text-base font-black" style={{ color: empty ? '#9CA3AF' : s.badgeTextColor }}>
                     {s.label}
                   </span>

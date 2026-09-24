@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Icon } from '@/components/icons';
 
 export default function AdminPasswordGate({ onUnlock, verifying, error }: {
   onUnlock: (password: string) => void;
@@ -15,7 +16,7 @@ export default function AdminPasswordGate({ onUnlock, verifying, error }: {
   return (
     <div className="min-h-screen bg-mint-50 flex items-center justify-center px-4">
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-xs text-center">
-        <div className="text-3xl mb-3">🔒</div>
+        <Icon name="lock" className="text-3xl mb-3 text-gray-400" />
         <h1 className="text-lg font-black text-gray-800 mb-1">MINT 어드민</h1>
         <p className="text-sm text-gray-400 mb-6">비밀번호를 입력해주세요</p>
         <input

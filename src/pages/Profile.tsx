@@ -7,7 +7,7 @@ import {
   getSession, onAuthChange, signInWithKakao, signOut, syncProfile, deleteAccount,
   getNickname, getAvatarUrl, getActivityHistory, clearActivityCache, isMember, ensureSession,
 } from '@/services/auth';
-import { IconUserCircle, IconGift, PointsBadge } from '@/components';
+import { Icon, IconUserCircle, IconGift, PointsBadge } from '@/components';
 import type { HistoryEntry, ActivityRow } from '@/types';
 
 // 문의는 메일 대신 카카오톡 오픈채팅으로 받는다(답장 속도·피드백 수집).
@@ -290,7 +290,7 @@ export default function Profile({ onChromeChange }: Props) {
           className="flex min-h-10 items-center justify-between px-4 py-3.5 active:bg-gray-50"
         >
           <span className="text-sm font-bold text-gray-700">문의하기 &amp; 서비스 피드백</span>
-          <span aria-hidden className="text-xs text-gray-300">↗</span>
+          <Icon name="external" className="text-xs text-gray-300" />
         </a>
         {user && (
           <>

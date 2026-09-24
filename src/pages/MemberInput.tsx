@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { searchAddress } from '@/services/kakaoMap';
 import type { KakaoPlace, VibeState, GroupResult, GuestCtx } from '@/types';
-import { VibeSelect, StepProgress, GroupResultView } from '@/components';
+import { VibeSelect, StepProgress, GroupResultView, AnchoredDropdown, Icon } from '@/components';
 import { VIBE_KEY_TO_LABEL } from '@/constants/vibeOptions';
 // SECOND_KEYWORD_PREFIX는 더 이상 생성하지 않는다(1차/2차 키워드 입력 통합).
 // 파싱 쪽(groupAggregate)은 그대로 둔다 — 배포 시점에 구버전 링크로 제출 중인 게스트가 있을 수 있다.
@@ -14,22 +13,18 @@ import { getDeviceId } from '@/storage/device';
 
 type Phase = 'step0' | 'step1' | 'step2' | 'done';
 
+// 출발지 자동완성 드롭다운 — 위치 추적(리사이즈·스크롤·줌)은 AnchoredDropdown이 맡는다
 function SuggestionDropdown({
   suggestions,
-  anchorEl,
+  getAnchor,
   onSelect,
 }: {
   suggestions: KakaoPlace[];
-  anchorEl: HTMLDivElement | null;
+  getAnchor: () => HTMLElement | null;
   onSelect: (place: KakaoPlace) => void;
 }) {
-  if (!suggestions.length || !anchorEl) return null;
-  const rect = anchorEl.getBoundingClientRect();
-  return createPortal(
-    <div
-      style={{ position: 'fixed', top: rect.bottom + 4, left: rect.left, width: rect.width, zIndex: 9999 }}
-      className="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden"
-    >
+  return (
+    <AnchoredDropdown open={suggestions.length > 0} getAnchor={getAnchor}>
       {suggestions.map((place) => (
         <button
           key={place.id}
@@ -40,8 +35,7 @@ function SuggestionDropdown({
           <div className="text-xs text-gray-400 mt-0.5">{place.road_address_name || place.address_name}</div>
         </button>
       ))}
-    </div>,
-    document.body
+    </AnchoredDropdown>
   );
 }
 
@@ -66,8 +60,8 @@ function HostContextBanner({ ctx }: { ctx: HostContext | null }) {
     <div className="mx-5 mb-1 bg-mint-100 border border-mint-500/40 rounded-2xl px-4 py-3">
       <p className="text-[10px] font-bold text-mint-600 uppercase tracking-widest mb-1.5">호스트가 정한 모임</p>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-        <span className="flex items-center gap-1 font-bold text-gray-800">🍀 {courseText(ctx)}</span>
-        <span className="flex items-center gap-1 font-bold text-gray-800">📍 {regionText(ctx)}</span>
+        <span className="flex items-center gap-1 font-bold text-gray-800"><Icon name="clover" />{courseText(ctx)}</span>
+        <span className="flex items-center gap-1 font-bold text-gray-800"><Icon name="pin" />{regionText(ctx)}</span>
       </div>
     </div>
   );
@@ -300,7 +294,7 @@ export default function MemberInput() {
   if (!sessionId) {
     return (
       <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-mint-50 px-6 text-center">
-        <p className="text-2xl mb-3">🔗</p>
+        <Icon name="link" className="text-2xl mb-3 text-gray-400" />
         <p className="font-bold text-gray-800 mb-1">유효하지 않은 링크예요</p>
         <p className="text-sm text-gray-400">호스트에게 참여 링크를 다시 받아주세요.</p>
       </div>
@@ -338,7 +332,7 @@ export default function MemberInput() {
     if (cancelled) {
       return (
         <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-mint-50 px-6 text-center">
-          <p className="text-3xl mb-3">🙏</p>
+          <Icon name="thanks" className="text-3xl mb-3 text-gray-400" />
           <p className="font-black text-gray-800 mb-1.5">호스트가 초대를 취소했어요</p>
           <p className="text-sm text-gray-400 leading-relaxed">
             코스나 지역이 바뀌었을 수 있어요.<br />호스트에게 새 링크를 받아주세요.
@@ -384,8 +378,8 @@ export default function MemberInput() {
           <div className="w-full max-w-xs bg-white shadow-sm rounded-2xl px-5 py-4 mb-3">
             <p className="text-[10px] font-bold text-mint-600 uppercase tracking-widest mb-2">이 모임</p>
             <div className="flex flex-col gap-1.5 text-sm">
-              <div className="flex items-center gap-2"><span className="text-gray-400 w-9 flex-shrink-0">코스</span><span className="font-bold text-gray-800">🍀 {courseText(hostCtx)}</span></div>
-              <div className="flex items-center gap-2"><span className="text-gray-400 w-9 flex-shrink-0">지역</span><span className="font-bold text-gray-800">📍 {regionText(hostCtx)}</span></div>
+              <div className="flex items-center gap-2"><span className="text-gray-400 w-9 flex-shrink-0">코스</span><span className="font-bold text-gray-800"><Icon name="clover" className="mr-1" />{courseText(hostCtx)}</span></div>
+              <div className="flex items-center gap-2"><span className="text-gray-400 w-9 flex-shrink-0">지역</span><span className="font-bold text-gray-800"><Icon name="pin" className="mr-1" />{regionText(hostCtx)}</span></div>
             </div>
           </div>
         )}
@@ -398,7 +392,7 @@ export default function MemberInput() {
               {myVibeLabels.map((l) => (
                 <span key={l} className="bg-mint-100 text-mint-600 text-xs font-bold px-2.5 py-1 rounded-full">{l}</span>
               ))}
-              {budget && <span className="bg-mint-100 text-mint-600 text-xs font-bold px-2.5 py-1 rounded-full">💰 {budget}</span>}
+              {budget && <span className="bg-mint-100 text-mint-600 text-xs font-bold px-2.5 py-1 rounded-full"><Icon name="wallet" className="mr-1" />{budget}</span>}
               {keywords.map((k) => (
                 <span key={k} className="bg-mint-100 text-mint-600 text-xs font-bold px-2.5 py-1 rounded-full">{k}</span>
               ))}
@@ -522,7 +516,7 @@ export default function MemberInput() {
                   )}
                   <SuggestionDropdown
                     suggestions={suggestions}
-                    anchorEl={wrapperRef.current}
+                    getAnchor={() => wrapperRef.current}
                     onSelect={selectPlace}
                   />
                 </div>
