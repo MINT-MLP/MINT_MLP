@@ -3,6 +3,7 @@
 // 액션(재추천·예약·총무)은 각 화면이 카드 바깥에서 조립한다 — 여긴 표현만.
 import type React from 'react';
 import { cn } from '@/utils/cn';
+import { safeKakaoPlaceUrl } from '@/utils/sharePayload';
 import type { PlaceRecommendation } from '@/types';
 import { trackEvent } from '@/services/analytics';
 import { findCertifications } from '@/constants/certifications';
@@ -71,7 +72,8 @@ export function FitScoreBar({ score, className }: { score?: number; className?: 
 
 // 카카오맵 링크 — kakaoPlaceUrl 우선, 좌표 있으면 지도, 없으면 검색.
 export function kakaoUrl(place: { placeName: string; lat?: number | null; lng?: number | null; kakaoPlaceUrl?: string | null }) {
-  if (place.kakaoPlaceUrl) return place.kakaoPlaceUrl;
+  const safe = safeKakaoPlaceUrl(place.kakaoPlaceUrl);
+  if (safe) return safe;
   if (place.lat && place.lng && place.lat !== 0 && place.lng !== 0)
     return `https://map.kakao.com/link/map/${encodeURIComponent(place.placeName)},${place.lat},${place.lng}`;
   return `https://map.kakao.com/link/search/${encodeURIComponent(place.placeName)}`;

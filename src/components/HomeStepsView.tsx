@@ -20,7 +20,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
   const {
     groupSize, setGroupSize, customOccasion, setCustomOccasion, etcRelOpen, setEtcRelOpen, occasionChip, setOccasionChip,
     locations, setLocations, purpose, setPurpose, vibe, setVibe, budget, setBudget, meetingLocation, setMeetingLocation,
-    keywords, setKeywords, conditions, setConditions, excludeFoods, setExcludeFoods,
+    keywords, setKeywords, conditions, setConditions,
   } = input;
   const { sessionId, setSessionId, expectedCount, setExpectedCount, groupMembers, setGroupMembers, pendingGroupRecommend, creatingSession, groupError, setGroupError, copied } = group;
   const { loading, error, lastRecommendRef } = request;
@@ -417,8 +417,6 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
               onKeywordsChange={setKeywords}
               conditions={conditions}
               onConditionsChange={setConditions}
-              excludeFoods={excludeFoods}
-              onExcludeFoodsChange={setExcludeFoods}
             />
           )}
 
@@ -443,7 +441,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
               {/* 모인 취향 */}
               {(() => {
                 const vibeLabels = [...Object.values(vibe).flatMap((g) => [...g.first, ...g.second]), ...conditions].map((k) => VIBE_KEY_TO_LABEL[k] ?? k);
-                if (vibeLabels.length === 0 && !budget && keywords.length === 0 && excludeFoods.length === 0) return null;
+                if (vibeLabels.length === 0 && !budget && keywords.length === 0) return null;
                 return (
                   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                     <p className="text-[10px] font-bold text-mint-600 uppercase tracking-widest mb-2.5">모두의 취향 (자동 종합)</p>
@@ -451,7 +449,6 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                       {vibeLabels.map((l) => <span key={l} className="bg-mint-100 text-mint-600 text-xs font-bold px-2.5 py-1 rounded-full">{l}</span>)}
                       {budget && <span className="bg-mint-100 text-mint-600 text-xs font-bold px-2.5 py-1 rounded-full">💰 {budget}</span>}
                       {keywords.map((k) => <span key={k} className="bg-mint-100 text-mint-600 text-xs font-bold px-2.5 py-1 rounded-full">{k}</span>)}
-                      {excludeFoods.map((f) => <span key={f} className="bg-red-50 text-red-500 text-xs font-bold px-2.5 py-1 rounded-full">🚫 {f}</span>)}
                     </div>
                   </div>
                 );
@@ -468,7 +465,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                 onClick={() => stepScrollRef.current?.scrollBy({ top: 240, behavior: 'smooth' })}
                 className="pointer-events-auto flex items-center gap-2 rounded-full border border-mint-500/35 bg-white/95 px-4 py-2 text-xs font-bold text-mint-600 shadow-lg shadow-mint-600/15 backdrop-blur"
               >
-                키워드·못 먹는 음식도 더 있어요
+                키워드도 더 있어요
                 <span className="animate-bounce text-sm leading-none" aria-hidden>↓</span>
               </button>
             </div>

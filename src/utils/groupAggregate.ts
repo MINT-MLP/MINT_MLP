@@ -34,7 +34,7 @@ function roundRobin(perMember: string[][]): string[] {
   return out;
 }
 
-// 멤버 키워드에서 1차 키워드·2차 키워드·편식을 분리 — 편식은 전원 합집합(한 명이라도 못 먹으면 제외)
+// 멤버 키워드에서 1차 키워드·2차 키워드를 분리. 편식(접두사)은 입력 항목이 없어졌지만 예전 세션 값이 키워드로 새지 않게 따로 떼어낸다
 export function splitMemberKeywords(members: GroupMember[]): { keywords: string[]; keywordsSecond: string[]; excludeFoods: string[] } {
   const isExclude = (k: string) => k.startsWith(EXCLUDE_FOOD_PREFIX);
   const isSecond = (k: string) => k.startsWith(SECOND_KEYWORD_PREFIX);

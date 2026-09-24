@@ -18,6 +18,7 @@ export interface HcxOptions {
   /** 구조화 출력(JSON Schema). HCX-007만 지원하므로 다른 모델에는 보내지 않는다 */
   jsonSchema?: Record<string, unknown>;
   apiKey?: string;
+  timeoutMs?: number;
 }
 
 export interface HcxResult {
@@ -36,8 +37,11 @@ export class HcxError extends Error {
 }
 
 // 테스트에서 가짜 fetch를 꽂기 위한 최소 형태
-export type FetchLike = (url: string, init: { method: string; headers: Record<string, string>; body: string }) =>
+export type FetchLike = (url: string, init: { method: string; headers: Record<string, string>; body: string; signal?: AbortSignal }) =>
   Promise<{ ok: boolean; status: number; text(): Promise<string> }>;
+
+// Vercel 함수 상한이 60초라 그 전에 끊어야 호출부의 폴백이 돈다
+export const HCX_TIMEOUT_MS = 25_000;
 
 interface HcxResponse {
   status?: { code?: string; message?: string };
@@ -68,16 +72,28 @@ export async function askHcx(prompt: string, opts: HcxOptions = {}, fetchImpl: F
   };
 
   const start = Date.now();
-  const res = await fetchImpl(`${ENDPOINT}/${model}`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'X-NCP-CLOVASTUDIO-REQUEST-ID': randomUUID(),
-    },
-    body: JSON.stringify(body),
-  });
-  const raw = await res.text();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? HCX_TIMEOUT_MS);
+  let res: Awaited<ReturnType<FetchLike>>;
+  let raw: string;
+  try {
+    res = await fetchImpl(`${ENDPOINT}/${model}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'X-NCP-CLOVASTUDIO-REQUEST-ID': randomUUID(),
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    raw = await res.text();
+  } catch (e) {
+    if (controller.signal.aborted) throw new HcxError(`HCX 시간 초과 ${opts.timeoutMs ?? HCX_TIMEOUT_MS}ms`, 0, '');
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
   if (!res.ok) throw new HcxError(`HCX HTTP ${res.status}`, res.status, raw.slice(0, 500));
 
   let data: HcxResponse;

@@ -6,19 +6,20 @@ import { askLlm, type LlmProvider } from '../_lib/llm.js';
 import { seededRandom, weightedPick, addressInScope } from '../_lib/pick.js';
 import { loadPlaceCategories, matchCategory } from '../_lib/placeCategory.js';
 import {
-  extractPlaces, spreadByGu, pickClosePrimaryPair, walkingMinutes, distKm, OCCASION_HINT, detectQuiet,
-  excludeFoodTokens, GENRE_KEYWORDS, PURPOSE_KEYWORDS,
+  extractPlaces, spreadByGu, pickClosePrimaryPair, walkingMinutes, distKm, detectQuiet, PURPOSE_KEYWORDS,
   type FinalistPlace, type RegionScope,
-} from './recommend.js';
+} from '../_lib/recommendCore.js';
+import { OCCASION_HINT } from '../_lib/occasion.js';
 
 // 검색 우선 추천 — 후보는 카카오 로컬 검색(실존·위치·카테고리가 보장됨)에서 받고, LLM은 그 목록 안에서
-// "이 모임에 맞는 순서"만 매긴다. 모델 기억에서 후보를 뽑던 recommend-prompt.ts와 반대 순서.
+// "이 모임에 맞는 순서"만 매긴다.
 //
 // 약관 경계(카카오 로컬): 검색 결과는 런타임에만 쓰고 버린다. 저장은 place id·URL과 우리 판정(점수·순위)만.
 // 그래서 recommendation_log에는 가게 이름·주소·카테고리를 넣지 않는다.
 //
-// 흐름: 카카오 검색(카테고리+키워드) → 목적·편식·테이크아웃·스코프 필터 → LLM 순위(known/unknown 구분)
+// 흐름: 카카오 검색(카테고리+키워드) → 목적·장르·테이크아웃·스코프 필터 → LLM 순위(known/unknown 구분)
 //      → 점수 = LLM 적합도(아는 곳) 또는 보수적 기본값(모르는 곳) − 거리 → 상위 풀에서 세션 시드 샘플링
+//      → 2차는 1차에서 걸어가는 시간만큼 감점해 고른다
 
 const GATE_RADIUS_M: Record<RegionScope['level'] | 'none', number> = {
   city: 20000, district: 6000, dong: 2500, none: 3000,
@@ -31,28 +32,17 @@ const PICK_POOL = 5;               // 최종 샘플링 풀
 const PICK_TEMPERATURE = 8;
 const UNKNOWN_SCORE_CAP = 65;      // 모델이 모르는 가게의 점수 상한 — "모르는데 아는 척"이 순위를 흔들지 않게
 const DISTANCE_PENALTY_PER_KM = 4; // 중심에서 1km 멀어질 때마다 감점
+const PAIR_WALK_PENALTY_PER_MIN = 1; // 2차 후보: 1차에서 도보 1분마다 감점 — 20분이면 20점
 
 // 모임 장소가 못 되는 곳. 카테고리(브랜드 4단계 포함)와 이름으로 거른다.
 const TAKEOUT_RE = /테이크아웃|포장전문|배달전문|푸드코트|무인|키오스크|메가커피|메가mgc|컴포즈|빽다방|더벤티|매머드|구내식당|도시락/i;
 
 // ── 카카오 카테고리 판정 (category_name을 " > "로 나눈 경로 기준. 실측 목록: place_category 테이블) ──
 const NOT_MEAL = new Set(['카페', '술집', '간식', '푸드코트', '구내식당', '도시락']);
-const GENRE_MATCH: Record<string, (p: string[]) => boolean> = {
-  '한식':      (p) => p[1] === '한식',
-  '중식':      (p) => p[1] === '중식',
-  '일식':      (p) => p[1] === '일식',
-  '양식':      (p) => ['양식', '패밀리레스토랑', '퓨전요리'].includes(p[1]),
-  '아시안':    (p) => p[1] === '아시아음식',
-  '소주·맥주': (p) => p[1] === '술집' && ['실내포장마차', '호프,요리주점', '오뎅바', ''].includes(p[2] ?? ''),
-  '와인':      (p) => p[1] === '술집' && p[2] === '와인바',
-  '칵테일':    (p) => p[1] === '술집' && p[2] === '칵테일바',
-  '이자카야':  (p) => p[1] === '술집' && p[2] === '일본식주점',
-};
 
-// 장르가 분류 경로("한식 > 국밥", "술집 > 와인바")면 접두어 일치. 옛 라벨(한식·와인·이자카야)은 GENRE_MATCH.
+// 장르는 카테고리 칩이 보내는 분류 경로("한식", "한식 > 국밥", "술집 > 와인바"). 가게 경로와 접두어 일치로 판정.
 function genrePath(genre: string | null): string[] | null {
   if (!genre) return null;
-  if (GENRE_MATCH[genre]) return null;
   return genre.split('>').map((s) => s.trim()).filter(Boolean);
 }
 function matchesGenrePath(path: string[], gp: string[]): boolean {
@@ -63,7 +53,6 @@ function matchesPurpose(path: string[], purpose: string, genre: string | null): 
   if (path[0] !== '음식점') return false;
   const gp = genrePath(genre);
   if (gp && gp.length) return matchesGenrePath(path, gp);
-  if (genre && GENRE_MATCH[genre]) return GENRE_MATCH[genre](path);
   if (purpose === '밥') return !NOT_MEAL.has(path[1] ?? '');
   if (purpose === '술') return path[1] === '술집' || (path[1] === '한식' && path[2] === '육류,고기');
   if (purpose === '카페') return path[1] === '카페';
@@ -118,17 +107,21 @@ function toCandidate(d: KakaoDoc, centerLat: number, centerLng: number): Candida
   };
 }
 
-// 지번 주소에서 동네명("성수동1가" → "성수동"). 프롬프트에 좌표 대신 동네를 준다 — 모델이 훨씬 잘 안다.
-function dongOf(jibun: string): string {
-  const m = jibun.match(/([가-힣]+(?:동|읍|면|리))(?:\d*가)?\b/);
-  return m ? m[1] : '';
+// 지번 주소에서 동네명("성수동1가" → "성수동"). 같은 상호가 여럿일 때 모델이 어느 가게인지 알아보게 준다.
+// \b는 한글을 단어 문자로 안 봐서 "역삼동 858"에서 안 잡힌다. 공백 단위 토큰으로 판정.
+export function dongOf(jibun: string): string {
+  for (const tok of (jibun || '').split(/\s+/)) {
+    const m = tok.match(/^([가-힣]+(?:동|읍|면|리))(?:\d+가)?$/);
+    if (m) return m[1];
+  }
+  return '';
 }
 
 interface FetchOpts {
   key: string; purpose: string; genre: string | null; customMenus: string[];
   areas: string[]; regionScope: RegionScope | null;
   centerLat: number; centerLng: number; radiusM: number;
-  excludeTokens: string[]; excludeNames: string[];
+  excludeNames: string[];
 }
 
 // 후보 수집 — 카테고리 검색(거리순)과 키워드 검색(관련도순)을 섞는다. 카테고리 검색만 쓰면 "가까운 평범한 곳"만 오고,
@@ -156,9 +149,7 @@ async function fetchCandidates(o: FetchOpts): Promise<{ list: Candidate[]; calls
     ? o.customMenus
     : pathKeywords.length
       ? [...pathKeywords, ...(PURPOSE_KEYWORDS[o.purpose] ?? []).slice(0, 2)]
-      : o.genre && GENRE_KEYWORDS[o.genre]
-        ? GENRE_KEYWORDS[o.genre].slice(0, 4)
-        : (PURPOSE_KEYWORDS[o.purpose] ?? PURPOSE_KEYWORDS['기타']).slice(0, 5);
+      : (PURPOSE_KEYWORDS[o.purpose] ?? PURPOSE_KEYWORDS['기타']).slice(0, 5);
   const areaNames = o.areas.length ? o.areas.slice(0, 2) : [o.regionScope?.matchTokens.join(' ') ?? ''];
   const keywordQueries: string[] = [];
   for (const area of areaNames) for (const kw of keywords) keywordQueries.push(`${area} ${kw}`.trim());
@@ -180,16 +171,11 @@ async function fetchCandidates(o: FetchOpts): Promise<{ list: Candidate[]; calls
     }
   }
 
-  // 3) 필터 — 목적·장르(카테고리 경로), 테이크아웃, 편식, 재추천 제외, 반경
+  // 3) 필터 — 목적·장르(카테고리 경로), 테이크아웃, 재추천 제외, 반경
   const isExcludedName = (name: string) => o.excludeNames.some((ex) => name.includes(ex) || ex.includes(name));
-  const hitsExcludeFood = (c: Candidate) => {
-    const hay = `${c.name} ${c.path.join(' ')}`.replace(/\s+/g, '');
-    return o.excludeTokens.some((t) => hay.includes(t.replace(/\s+/g, '')));
-  };
   let list = [...seen.values()].filter((c) =>
     matchesPurpose(c.path, o.purpose, o.genre)
     && !TAKEOUT_RE.test(`${c.name}|${c.path.join('|')}`)
-    && !hitsExcludeFood(c)
     && !isExcludedName(c.name)
     && c.distanceM <= o.radiusM,
   );
@@ -224,7 +210,8 @@ function formatCandidates(list: Candidate[]): string {
   return list.map((c, i) => {
     const cat = c.path.slice(1, 3).filter(Boolean).join(' > ') || '음식점';
     const dong = dongOf(c.jibun);
-    return `${i + 1}. ${c.name} | ${cat} | ${c.distanceM}m${dong ? ` | ${dong}` : ''}`;
+    // 거리는 넣지 않는다 — 거리 반영은 코드가 점수에서 한다(모델까지 보면 이중 반영)
+    return `${i + 1}. ${c.name} | ${cat}${dong ? ` | ${dong}` : ''}`;
   }).join('\n');
 }
 
@@ -249,9 +236,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const kakaoKey = process.env.VITE_KAKAO_REST_API_KEY;
   if (!kakaoKey) return res.status(500).json({ error: '추천 서비스 설정이 준비되지 않았어요.' });
 
-  const gatePromise = checkRateLimit(
+  // 카카오 호출(요청당 수십 회) 전에 막는다. 차단된 IP가 카카오 쿼터를 쓰지 않게.
+  const gate = await checkRateLimit(
     getSupabaseAdmin(), 'recommend', clientIp(req), 5, Number(process.env.RECOMMEND_DAILY_CAP ?? 500),
   );
+  if (!gate.allowed) {
+    return res.status(429).json({
+      error: gate.reason === 'daily'
+        ? '오늘 추천 요청이 몰려서 잠시 쉬어가고 있어요. 내일 다시 만나요!'
+        : '요청이 너무 잦아요. 잠시 후 다시 시도해주세요.',
+    });
+  }
 
   try {
     const { input, midpoint } = req.body;
@@ -294,10 +289,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const keywords: string[] = Array.isArray(input.keywords) ? input.keywords : [];
     const keywordsSecond: string[] = Array.isArray(input.keywordsSecond) ? input.keywordsSecond : [];
     const isQuiet = detectQuiet(vibe?.first, vibe?.second, keywords);
-    const excludeFoods: string[] = Array.isArray(input.excludeFoods)
-      ? (input.excludeFoods as unknown[]).filter((f): f is string => typeof f === 'string' && !!f.trim()).map((f) => f.trim())
-      : [];
-    const excludeTokens = excludeFoodTokens(excludeFoods);
     const excludeNames: string[] = Array.isArray(req.body.excludeNames)
       ? (req.body.excludeNames as unknown[]).filter((n): n is string => typeof n === 'string' && n.length > 0)
       : [];
@@ -335,7 +326,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const fetchSlot = async (p: string, genre: string | null, excl: string[]) => {
       const base: FetchOpts = {
         key: kakaoKey, purpose: p, genre, customMenus: customMenusOf(p), areas: areaList, regionScope,
-        centerLat, centerLng, radiusM: baseRadius, excludeTokens, excludeNames: excl,
+        centerLat, centerLng, radiusM: baseRadius, excludeNames: excl,
       };
       const ladder: { opts: FetchOpts; widened: boolean; genreRelaxed: boolean }[] = [
         { opts: base, widened: false, genreRelaxed: false },
@@ -364,7 +355,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const kakaoCalls = slot1.calls + (slot2?.calls ?? 0);
     slot1.list.forEach(tagCategory);
     slot2?.list.forEach(tagCategory);
-    console.log(`[recommend-search] purpose="${purpose.first}"${firstGenre ? `/${firstGenre}` : ''} second="${purpose.second ?? ''}"${secondGenre ? `/${secondGenre}` : ''} scope=${regionScope ? `${regionScope.level}:${regionScope.matchTokens.join(' ')}` : 'none'} areas=${areaList.join(',')} excludeFoods=${excludeFoods.join(',')}`);
+    console.log(`[recommend-search] purpose="${purpose.first}"${firstGenre ? `/${firstGenre}` : ''} second="${purpose.second ?? ''}"${secondGenre ? `/${secondGenre}` : ''} scope=${regionScope ? `${regionScope.level}:${regionScope.matchTokens.join(' ')}` : 'none'} areas=${areaList.join(',')}`);
     console.log(`[recommend-search] candidates slot1=${slot1.list.length}${slot1.scopeRelaxed ? '(relaxed)' : ''}${slot1.widened ? '(widened)' : ''}${slot1.genreRelaxed ? '(genre-off)' : ''} slot2=${slot2?.list.length ?? '-'}${slot2?.genreRelaxed ? '(genre-off)' : ''} kakaoCalls=${kakaoCalls} categoryRows=${categories?.rows.length ?? 0} unmapped=${unmappedPaths} slot1Cats=${[...new Set(slot1.list.map((c) => c.path.slice(1, 3).join('>')))].slice(0, 12).join('|')}`);
 
     if (slot1.list.length === 0) {
@@ -397,7 +388,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return `당신은 한국 모임 장소 큐레이터입니다. 아래는 실제 영업 중으로 확인된 ${lead}"${label}" 후보 목록입니다.
 이 모임에 맞는 순서로 상위 ${Math.min(count, list.length)}곳을 고르세요.
 
-## 후보 목록 (번호 | 상호 | 업종 | 중심에서 거리 | 동네)
+## 후보 목록 (번호 | 상호 | 업종 | 동네)
 ${formatCandidates(list)}
 ${commonInfo}
 
@@ -427,15 +418,6 @@ places는 적합한 순서대로 ${Math.min(count, list.length)}개`;
       (req.body._provider === 'hcx' || req.body._provider === 'claude')
       && !!benchKey && typeof headerKey === 'string' && safeEqualStr(headerKey, benchKey)
         ? req.body._provider : undefined;
-
-    const gate = await gatePromise;
-    if (!gate.allowed) {
-      return res.status(429).json({
-        error: gate.reason === 'daily'
-          ? '오늘 추천 요청이 몰려서 잠시 쉬어가고 있어요. 내일 다시 만나요!'
-          : '요청이 너무 잦아요. 잠시 후 다시 시도해주세요.',
-      });
-    }
 
     // LLM 순위. 실패하면 거리순 폴백 — 후보가 실존하므로 500 대신 결정론 결과를 낸다.
     let llmFailed = false;
@@ -537,13 +519,20 @@ places는 적합한 순서대로 ${Math.min(count, list.length)}개`;
     let places: FinalistPlace[];
     if (effectiveTwoPurposes && bySlot(2).length > 0) {
       const firstSorted = bySlot(1);
-      const secondSorted = bySlot(2);
       let f0 = pickOne(firstSorted);
-      let s0 = pickOne(secondSorted);
+      // 2차는 1·2차를 따로 모으고 따로 순위를 매기므로 서로의 위치를 모른다. 1차에서 걸어가는 시간만큼 감점해 고른다.
+      const walkFrom = (a: FinalistPlace | undefined, b: FinalistPlace) =>
+        a && typeof a.lat === 'number' && typeof b.lat === 'number'
+          ? walkingMinutes(a.lat, a.lng as number, b.lat, b.lng as number) : 0;
+      const pairScore = (s: FinalistPlace) => numScore(s) - walkFrom(f0, s) * PAIR_WALK_PENALTY_PER_MIN;
+      const secondBase = bySlot(2);   // bySlot은 호출마다 새 객체를 만든다 — 아래 비교(!==)가 같은 배열을 보게 한 번만
+      let s0 = weightedPick([...secondBase].sort((a, b) => pairScore(b) - pairScore(a)).slice(0, PICK_POOL), pairScore, 1, rnd, PICK_TEMPERATURE)[0];
       if (cityWide) {
-        const pair = pickClosePrimaryPair(firstSorted, secondSorted, numScore);
+        // 시 전체는 구 분산 때문에 1차 후보가 흩어져 있어, 1차까지 같이 바꾸는 쌍 탐색을 쓴다
+        const pair = pickClosePrimaryPair(firstSorted, secondBase, numScore);
         if (pair) { f0 = pair.f; s0 = pair.s; }
       }
+      const secondSorted = [...secondBase].sort((a, b) => pairScore(b) - pairScore(a));
       const restFirst = firstSorted.filter((p) => p !== f0);
       const restSecond = secondSorted.filter((p) => p !== s0);
       places = ([

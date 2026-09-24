@@ -8,7 +8,7 @@ import { migrateVibeState } from '@/utils/vibeMigrate';
 import type { RecommendFlow } from '@/hooks/useRecommendFlow';
 import type { RecommendInput } from '@/hooks/useRecommendInput';
 import type { GroupSession } from '@/hooks/useGroupSession';
-import type { ResultState } from '@/hooks/useResultState';
+import { resultHasSecond, type ResultState } from '@/hooks/useResultState';
 import type { RequestState } from '@/hooks/useRequestState';
 
 // localStorage 복원·저장. 복원 layout effect 3개의 선언 순서(결과→입력초안→그룹세션)는 동작에 영향을 주므로
@@ -20,11 +20,11 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
   const {
     groupSize, setGroupSize, setCustomOccasion, setEtcRelOpen, setOccasionChip, locations, setLocations,
     purpose, setPurpose, vibe, setVibe, budget, setBudget, meetingLocation, setMeetingLocation,
-    keywords, setKeywords, conditions, setConditions, excludeFoods, setExcludeFoods, vibeCustom, setVibeCustom, customOccasion,
+    keywords, setKeywords, conditions, setConditions, vibeCustom, setVibeCustom, customOccasion,
   } = input;
   const { sessionId, setSessionId, expectedCount, setExpectedCount } = group;
   const {
-    result, setResult, setResultThird, resultThird, setResultThirdLabel, resultThirdLabel,
+    result, setResult, setResultThird, resultThird, setResultThirdLabel, resultThirdLabel, resultSecondMissing, setResultSecondMissing,
     midpointData, setMidpointData, treasurer, setTreasurer, resultTravelTimes, setResultTravelTimes,
     resultWeather, setResultWeather,
   } = resultState;
@@ -45,6 +45,7 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
         result?: PlaceRecommendation[];
         resultThird?: PlaceRecommendation | null;
         resultThirdLabel?: string | null;
+        resultSecondMissing?: boolean;
         purpose?: PurposeValue;
         midpointData?: { midpoint: Coordinates; areaName: string; nearestAreas: string[] };
         treasurer?: string;
@@ -54,13 +55,13 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
         vibe?: VibeState;
         keywords?: string[];
         conditions?: string[];
-        excludeFoods?: string[];
       } | null;
       if (!saved || !Array.isArray(saved.result) || saved.result.length === 0) return;
       // 마운트 시 localStorage 스냅샷을 페인트 전에 복원(useLayoutEffect, 깜빡임 방지)
       setResult(saved.result);
       if (saved.resultThird) setResultThird(saved.resultThird);
       if (saved.resultThirdLabel) setResultThirdLabel(saved.resultThirdLabel);
+      setResultSecondMissing(saved.resultSecondMissing === true);
       if (saved.purpose) setPurpose(saved.purpose);
       if (saved.midpointData) setMidpointData(saved.midpointData);
       if (saved.treasurer) setTreasurer(saved.treasurer);
@@ -70,10 +71,9 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
       if (saved.vibe) setVibe(migrateVibeState(saved.vibe));            // 개인화 배너 복원용
       if (Array.isArray(saved.keywords)) setKeywords(saved.keywords);
       if (Array.isArray(saved.conditions)) setConditions(saved.conditions);
-      if (Array.isArray(saved.excludeFoods)) setExcludeFoods(saved.excludeFoods);
       setView('result');
     } catch { /* 손상된 캐시는 무시 */ }
-  }, [setView, setResult, setResultThird, setResultThirdLabel, setPurpose, setMidpointData, setTreasurer, setMeetingLocation, setResultTravelTimes, setResultWeather, setVibe, setKeywords, setConditions, setExcludeFoods]);
+  }, [setView, setResult, setResultThird, setResultThirdLabel, setResultSecondMissing, setPurpose, setMidpointData, setTreasurer, setMeetingLocation, setResultTravelTimes, setResultWeather, setVibe, setKeywords, setConditions]);
 
   // 입력 초안 복원 — 결과가 없을 때만. 그룹도 링크 생성 전에는 서버 세션이 없으므로 로컬 초안에서 복원한다.
   useLayoutEffect(() => {
@@ -98,7 +98,6 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
       if (d.vibe) setVibe(migrateVibeState(d.vibe));
       if (Array.isArray(d.keywords)) setKeywords(d.keywords);
       if (Array.isArray(d.conditions)) setConditions(d.conditions);
-      if (Array.isArray(d.excludeFoods)) setExcludeFoods(d.excludeFoods);
       if (d.vibeCustom) setVibeCustom(d.vibeCustom);
       if (d.meetingLocation) setMeetingLocation(d.meetingLocation);
       if (d.budget !== undefined) setBudget(d.budget);
@@ -112,7 +111,7 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
       }
       if (Array.isArray(d.locations)) setLocations(d.locations);
     } catch { /* 손상된 초안 무시 */ }
-  }, [setAppMode, setStep, setExpectedCount, setGroupSize, setPurpose, setVibe, setKeywords, setConditions, setExcludeFoods, setVibeCustom, setMeetingLocation, setBudget, setCustomOccasion, setEtcRelOpen, setOccasionChip, setLocations]);
+  }, [setAppMode, setStep, setExpectedCount, setGroupSize, setPurpose, setVibe, setKeywords, setConditions, setVibeCustom, setMeetingLocation, setBudget, setCustomOccasion, setEtcRelOpen, setOccasionChip, setLocations]);
 
   // 그룹 호스트 세션 복원 — 결과 스냅샷 유무와 무관하게 항상 복원한다.
   // 예전에는 결과가 있으면 통째로 skip했는데, 그러면 혼자 모드로 먼저 써본 유저(광고 유입은 거의 전부)가
@@ -166,22 +165,22 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
     try {
       localStorage.setItem(INPUT_DRAFT_KEY, JSON.stringify({
         savedAt: Date.now(),
-        appMode, step, groupSize, expectedCount, purpose, vibe, keywords, conditions, excludeFoods, vibeCustom,
+        appMode, step, groupSize, expectedCount, purpose, vibe, keywords, conditions, vibeCustom,
         meetingLocation, budget, customOccasion, locations,
       }));
     } catch { /* 저장 실패는 치명적이지 않음 */ }
-  }, [view, appMode, sessionId, step, groupSize, expectedCount, purpose, vibe, keywords, conditions, excludeFoods, vibeCustom, meetingLocation, budget, customOccasion, locations]);
+  }, [view, appMode, sessionId, step, groupSize, expectedCount, purpose, vibe, keywords, conditions, vibeCustom, meetingLocation, budget, customOccasion, locations]);
 
   // 결과 화면 상태가 확정될 때마다 스냅샷 저장 (setState 커밋 이후라 stale closure 없음)
   // + 같은 스냅샷을 localStorage 히스토리에도 적재 — 랜딩 "지난 추천"에서 그대로 복원
   useEffect(() => {
     if (view !== 'result' || !result || result.length === 0) return;
     const snapshot = {
-      result, resultThird, resultThirdLabel, purpose, midpointData, treasurer, meetingLocation, resultTravelTimes, resultWeather, vibe, keywords, conditions, excludeFoods,
+      result, resultThird, resultThirdLabel, resultSecondMissing, purpose, midpointData, treasurer, meetingLocation, resultTravelTimes, resultWeather, vibe, keywords, conditions,
       sessionId, // 이 결과가 '어느 그룹 세션의 것인지' — 재진입 시 대기 화면과 결과 화면 중 무엇을 열지 가른다
     };
     saveResultSnapshot(snapshot);
-    const hasSecondCourse = !!(purpose?.second && purpose.second !== '없음');
+    const hasSecondCourse = resultHasSecond(purpose, resultSecondMissing);
     saveHistory({
       savedAt: Date.now(),
       placeName: result[0].placeName,
@@ -202,13 +201,13 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
         groupSize: isGroup ? `${expectedCount}명` : groupSize,
       });
     }
-  }, [view, result, resultThird, resultThirdLabel, purpose, midpointData, treasurer, meetingLocation, resultTravelTimes, resultWeather, vibe, keywords, conditions, excludeFoods, sessionId, isGroup, expectedCount, groupSize, sessionKeyRef]);
+  }, [view, result, resultThird, resultThirdLabel, resultSecondMissing, purpose, midpointData, treasurer, meetingLocation, resultTravelTimes, resultWeather, vibe, keywords, conditions, sessionId, isGroup, expectedCount, groupSize, sessionKeyRef]);
 
   // 그룹 호스트가 추천을 받으면 결과 요약을 세션에 저장 → 게스트 done 화면이 폴링으로 수신(협업 루프 완결).
   // enrich·재추천으로 결과가 바뀌면 자동 재저장. 실패는 무해(게스트가 못 볼 뿐, 카톡 공유로도 전달 가능).
   useEffect(() => {
     if (view !== 'result' || !isGroup || !sessionId || !result || result.length === 0) return;
-    const hasSecondCourse = !!(purpose?.second && purpose.second !== '없음');
+    const hasSecondCourse = resultHasSecond(purpose, resultSecondMissing);
     // v:2 — 게스트 화면을 호스트와 동등하게 만들기 위해 신뢰 요소(사진·적합도·영업·해시태그·혼잡도)를 함께 실어 보낸다.
     // 이미지 URL이 길어 페이로드가 커지므로 /api/session 결과 저장 상한(24KB)에 맞춰 vibeTags는 3개로 제한.
     const slim = (p: PlaceRecommendation) => ({
@@ -253,7 +252,7 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'result', id: sessionId, result: payload }),
     }).catch(() => { /* 실패 무해 */ });
-  }, [view, isGroup, sessionId, result, resultThird, resultThirdLabel, purpose, midpointData, treasurer, resultWeather]);
+  }, [view, isGroup, sessionId, result, resultThird, resultThirdLabel, resultSecondMissing, purpose, midpointData, treasurer, resultWeather]);
 
   useEffect(() => {
     if (view === 'result') {

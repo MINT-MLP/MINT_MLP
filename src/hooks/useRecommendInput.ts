@@ -18,7 +18,6 @@ export function useRecommendInput() {
   const [keywords, setKeywords] = useState<string[]>([]);
   // 시설형 조건(주차·룸·예약…) — 코스 구분이 없어 vibe와 분리해 들고 있다
   const [conditions, setConditions] = useState<string[]>([]);
-  const [excludeFoods, setExcludeFoods] = useState<string[]>([]);
   const [vibeCustom, setVibeCustom] = useState<Record<string, string>>({});
 
   // '처음부터' — groupSize는 원래 초기화 대상이 아니다(기존 동작 유지)
@@ -33,7 +32,6 @@ export function useRecommendInput() {
     setBudget(null);
     setKeywords([]);
     setConditions([]);
-    setExcludeFoods([]);
     setVibeCustom({});
     setMeetingLocation(null);
   }
@@ -42,7 +40,7 @@ export function useRecommendInput() {
     groupSize, setGroupSize, customOccasion, setCustomOccasion, etcRelOpen, setEtcRelOpen,
     occasionChip, setOccasionChip, locations, setLocations, groupTravelLabels, setGroupTravelLabels,
     purpose, setPurpose, vibe, setVibe, budget, setBudget, meetingLocation, setMeetingLocation,
-    keywords, setKeywords, conditions, setConditions, excludeFoods, setExcludeFoods, vibeCustom, setVibeCustom,
+    keywords, setKeywords, conditions, setConditions, vibeCustom, setVibeCustom,
     reset,
   };
 }

@@ -7,6 +7,8 @@ export const CLAUDE_MODELS = {
   fallback: 'claude-sonnet-4-6',       // 529 과부하 시 한 번
 } as const;
 
+export const CLAUDE_TIMEOUT_MS = 25_000;
+
 export interface AskOptions {
   model?: string;
   maxTokens?: number;
@@ -35,13 +37,14 @@ export async function askClaude(prompt: string, opts: AskOptions = {}, client: M
   const maxTokens = opts.maxTokens ?? 8192;
   const fallbackModel = opts.fallbackModel === undefined ? CLAUDE_MODELS.fallback : opts.fallbackModel;
 
+  // Vercel 함수 상한 60초 안에서 끊는다. SDK 자동 재시도는 끄고 529 폴백만 아래에서 한 번.
   const create = (m: string) => client.messages.create({
     model: m,
     max_tokens: maxTokens,
     // sonnet-5는 기본이 adaptive thinking — JSON 선택 작업이라 끈다
     ...(m.startsWith('claude-sonnet-5') ? { thinking: { type: 'disabled' as const } } : {}),
     messages: [{ role: 'user', content: prompt }],
-  });
+  }, { timeout: CLAUDE_TIMEOUT_MS, maxRetries: 0 });
 
   const start = Date.now();
   let usedModel = model;

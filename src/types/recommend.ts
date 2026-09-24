@@ -50,7 +50,6 @@ export interface UserInput {
   vibeWeights?: Record<string, number>;
   keywords?: string[];          // 1차 키워드
   keywordsSecond?: string[];    // 2차 키워드
-  excludeFoods?: string[];
 }
 
 export interface RegionScope {
@@ -95,6 +94,7 @@ export interface RecommendationResult {
   thirdStop?: PlaceRecommendation | null;   // 3차 '이어서 갈 곳' — 서버가 붙여줌(없으면 null)
   thirdLabel?: string | null;               // 3차 성격 라벨(예: '카페·디저트', '술 한잔')
   serial?: string | null;                   // 파일럿 일련번호(내부 조인키, 유저 비노출)
+  courses?: 1 | 2 | null;                   // 서버가 실제로 채운 코스 수. 2차를 골랐는데 1이면 2차 후보가 없었던 것
 }
 
 export interface PlaceEnrichment {

@@ -6,6 +6,7 @@ import WishlistSheet from '@/components/WishlistSheet';
 import type { PlaceRecommendation } from '@/types';
 import { VIBE_KEY_TO_LABEL } from '@/constants/vibeOptions';
 import type { RecommendFlow, RecommendInput, ResultState, RecommendActions, StepNavigation } from '@/hooks';
+import { resultHasSecond } from '@/hooks/useResultState';
 
 // 추천 결과 화면. Home이 훅 결과 객체를 그대로 넘기고, 여기서 같은 이름으로 풀어 쓴다 — JSX는 분리 전 Home과 동일.
 export default function HomeResultView({ result, flow, input, resultState, actions, nav, onShare, onFullReset }: {
@@ -14,16 +15,17 @@ export default function HomeResultView({ result, flow, input, resultState, actio
   onShare: () => void; onFullReset: () => void;
 }) {
   const { setView, setStep, isGroup } = flow;
-  const { meetingLocation, purpose, vibe, conditions, keywords, excludeFoods, budget } = input;
+  const { meetingLocation, purpose, vibe, conditions, keywords, budget } = input;
   const {
     showRetryModal, setShowRetryModal, midpointData, resultTravelTimes, treasurer, pointsBalance, setPointsBalance,
-    showWishlist, setShowWishlist, resultWeather, resultThird, resultThirdLabel, changeNote, setChangeNote,
+    showWishlist, setShowWishlist, resultWeather, resultThird, resultThirdLabel, resultSecondMissing, changeNote, setChangeNote,
     compromiseMessage, showCompromiseToast, showResultScrollHint,
   } = resultState;
   const { handleRetry, handleAdjust, handleReject, handleRetryWithWeights } = actions;
   const { handleStepJump, canJumpTo } = nav;
   const handleShare = onShare;
   const handleFullReset = onFullReset;
+  const hasSecond = resultHasSecond(purpose, resultSecondMissing);
 
   return (
       <div className="min-h-screen bg-mint-50">
@@ -120,6 +122,14 @@ export default function HomeResultView({ result, flow, input, resultState, actio
             </div>
           )}
 
+          {resultSecondMissing && (
+            <div className="mb-2 bg-white border border-gray-200 rounded-2xl px-4 py-2.5">
+              <p className="text-xs text-gray-600 leading-relaxed">
+                이 지역에서 2차({purpose?.second}) 장소를 찾지 못해 1차만 추천했어요. 지역을 넓히거나 2차 조건을 바꿔 보세요.
+              </p>
+            </div>
+          )}
+
           <ResultCard
             results={result}
             thirdResult={resultThird}
@@ -127,11 +137,10 @@ export default function HomeResultView({ result, flow, input, resultState, actio
             travelTimes={resultTravelTimes}
             showTravelTime={meetingLocation?.type === 'auto'}
             midpointAreaName={midpointData?.areaName}
-            purpose={purpose?.first ? { first: purpose.first, second: purpose.second ?? null } : undefined}
+            purpose={purpose?.first ? { first: purpose.first, second: hasSecond ? purpose.second ?? null : null } : undefined}
             vibeLabels={[...Object.values(vibe).flatMap((g) => [...g.first, ...g.second]), ...conditions].map((k) => VIBE_KEY_TO_LABEL[k] ?? k)}
             keywords={keywords}
             genreLabels={[purpose?.firstGenre, purpose?.secondGenre].filter((g): g is string => !!g)}
-            excludeFoods={excludeFoods}
             treasurer={treasurer}
             onRetry={handleRetry}
             onAdjust={handleAdjust}
@@ -162,7 +171,7 @@ export default function HomeResultView({ result, flow, input, resultState, actio
               onClick={() => window.scrollBy({ top: Math.max(320, window.innerHeight * 0.55), behavior: 'smooth' })}
               className="fixed bottom-[max(5.5rem,calc(env(safe-area-inset-bottom)+5rem))] left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border border-mint-500/35 bg-white/95 px-4 py-2.5 text-xs font-bold text-mint-600 shadow-xl shadow-mint-600/20 backdrop-blur"
             >
-              {purpose?.second && purpose.second !== '없음'
+              {hasSecond
                 ? '아래에 다른 후보와 2차 코스도 있어요'
                 : '아래에 다른 후보도 있어요'}
               <span className="animate-bounce text-sm leading-none" aria-hidden>↓</span>

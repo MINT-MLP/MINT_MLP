@@ -52,7 +52,8 @@ function SuggestionDropdown({
 export default function LocationInput({ locations, onChange }: Props) {
   const [inputs, setInputs] = useState<InputState[]>(
     locations.length >= 2
-      ? locations.map((l) => ({ value: l.name, suggestions: [], loading: false, selected: true }))
+      // 좌표까지 옮겨야 한다 — 재마운트(뒤로 가기) 직후 마운트 effect가 이 배열을 부모에 되돌려 쓰기 때문
+      ? locations.map((l) => ({ value: l.name, suggestions: [], loading: false, selected: true, lat: l.lat, lng: l.lng }))
       : [
           { value: '', suggestions: [], loading: false, selected: false },
           { value: '', suggestions: [], loading: false, selected: false },

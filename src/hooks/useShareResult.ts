@@ -2,19 +2,19 @@ import type { PlaceRecommendation } from '@/types';
 import { trackEvent } from '@/services/analytics';
 import { newShareId, saveShareSnapshot, shareViaKakaoOrFallback } from '@/services/share';
 import type { RecommendInput } from '@/hooks/useRecommendInput';
-import type { ResultState } from '@/hooks/useResultState';
+import { resultHasSecond, type ResultState } from '@/hooks/useResultState';
 
 // 결과 카카오톡 공유 — 스냅샷 저장 후 짧은 링크, 실패 시 레거시 ?data= 링크.
 export function useShareResult({ input, result: resultState }: { input: RecommendInput; result: ResultState }) {
   const { purpose } = input;
-  const { result, resultThird, resultThirdLabel, midpointData, treasurer } = resultState;
+  const { result, resultThird, resultThirdLabel, resultSecondMissing, midpointData, treasurer } = resultState;
 
   async function handleShare() {
     if (!result || result.length === 0) return;
     trackEvent('kakao_share');
     const primary = result[0];
     const mlpUrl = window.location.origin;
-    const hasSecond = !!(purpose?.second && purpose.second !== '없음');
+    const hasSecond = resultHasSecond(purpose, resultSecondMissing);
     const secondPlace = hasSecond && result.length > 1 ? result[1] : null;
 
     // 투표 후보 = 1차 메인 + 1차 대안들 (URL 길이를 위해 슬림 포맷: n=이름, c=카테고리, s=적합도)

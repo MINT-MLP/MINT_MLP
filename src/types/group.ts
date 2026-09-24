@@ -36,5 +36,4 @@ export interface GuestCtx {
   locLng: number | null;
   chips: string[];
   budget: string | null;
-  excludeFoods: string[];
 }

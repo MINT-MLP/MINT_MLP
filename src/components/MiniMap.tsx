@@ -11,16 +11,21 @@ interface Props {
   pins?: MapPin[];
 }
 
+// 카카오 오버레이 content는 HTML 문자열이라 장소명(공유 링크로 조작 가능)을 그대로 넣으면 스크립트가 들어간다
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+}
+
 // 지도 위에 얹는 오버레이 HTML — 1차/2차는 색 필 배지, 대안은 회색 점
 function pinContent(pin: MapPin): string {
   if (pin.kind === 'alt') {
-    return `<div title="${pin.name}" style="width:11px;height:11px;border-radius:50%;background:#9CA3AF;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.35);"></div>`;
+    return `<div title="${escapeHtml(pin.name)}" style="width:11px;height:11px;border-radius:50%;background:#9CA3AF;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.35);"></div>`;
   }
   // 카카오 지도 오버레이/폴리라인은 CSS 변수를 못 읽어 헥스 상수를 쓴다 (constants/colors.ts)
   const bg = pin.kind === 'first' ? MINT_HEX[500] : pin.kind === 'third' ? MINT_HEX[900] : MINT_HEX[800];
   const label = pin.kind === 'first' ? '1차' : pin.kind === 'third' ? '3차' : '2차';
   const shortName = pin.name.length > 10 ? `${pin.name.slice(0, 10)}…` : pin.name;
-  return `<div style="display:flex;align-items:center;gap:4px;background:${bg};color:#fff;font-weight:800;font-size:11px;padding:3px 9px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,.28);font-family:'Pretendard',sans-serif;white-space:nowrap;transform:translateY(-6px);">${label} · ${shortName}</div>`;
+  return `<div style="display:flex;align-items:center;gap:4px;background:${bg};color:#fff;font-weight:800;font-size:11px;padding:3px 9px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,.28);font-family:'Pretendard',sans-serif;white-space:nowrap;transform:translateY(-6px);">${label} · ${escapeHtml(shortName)}</div>`;
 }
 
 interface KakaoMapObj {

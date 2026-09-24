@@ -16,7 +16,7 @@ export function useGroupActions({ flow, input, group }: {
 }) {
   const { appMode, view, step, isGroup } = flow;
   const {
-    purpose, setPurpose, meetingLocation, setLocations, setGroupTravelLabels, setVibe, setKeywords, setExcludeFoods,
+    purpose, setPurpose, meetingLocation, setLocations, setGroupTravelLabels, setVibe, setKeywords,
     setBudget, setConditions, setVibeCustom, setOccasionChip, setCustomOccasion, setEtcRelOpen,
   } = input;
   const {
@@ -176,13 +176,12 @@ export function useGroupActions({ flow, input, group }: {
     // groupLocations와 같은 순서·길이라 인덱스로 대응된다.
     setGroupTravelLabels(withCoords.map((m) => m.member_name));
     setVibe(aggregateVibe(groupMembers));
-    // 편식은 전원 합집합 — 한 명이라도 못 먹으면 그 음식은 제외. 키워드는 1차/2차 분리 집계.
-    const { keywords: memberKeywords, excludeFoods: memberExcludes } = splitMemberKeywords(groupMembers);
+    // 키워드는 1차/2차 분리 집계.
+    const { keywords: memberKeywords } = splitMemberKeywords(groupMembers);
     setKeywords(memberKeywords);
-    setExcludeFoods(memberExcludes);
     setBudget(aggregateBudget(groupMembers));
 
-    // 혼자 모드 잔여 상태 청소 — 위 5개(locations/vibe/keywords/excludeFoods/budget)는 멤버 집계로 덮이지만,
+    // 혼자 모드 잔여 상태 청소 — 위 5개(locations/vibe/keywords/budget)는 멤버 집계로 덮이지만,
     // 아래 값들은 덮이지 않아 그대로 그룹 프롬프트에 실려 나간다. 그룹 플로우에는 이 값들을 묻는 화면이 아예 없어서
     // (관계·조건·직접입력 키워드는 혼자 모드 step1/step3 전용) 유저는 자기도 모르게 붙은 조건을 볼 방법이 없다.
     // 실제 사고: "혼자 정할게요 → 관계 '연인' 선택 → 다같이 정할게요"면 6명 모임에 "커플 분위기,

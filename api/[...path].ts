@@ -15,8 +15,7 @@ import shareVote from './_routes/share-vote.js';
 type Handler = (req: VercelRequest, res: VercelResponse) => unknown;
 
 const ROUTES: Record<string, Handler> = {
-  // 검색 우선(카카오 후보 → LLM 순위) 실험 중. 이전 경로: 모델 기억 후보(_routes/recommend-prompt.js),
-  // 네이버 지역검색 파이프라인(_routes/recommend.js, 약관 검토로 제외). 되돌리려면 import를 바꾼다.
+  // 검색 우선(카카오 후보 → LLM 순위). 옛 네이버 파이프라인·모델 기억 후보 경로는 git 이력에 있다(17번 노트).
   recommend: recommendSearch,
   'place-categories': placeCategories,
   congestion,

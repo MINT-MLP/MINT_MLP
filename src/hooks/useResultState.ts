@@ -19,6 +19,8 @@ export function useResultState() {
   const [resultWeather, setResultWeather] = useState<WeatherSummary | null>(null);
   const [resultThird, setResultThird] = useState<PlaceRecommendation | null>(null);       // 3차 '이어서 갈 곳'
   const [resultThirdLabel, setResultThirdLabel] = useState<string | null>(null);
+  // 2차를 골랐지만 서버가 2차 후보를 못 찾아 1코스로 돌려준 경우. 이때 results[1]은 1차 대안이다.
+  const [resultSecondMissing, setResultSecondMissing] = useState(false);
   const [changeNote, setChangeNote] = useState<string | null>(null);
   const [compromiseMessage, setCompromiseMessage] = useState<string | null>(null);
   const [showCompromiseToast, setShowCompromiseToast] = useState(false);
@@ -28,6 +30,7 @@ export function useResultState() {
     setResult(null);
     setResultThird(null);
     setResultThirdLabel(null);
+    setResultSecondMissing(false);
     setResultTravelTimes(null);
     setMidpointData(null);
     setTreasurer(null);
@@ -39,8 +42,13 @@ export function useResultState() {
     result, setResult, showRetryModal, setShowRetryModal, midpointData, setMidpointData,
     resultTravelTimes, setResultTravelTimes, treasurer, setTreasurer, pointsBalance, setPointsBalance,
     showWishlist, setShowWishlist, resultWeather, setResultWeather, resultThird, setResultThird,
-    resultThirdLabel, setResultThirdLabel, changeNote, setChangeNote, compromiseMessage, setCompromiseMessage,
+    resultThirdLabel, setResultThirdLabel, resultSecondMissing, setResultSecondMissing, changeNote, setChangeNote, compromiseMessage, setCompromiseMessage,
     showCompromiseToast, setShowCompromiseToast, showResultScrollHint, setShowResultScrollHint, reset,
   };
 }
 export type ResultState = ReturnType<typeof useResultState>;
+
+// 결과를 2코스로 그릴지. 사용자가 2차를 골랐어도 서버가 2차를 못 채웠으면 1코스.
+export function resultHasSecond(purpose: { second?: string | null } | null | undefined, secondMissing: boolean): boolean {
+  return !!(purpose?.second && purpose.second !== '없음') && !secondMissing;
+}

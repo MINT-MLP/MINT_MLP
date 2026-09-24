@@ -339,7 +339,7 @@ export default function Landing() {
               { badge: 'STEP 1', title: '어떤 모임인지 골라요', desc: <>인원수와 1차·2차 목적(밥/술/카페),<br />먹을 메뉴가 정해졌다면 메뉴 콕으로 좁혀봐요</>, img: '/image/landing/purpose.webp', highlight: false },
               { badge: 'STEP 2', title: '누구와 함께하나요', desc: <>친구·연인·가족, 기념일·소개팅<br />같은 특별한 날까지 반영해요</>, img: '/image/landing/relation.webp', highlight: false },
               { badge: 'STEP 3', title: '어디서 만날까요', desc: <>원하는 동네를 직접 고르거나,<br />전원 출발지 중간지점을 맡겨요</>, img: '/image/landing/region.webp', highlight: false },
-              { badge: 'STEP 4', title: '분위기와 못 먹는 음식까지', desc: <>1차·2차 분위기를 따로 고르고,<br />못 먹는 음식은 빼고 추천해요</>, img: '/image/landing/vibe.webp', highlight: false },
+              { badge: 'STEP 4', title: '1차·2차 분위기 따로', desc: <>1차·2차 분위기를 따로 고르고,<br />필요한 편의시설도 콕 집어요</>, img: '/image/landing/vibe.webp', highlight: false },
             ].map(({ badge, title, desc, img, highlight }, i) => (
               <div key={badge} className="contents lg:block">
                 {i > 0 && (
@@ -470,7 +470,7 @@ export default function Landing() {
               max: 'lg:max-w-[56.75rem] lg:mx-auto',
               steps: [
                 { n: '1', title: '분위기만 몰래 선택', desc: '눈치 안 보고 각자 원하는 분위기·취향', img: '/image/landing/guest-vibe.webp' },
-                { n: '2', title: '못 먹는 음식·편의시설', desc: '못 먹는 음식은 빼고, 필요한 시설만 콕', img: '/image/landing/guest-extra.webp' },
+                { n: '2', title: '예산·편의시설', desc: '예산과 필요한 시설만 콕', img: '/image/landing/guest-extra.webp' },
                 { n: '3', title: '제출 완료', desc: '호스트가 정한 코스·지역과 내 취향 확인', img: '/image/landing/guest-done.webp' },
               ],
             },

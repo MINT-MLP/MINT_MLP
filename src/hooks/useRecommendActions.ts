@@ -15,7 +15,7 @@ import { pickTreasurer } from '@/utils/treasurer';
 import type { RecommendFlow } from '@/hooks/useRecommendFlow';
 import type { RecommendInput } from '@/hooks/useRecommendInput';
 import type { GroupSession } from '@/hooks/useGroupSession';
-import type { ResultState } from '@/hooks/useResultState';
+import { resultHasSecond, type ResultState } from '@/hooks/useResultState';
 import type { RequestState } from '@/hooks/useRequestState';
 
 // 추천 요청 동작 — 중간지점 확정 → AI 호출 → 결과 반영, 재추천(다시 뽑기·취향 조절·거절).
@@ -25,12 +25,12 @@ export function useRecommendActions({ flow, input, group, result: resultState, r
   const { view, setView, isGroup } = flow;
   const {
     groupSize, locations, groupTravelLabels, purpose, vibe, budget, meetingLocation,
-    keywords, conditions, excludeFoods, vibeCustom,
+    keywords, conditions, vibeCustom,
   } = input;
   const { groupMembers, expectedCount, pendingGroupRecommend, setPendingGroupRecommend } = group;
   const {
     result, setResult, setShowRetryModal, midpointData, setMidpointData, setResultTravelTimes,
-    setTreasurer, setResultWeather, resultThird, setResultThird, setResultThirdLabel, setChangeNote,
+    setTreasurer, setResultWeather, resultThird, setResultThird, setResultThirdLabel, setResultSecondMissing, setChangeNote,
     compromiseMessage, setCompromiseMessage, setShowCompromiseToast,
   } = resultState;
   const {
@@ -211,10 +211,6 @@ export function useRecommendActions({ flow, input, group, result: resultState, r
         relation: purpose?.relation ?? null,
         occasion: purpose?.occasion?.trim().slice(0, 40) || null,
         budget,
-        // 편식 필터 — 서버가 후보 사전 제거 + AI 절대 제약으로 이중 반영 (개수·길이는 서버 검증 한도에 맞춤)
-        ...(excludeFoods.length > 0
-          ? { excludeFoods: excludeFoods.map((f) => f.trim().slice(0, 20)).filter(Boolean).slice(0, 8) }
-          : {}),
         ...(vibeWeights && Object.keys(vibeWeights).length > 0 ? { vibeWeights } : {}),
         ...((() => {
           // 1차 키워드 — 서버 검증 한도(개수 10 · 항목당 30자)에 맞춰 잘라서 전송.
@@ -241,10 +237,13 @@ export function useRecommendActions({ flow, input, group, result: resultState, r
       }, 250);
 
       // 실제 마일스톤 2: AI 추천 완료 (재추천 시 이전 장소 제외)
-      const { places: recommendation, weather, thirdStop, thirdLabel, serial } = await getAIRecommendation(input, midpoint, [], excludeNames, nearestAreas, scope, sessionKeyRef.current);
+      const { places: recommendation, weather, thirdStop, thirdLabel, serial, courses } = await getAIRecommendation(input, midpoint, [], excludeNames, nearestAreas, scope, sessionKeyRef.current);
       clearInterval(aiProgressInterval);
       setLoadingProgress(100); // 실제 완료
 
+      const secondMissing = !!(purpose?.second && purpose.second !== '없음') && courses === 1;
+      const hasSecond = resultHasSecond(purpose, secondMissing);
+      setResultSecondMissing(secondMissing);
       setResult(recommendation);
       setResultThird(thirdStop ?? null);
       setResultThirdLabel(thirdLabel ?? null);
@@ -253,7 +252,6 @@ export function useRecommendActions({ flow, input, group, result: resultState, r
       // 파일럿 핸드오프 저장 — 유저 비노출. /pilot에서 "○○집으로 추천받은 거 맞아요?" 자동 감지에 사용
       if (serial) {
         try {
-          const hasSecond = !!(purpose?.second && purpose.second !== '없음');
           savePilotHandoff({
             serial,
             createdAt: Date.now(),
@@ -298,7 +296,7 @@ export function useRecommendActions({ flow, input, group, result: resultState, r
       // 자동 중간지점 모드에서만 소요시간 조회 (임의 지역은 UI도 안 뜨므로 호출 생략)
       if (meetingLocation?.type === 'auto' && validLocs.length >= 2) {
         const firstPlace = recommendation[0];
-        const secondPlace = recommendation[1];
+        const secondPlace = hasSecond ? recommendation[1] : undefined;
         const firstDest = firstPlace?.lat && firstPlace.lat !== 0
           ? { lat: firstPlace.lat, lng: firstPlace.lng! }
           : midpoint;

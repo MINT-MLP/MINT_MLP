@@ -73,18 +73,12 @@ export default function GroupResultView({
         </div>
 
         {/* 내가 낸 취향이 반영됐다는 체감 — 호스트 결과의 개인화 배너를 게스트 '자기' 취향으로 */}
-        {(chips.length > 0 || guest.excludeFoods.length > 0) && (
+        {chips.length > 0 && (
           <div className="bg-mint-100 border border-mint-500/30 rounded-2xl px-4 py-3 flex flex-col gap-1">
             {chips.length > 0 && (
               <p className="text-xs text-mint-600 leading-relaxed">
                 <span className="font-black">{chips.map((c) => `#${c}`).join(' ')}</span>
                 <span className="text-mint-600/80"> — 네가 고른 취향도 반영됐어요</span>
-              </p>
-            )}
-            {guest.excludeFoods.length > 0 && (
-              <p className="text-xs text-mint-600 leading-relaxed">
-                <span className="font-black">🚫 {guest.excludeFoods.join(', ')}</span>
-                <span className="text-mint-600/80"> 못 먹는 건 빼고 골랐어요</span>
               </p>
             )}
           </div>

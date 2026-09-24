@@ -6,7 +6,7 @@ import { VibeSelect, StepProgress, GroupResultView } from '@/components';
 import { VIBE_KEY_TO_LABEL } from '@/constants/vibeOptions';
 // SECOND_KEYWORD_PREFIX는 더 이상 생성하지 않는다(1차/2차 키워드 입력 통합).
 // 파싱 쪽(groupAggregate)은 그대로 둔다 — 배포 시점에 구버전 링크로 제출 중인 게스트가 있을 수 있다.
-import { EXCLUDE_FOOD_PREFIX, SECOND_VIBE_PREFIX } from '@/utils/groupAggregate';
+import { SECOND_VIBE_PREFIX } from '@/utils/groupAggregate';
 import { decodeHostContext } from '@/utils/groupLink';
 import type { HostContext } from '@/utils/groupLink';
 import { trackEvent } from '@/services/analytics';
@@ -92,12 +92,11 @@ export default function MemberInput() {
   const [suggestions, setSuggestions] = useState<KakaoPlace[]>([]);
   const [searching, setSearching] = useState(false);
 
-  // 분위기 + 예산 + 키워드 + 편식
+  // 분위기 + 예산 + 키워드
   const [vibe, setVibe] = useState<VibeState>({});
   const [budget, setBudget] = useState<string | null>(null);
   const [keywords, setKeywords] = useState<string[]>([]);
   const [conditions, setConditions] = useState<string[]>([]);
-  const [excludeFoods, setExcludeFoods] = useState<string[]>([]);
 
   // 참석 여부는 따로 묻지 않는다 — 링크를 열고 조건까지 넣어 제출했다면 그게 곧 참석이다.
   // 링크에 실려온 마감시각(rsvp_by)은 "마감 전에 냈는지" 지표로만 남긴다.
@@ -251,12 +250,11 @@ export default function MemberInput() {
           vibe_atmosphere: primaryAtm,
           vibe_budget: budget,
           vibe_keywords: (() => {
-            // 대표 외 vibe + 편의시설 키워드 + 편식(접두사) 모두 합쳐 전송. 편식은 호스트가 집계 시 분리.
+            // 대표 외 vibe + 2차 분위기(접두사) + 편의시설 키워드를 합쳐 전송. 호스트가 집계 시 분리.
             const all = [
               ...extraVibeLabels,
               ...secondVibeKeys.map((k) => `${SECOND_VIBE_PREFIX}${k}`),
               ...keywords,
-              ...excludeFoods.map((f) => `${EXCLUDE_FOOD_PREFIX}${f}`),
             ];
             return all.length > 0 ? Array.from(new Set(all)) : null;
           })(),
@@ -288,7 +286,6 @@ export default function MemberInput() {
         locLng: showLocation ? locLng : null,
         chips: myChips,
         budget,
-        excludeFoods,
       };
       try { localStorage.setItem(`mint_guest_ctx_${sessionId}`, JSON.stringify(ctx)); } catch { /* ignore */ }
       setGuestCtx(ctx);
@@ -333,7 +330,6 @@ export default function MemberInput() {
         locLng: showLocation ? locLng : null,
         chips: [...myVibeLabels, ...keywords],
         budget,
-        excludeFoods,
       };
       return <GroupResultView result={groupResult} guest={ctx} placeChanged={placeChangedToast} />;
     }
@@ -395,7 +391,7 @@ export default function MemberInput() {
         )}
 
         {/* 내가 고른 것 */}
-        {(myVibeLabels.length > 0 || budget || excludeFoods.length > 0 || keywords.length > 0) && (
+        {(myVibeLabels.length > 0 || budget || keywords.length > 0) && (
           <div className="w-full max-w-xs bg-white shadow-sm rounded-2xl px-5 py-4 mb-3">
             <p className="text-[10px] font-bold text-mint-600 uppercase tracking-widest mb-2">내가 고른 취향</p>
             <div className="flex flex-wrap gap-1.5">
@@ -405,9 +401,6 @@ export default function MemberInput() {
               {budget && <span className="bg-mint-100 text-mint-600 text-xs font-bold px-2.5 py-1 rounded-full">💰 {budget}</span>}
               {keywords.map((k) => (
                 <span key={k} className="bg-mint-100 text-mint-600 text-xs font-bold px-2.5 py-1 rounded-full">{k}</span>
-              ))}
-              {excludeFoods.map((f) => (
-                <span key={f} className="bg-red-50 text-red-500 text-xs font-bold px-2.5 py-1 rounded-full">🚫 {f}</span>
               ))}
             </div>
           </div>
@@ -480,7 +473,7 @@ export default function MemberInput() {
           <p className="text-xs text-gray-400 mt-1">눈치 안 보고 각자 원하는 대로 (많이 고를수록 정확해져요)</p>
         )}
         {phase === 'step2' && (
-          <p className="text-xs text-gray-400 mt-1">예산·편의시설·키워드·못 먹는 음식 — 모두 선택사항</p>
+          <p className="text-xs text-gray-400 mt-1">예산·편의시설·키워드 — 모두 선택사항</p>
         )}
       </div>
 
@@ -559,8 +552,6 @@ export default function MemberInput() {
             onBudgetChange={setBudget}
             keywords={keywords}
             onKeywordsChange={setKeywords}
-            excludeFoods={excludeFoods}
-            onExcludeFoodsChange={setExcludeFoods}
             section="extras"
           />
         )}

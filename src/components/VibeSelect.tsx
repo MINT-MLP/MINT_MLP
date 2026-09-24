@@ -16,9 +16,7 @@ interface Props {
   onKeywordsChange?: (k: string[]) => void;
   conditions?: string[];            // 시설형 조건(코스 무관 전역)
   onConditionsChange?: (c: string[]) => void;
-  excludeFoods?: string[];
-  onExcludeFoodsChange?: (f: string[]) => void;
-  // 'all'(기본)=전체 한 화면 / 'mood'=프리셋·분위기·취향·조건만 / 'extras'=예산·키워드·못먹는음식만
+  // 'all'(기본)=전체 한 화면 / 'mood'=프리셋·분위기·취향·조건만 / 'extras'=예산·키워드만
   // 그룹 참여(MemberInput)에서 취향을 2개 스텝으로 나눠 4단계로 맞추기 위한 스위치
   section?: 'all' | 'mood' | 'extras';
 }
@@ -28,14 +26,12 @@ export default function VibeSelect({
   budget = null, onBudgetChange,
   keywords = [], onKeywordsChange,
   conditions = [], onConditionsChange,
-  excludeFoods = [], onExcludeFoodsChange,
   section = 'all',
 }: Props) {
   const showMood = section === 'all' || section === 'mood';
   const showExtras = section === 'all' || section === 'extras';
   const hasSecond = !!(purpose?.second && purpose.second !== '없음');
 
-  const [excludeInput, setExcludeInput] = useState('');
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [manualOpen, setManualOpen] = useState(() => {
     const hasAny = (g?: GroupVibeState) => !!g && (g.first.length > 0 || g.second.length > 0);
@@ -49,24 +45,6 @@ export default function VibeSelect({
   // 2차 코스가 사라지면 탭 상태와 무관하게 1차로 본다. effect로 되돌리면 한 렌더 동안
   // 보이지도 않는 2차 슬롯에 선택이 쌓일 수 있어, 상태를 맞추지 않고 파생시킨다.
   const activeCourse: 'first' | 'second' = hasSecond ? courseTab : 'first';
-
-  function removeExcludeFood(label: string) {
-    if (!onExcludeFoodsChange) return;
-    onExcludeFoodsChange(excludeFoods.filter((f) => f !== label));
-  }
-
-  // 쉼표/공백 구분 여러 개 한 번에 입력 지원 ("회, 오이, 곱창" → 3개 태그)
-  function addExcludeFoods() {
-    if (!onExcludeFoodsChange) return;
-    const items = excludeInput
-      .split(/[,，]/)
-      .map((s) => s.trim().slice(0, 20))
-      .filter((s) => s && !excludeFoods.includes(s));
-    if (items.length > 0) {
-      onExcludeFoodsChange([...excludeFoods, ...items].slice(0, 8));
-    }
-    setExcludeInput('');
-  }
 
   function setCourseArray(g: GroupVibeState, course: 'first' | 'second', next: string[]): GroupVibeState {
     return course === 'first' ? { ...g, first: next } : { ...g, second: next };
@@ -124,11 +102,6 @@ export default function VibeSelect({
     setManualOpen(true);
     if (preset.conditions.length > 0) setConditionsOpen(true);
   }
-
-  // 편식 필터는 음식이 나오는 모임에서만 — 카페만 가는 모임에선 숨김
-  const isFoodPurpose = (p?: string | null) => !!p && p !== '없음' && p !== '카페';
-  const showExcludeFoods =
-    !!onExcludeFoodsChange && (!purpose?.first || isFoodPurpose(purpose.first) || isFoodPurpose(purpose.second));
 
   const otherCourse: 'first' | 'second' = activeCourse === 'first' ? 'second' : 'first';
 
@@ -333,57 +306,6 @@ export default function VibeSelect({
           />
         </div>
       )}
-
-      {/* 편식 필터 — 못 먹는 음식은 입력만 하면 추천에서 확실히 제외 */}
-      {showExtras && showExcludeFoods && (
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">🚫 못 먹는 음식</p>
-            <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full font-medium">선택사항 · 확실히 빼드려요</span>
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={excludeInput}
-              maxLength={60}
-              onChange={(e) => setExcludeInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addExcludeFoods();
-                }
-              }}
-              onBlur={() => { if (excludeInput.trim()) addExcludeFoods(); }}
-              placeholder="예: 회, 오이, 곱창 (쉼표로 여러 개)"
-              className="flex-1 min-w-0 border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-mint-500 transition-colors"
-            />
-            {/* 추가 버튼은 편의시설과 동일한 민트로 통일 — 빨강은 '제외' 신호로 태그에만 사용 */}
-            <button
-              onClick={addExcludeFoods}
-              className="flex-shrink-0 px-4 rounded-xl bg-mint-500 text-white text-sm font-bold transition-all active:scale-95 hover:bg-mint-600"
-            >
-              추가
-            </button>
-          </div>
-
-          {/* 입력한 제외 음식 태그 — 탭하면 삭제 */}
-          {excludeFoods.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-2.5">
-              {excludeFoods.map((f) => (
-                <button
-                  key={f}
-                  onClick={() => removeExcludeFood(f)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-red-50 border border-red-200 text-red-500 text-xs font-bold transition-all active:scale-95"
-                >
-                  <span>🚫 {f}</span>
-                  <span className="text-red-300">×</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
     </div>
   );
 }

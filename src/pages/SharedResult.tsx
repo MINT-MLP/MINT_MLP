@@ -6,6 +6,7 @@ import { getDeviceId } from '@/storage/device';
 import type { VoteCandidate, SlimPlace, SnapshotPayload } from '@/types';
 import { COURSE_TONE, type CourseTone } from '@/constants/colors';
 import { cn } from '@/utils/cn';
+import { sanitizeSnapshot } from '@/utils/sharePayload';
 
 // 공유 URL에 실려오는 투표 후보 (슬림 포맷: n=이름, c=카테고리, s=적합도)
 
@@ -137,9 +138,9 @@ export default function SharedResult() {
       fetch(`/api/share-vote?id=${encodeURIComponent(id)}&type=snapshot`)
         .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
         .then(({ ok, d }) => {
-          const p = d?.payload;
-          if (!ok || d?.disabled || !p?.first?.placeName || !Array.isArray(p.first.vibeTags)) throw new Error('bad snapshot');
-          setResult(p as SnapshotPayload);
+          const p = ok && !d?.disabled ? sanitizeSnapshot(d?.payload) : null;
+          if (!p) throw new Error('bad snapshot');
+          setResult(p);
         })
         .catch(() => setError(true));
       return;
@@ -150,8 +151,9 @@ export default function SharedResult() {
       const data = params.get('data');
       if (!data) throw new Error('no data');
       const parsed = JSON.parse(data);
-      if (!parsed?.placeName || !Array.isArray(parsed.vibeTags)) throw new Error('malformed payload');
-      setResult({ first: parsed as SlimPlace, shareId: parsed.shareId, candidates: parsed.candidates });
+      const p = sanitizeSnapshot({ first: parsed, shareId: parsed?.shareId, candidates: parsed?.candidates });
+      if (!p) throw new Error('malformed payload');
+      setResult(p);
     } catch {
       setError(true);
     }

@@ -35,6 +35,7 @@ export async function getAIRecommendation(
     thirdStop: (data.thirdStop ?? null) as PlaceRecommendation | null,
     thirdLabel: (data.thirdLabel ?? null) as string | null,
     serial: (data.serial ?? null) as string | null,
+    courses: data.courses === 1 || data.courses === 2 ? data.courses : null,
   };
 }
 
