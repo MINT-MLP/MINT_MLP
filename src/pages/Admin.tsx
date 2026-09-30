@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { isTrackingPaused, setTrackingPaused } from '@/services/analytics';
 import type { ReservationRecord } from '@/pages/Reserve';
-import { AdminPasswordGate, AdminPasswordChangeCard, AdminStatCard, AdminBarRow, AdminMiniStat, AdminFunnelStep } from '@/components';
+import { AdminPasswordGate, AdminPasswordChangeCard, AdminStatCard, AdminBarRow, AdminMiniStat, AdminFunnelStep, AdminRetentionSection } from '@/components';
+import type { RetentionData } from '@/components';
 import { pct, pctLabel, formatDuration, formatDate, formatRelative } from '@/utils/format';
 import { downloadCsv } from '@/utils/csv';
 import { callAdmin } from '@/services/admin';
@@ -217,6 +218,7 @@ export default function Admin() {
   const [verifying, setVerifying] = useState(false);
   const [records, setRecords] = useState<ReservationRecord[]>([]);
   const [feedback, setFeedback] = useState<UserFeedbackRow[]>([]);
+  const [retention, setRetention] = useState<RetentionData | null>(null);
   const [analytics, setAnalytics] = useState<AdminAnalytics>(EMPTY_ANALYTICS);
   const [loading, setLoading] = useState(false);
   const [paused, setPaused] = useState(() => isTrackingPaused());
@@ -249,12 +251,14 @@ export default function Admin() {
     analytics?: Partial<AdminAnalytics>;
     reservations?: ReservationRecord[];
     userFeedback?: UserFeedbackRow[];
+    retention?: RetentionData;
     passwordSource?: 'db' | 'env';
   }) {
     // 서버가 아직 새 필드를 안 보내는 배포 시점에도 기본값으로 안전하게 렌더된다.
     setAnalytics({ ...EMPTY_ANALYTICS, ...(data.analytics ?? {}) });
     setRecords(Array.isArray(data.reservations) ? data.reservations : []);
     setFeedback(Array.isArray(data.userFeedback) ? data.userFeedback : []);
+    setRetention(data.retention ?? null);
     setPasswordSource(data.passwordSource ?? null);
   }
 
@@ -412,6 +416,16 @@ export default function Admin() {
       ['집계한 이벤트 행 수', a.eventsScanned],
       ['집계 상한 도달(잘림)', a.eventsTruncated ? '예' : '아니오'],
       ['소스 상한 초과로 버린 이벤트', attrDropped],
+      [],
+      [`재방문 (${retention?.since ?? '2026-10-01'}부터 수집 · 기기당 하루 1회 · 기간 필터 무관)`],
+      ['방문 유저(기기)', retention?.summary?.users ?? 0],
+      ['재방문 유저(2회+)', retention?.summary?.returning ?? 0],
+      ['평균 방문 횟수', retention?.summary?.avgVisits ?? ''],
+      ['첫 재방문까지 중앙값(일)', retention?.summary?.medianFirstGapDays ?? ''],
+      ['기기', '닉네임', '총 방문횟수', '회차', '방문시각', '이전 방문과 간격(일)', '경로'],
+      ...(retention?.users ?? []).flatMap((u) => u.steps.map((st) => [
+        u.deviceId, u.nickname ?? '', u.visitCount, st.n, formatDate(st.at), st.gapDays ?? '', st.path ?? '',
+      ])),
       [],
       ['유입 소스별 퍼널 (상위 20)'],
       // "세션"은 session_duration인데 결과 화면 도달 시에만 쏘인다 — 추천 노출보다 뒤 단계다.
@@ -643,6 +657,9 @@ export default function Admin() {
             {attrDropped > 0 && ` 소스 종류가 ${SOURCE_ROW_CAP}개 상한을 넘어 ${attrDropped}건의 이벤트는 어느 행에도 못 들어갔어요(utm 값이 오염됐을 수 있어요).`}
           </p>
         </section>
+
+        {/* ── 재방문 — 2026-10-01부터 수집. 기간 필터와 무관하게 전체 이력으로 본다 ── */}
+        <AdminRetentionSection data={retention} />
 
         {/* ── 핵심 지표 카드 ── */}
         <div className="grid grid-cols-2 gap-3 mb-6">

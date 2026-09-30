@@ -6,6 +6,8 @@ export { default as AdminFunnelStep } from './AdminFunnelStep';
 export { default as AdminMiniStat } from './AdminMiniStat';
 export { default as AdminPasswordChangeCard } from './AdminPasswordChangeCard';
 export { default as AdminPasswordGate } from './AdminPasswordGate';
+export { default as AdminRetentionSection } from './AdminRetentionSection';
+export type { RetentionData } from './AdminRetentionSection';
 export { default as AdminStatCard } from './AdminStatCard';
 export { default as AnchoredDropdown } from './AnchoredDropdown';
 export { default as BottomTabBar } from './BottomTabBar';

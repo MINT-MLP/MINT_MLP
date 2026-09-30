@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
 import { verifyAdminPassword, validateNewPassword, setAdminPassword } from './_lib/adminAuth.js';
 import { clientIp, checkRateLimit } from './_lib/guard.js';
+import { buildRetention, type VisitRow, type ProfileRow } from './_lib/retention.js';
 
 // 어드민 데이터 API — 비밀번호는 Supabase admin_credentials(없으면 env ADMIN_PASSWORD 폴백)로 검증
 // — api/_lib/adminAuth.ts.
@@ -80,6 +81,11 @@ const STAY_CAP_SECONDS = 1800; // 탭 방치 아웃라이어가 평균을 왜곡
 const EVENTS_PAGE = 1000;
 // 안전 상한 6만 행 — 여기 걸리면 "최근 6만건만 집계했다"를 어드민이 눈으로 알 수 있어야 한다.
 const EVENTS_MAX_PAGES = 60;
+
+// 재방문 기록(user_visits) 수집 시작일 — 어드민 배너에 그대로 찍힌다. 이 날 이전 방문은 기록이 없다.
+const RETENTION_SINCE = '2026-10-01';
+// 기기당 하루 1행이라 events보다 훨씬 느리게 자란다. 3만 행 = 예: 1000기기 × 30일.
+const VISITS_MAX_PAGES = 30;
 
 // 프로토타입 오염 방어. bump는 payload에서 온 문자열을 그대로 키로 쓰는데, 'constructor'가 오면
 // map['constructor']는 Object 함수라 `?? 0`을 통과하고 함수+1이 문자열로 박힌다.
@@ -248,8 +254,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return { rows, truncated: true, failed: false };
         };
 
-        const [eventsCollected, reservationsRes, feedbackRes] = await Promise.all([
-          collectEvents(true), reservationsQuery, feedbackQuery,
+        // 재방문 — 기간 필터를 걸지 않는다. "1번째 방문"을 알려면 수집 시작일부터 전체 이력이 필요하다.
+        // events와 같은 이유(max_rows 침묵 절단)로 페이지를 돈다. 오래된 순으로 읽어 잘려도 초기 이력은 보존.
+        const collectVisits = async (): Promise<{ rows: VisitRow[]; truncated: boolean; failed: boolean; code?: string }> => {
+          const rows: VisitRow[] = [];
+          for (let page = 0; page < VISITS_MAX_PAGES; page += 1) {
+            const offset = page * EVENTS_PAGE;
+            const r = await supabase.from('user_visits')
+              .select('device_id, user_id, visit_date, created_at, path')
+              .order('created_at', { ascending: true })
+              .range(offset, offset + EVENTS_PAGE - 1);
+            if (r.error) return { rows: [], truncated: false, failed: true, code: r.error.code };
+            const batch = (r.data ?? []) as VisitRow[];
+            rows.push(...batch);
+            if (batch.length < EVENTS_PAGE) return { rows, truncated: false, failed: false };
+          }
+          return { rows, truncated: true, failed: false };
+        };
+        // 닉네임 표시용 — 로그인 유저만 존재한다
+        const profilesQuery = supabase.from('mint_profiles').select('id, nickname, device_id');
+
+        const [eventsCollected, reservationsRes, feedbackRes, visitsResult, profilesRes] = await Promise.all([
+          collectEvents(true), reservationsQuery, feedbackQuery, collectVisits(), profilesQuery,
         ]);
 
         // payload 컬럼 마이그레이션 전이면 select가 통째로 실패한다 — 그때만(평상시 0회) 구 스키마로 재조회.
@@ -525,7 +551,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         };
 
         // passwordSource: 비밀번호가 아직 env에 있는지(= 운영자가 직접 못 바꾸는 상태인지) 어드민에 알린다.
-        return res.status(200).json({ analytics, reservations, userFeedback, passwordSource: auth.source });
+        // sql/user-visits.sql 미실행이면 조회가 실패한다 — 응답 전체를 깨지 않고 available:false로
+        // 내려 어드민이 "SQL을 실행하세요" 안내를 띄우게 한다(user_feedback과 같은 사상).
+        let retention;
+        if (visitsResult.failed) {
+          console.warn('[admin-data] user_visits 조회 실패(테이블 미생성?)', visitsResult.code);
+          retention = { available: false, since: RETENTION_SINCE };
+        } else {
+          if (profilesRes.error) console.warn('[admin-data] mint_profiles 조회 실패', profilesRes.error.code);
+          const built = buildRetention(visitsResult.rows, (profilesRes.data ?? []) as ProfileRow[]);
+          retention = {
+            available: true,
+            since: RETENTION_SINCE,
+            ...built,
+            visitsScanned: visitsResult.rows.length,
+            truncated: visitsResult.truncated,
+          };
+        }
+
+        return res.status(200).json({ analytics, reservations, userFeedback, retention, passwordSource: auth.source });
       }
     }
   } catch (e) {

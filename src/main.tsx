@@ -5,6 +5,7 @@ import App from '@/App'
 import { initErrorLogging } from '@/services/errorLog'
 import { captureAttribution } from '@/services/attribution'
 import { trackEvent } from '@/services/analytics'
+import { bindVisitTracking } from '@/services/visits'
 
 initErrorLogging()
 
@@ -15,6 +16,9 @@ initErrorLogging()
 // errorLog가 이미 supabase를 정적으로 물고 있어 여기서 analytics를 정적으로 써도 첫 로드 비용은 0이다.
 const entryView = captureAttribution()
 if (entryView) trackEvent('entry_view', { ...entryView })
+
+// 재방문 기록 — 라우트와 무관하게 문서 로드마다 한 번(기기당 하루 1회로 접힌다).
+bindVisitTracking()
 
 // 모바일 브라우저 UI가 접히거나 전체화면으로 전환될 때 실제 가시 높이를 앱 레이아웃에 즉시 반영한다.
 let fullscreenNoticeGuard = 0

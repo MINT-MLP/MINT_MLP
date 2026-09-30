@@ -58,7 +58,7 @@ let cache: AttributionRecord | null | undefined;
 // 탭 세션당 1회 발화 보장 — sessionStorage가 막힌 환경(사파리 프라이빗 등)의 최후 방어선
 let entryFired = false;
 
-function isBot(): boolean {
+export function isBot(): boolean {
   try {
     if (navigator.webdriver === true) return true;
     return BOT_UA.test(navigator.userAgent);

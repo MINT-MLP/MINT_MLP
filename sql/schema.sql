@@ -11,7 +11,7 @@
 --                          이름과 무관하게 전부 지우고 같은 세트로 다시 만든다. 데이터는 건드리지 않는다.
 --
 -- 이 파일이 만드는 것
---   테이블 16개, 인덱스 20개, 함수 2개, 스토리지 버킷 2개, RLS 정책 9개(테이블 7 + 스토리지 2)
+--   테이블 17개, 인덱스 22개, 함수 3개, 스토리지 버킷 2개, RLS 정책 9개(테이블 7 + 스토리지 2)
 --
 -- 접근 모델
 --   브라우저(anon)가 직접 만지는 테이블은 events·client_errors의 insert뿐이다.
@@ -330,6 +330,19 @@ create table if not exists public.client_errors (
   created_at  timestamptz not null default now()
 );
 
+-- 재방문(리텐션) 기록 — 2026-10-01부터 수집. 기기당 KST 하루 1행(유니크가 보장).
+-- 브라우저는 record_visit()(8번 섹션)만 부른다. 정책 없음 — 어드민 API(service role)만 읽는다.
+create table if not exists public.user_visits (
+  id          bigserial primary key,
+  device_id   text not null,
+  user_id     uuid,          -- 호출 시점에 로그인돼 있었으면 auth.uid()
+  visit_date  date not null, -- KST 달력일. 서버 now()로 계산
+  path        text,
+  created_at  timestamptz not null default now()
+);
+create unique index if not exists user_visits_device_day_key on public.user_visits (device_id, visit_date);
+create index if not exists user_visits_created_at_idx on public.user_visits (created_at);
+
 
 -- ───────────────────────────────────────────────────────────────────────────
 -- 7. 기타
@@ -369,6 +382,28 @@ $$;
 revoke all on function public.delete_own_account() from public;
 revoke all on function public.delete_own_account() from anon;
 grant execute on function public.delete_own_account() to authenticated;
+
+-- 재방문 기록. 12개 한도 때문에 API 대신 DB 함수. (device_id, visit_date) 충돌은 조용히 무시한다.
+-- 'd_anon'은 localStorage가 막힌 기기들의 공용 폴백값이라 세지 않는다.
+create or replace function public.record_visit(p_device_id text, p_path text default null)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_device text := left(coalesce(p_device_id, ''), 64);
+begin
+  if v_device = '' or v_device = 'd_anon' then
+    return;
+  end if;
+  insert into public.user_visits (device_id, user_id, visit_date, path)
+  values (v_device, auth.uid(), (now() at time zone 'Asia/Seoul')::date, left(p_path, 100))
+  on conflict (device_id, visit_date) do nothing;
+end;
+$$;
+revoke all on function public.record_visit(text, text) from public;
+grant execute on function public.record_visit(text, text) to anon, authenticated;
 
 
 -- ───────────────────────────────────────────────────────────────────────────
@@ -463,7 +498,7 @@ declare
     'mint_share_snapshots', 'mint_share_votes',
     'mint_profiles', 'mint_activity_log',
     'pilot_feedback', 'pilot_prizes',
-    'user_feedback', 'events', 'api_hits', 'client_errors',
+    'user_feedback', 'events', 'api_hits', 'client_errors', 'user_visits',
     'reservations'
   ];
 begin
@@ -517,7 +552,7 @@ create policy pilot_feedback_public_read on storage.objects
 -- 12. 검증 — 실행 후 이 결과를 확인한다
 -- ───────────────────────────────────────────────────────────────────────────
 
--- (a) 테이블 16개, 전부 rowsecurity = true
+-- (a) 테이블 17개, 전부 rowsecurity = true
 select tablename, rowsecurity
 from pg_tables
 where schemaname = 'public'
@@ -529,10 +564,10 @@ from pg_policies
 where schemaname = 'public'
 order by tablename, policyname;
 
--- (c) 함수 2개: claim_pilot_prize(INVOKER), delete_own_account(DEFINER)
+-- (c) 함수 3개: claim_pilot_prize(INVOKER), delete_own_account(DEFINER), record_visit(DEFINER)
 select routine_name, security_type
 from information_schema.routines
-where routine_schema = 'public' and routine_name in ('claim_pilot_prize', 'delete_own_account');
+where routine_schema = 'public' and routine_name in ('claim_pilot_prize', 'delete_own_account', 'record_visit');
 
 -- (d) 버킷 2개: pilot-feedback(public), pilot-prizes(private)
 select id, public from storage.buckets where id in ('pilot-feedback', 'pilot-prizes');
