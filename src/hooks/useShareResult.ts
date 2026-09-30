@@ -114,14 +114,11 @@ export function useShareResult({ input, result: resultState }: { input: Recommen
             ...(treasurer ? [`💰 ${treasurer}에서 출발하는 분이 오늘의 총무!`] : []),
           ];
 
+      // 카카오맵 버튼은 숨긴다(09-30). 공유 버튼 링크는 앱에 등록된 도메인만 열리고, 카카오맵 주소는
+      // 대표 도메인(랜딩)으로 바뀌어 열린다. 되살리려면 우리 도메인을 거쳐 카카오맵으로 넘기는 경로가 필요하다.
       const buttons: object[] = [
         { title: '추천 결과 보기', link: { mobileWebUrl: sharedUrl, webUrl: sharedUrl } },
       ];
-      if (secondMapUrl) {
-        buttons.push({ title: `2차(${purpose!.second}) 카카오맵 보기`, link: { mobileWebUrl: secondMapUrl, webUrl: secondMapUrl } });
-      } else {
-        buttons.push({ title: '카카오맵에서 보기', link: { mobileWebUrl: primaryMapUrl, webUrl: primaryMapUrl } });
-      }
 
       return {
         objectType: 'feed',

@@ -34,7 +34,9 @@
 ### 2. 익명 로그인 제거 + Zustand 사용자 store
 - **09-30 코드 완료(미커밋)**: src/stores/userStore.ts(zustand 5, initUserStore를 AppShell에서 1회, 옛 익명 세션은 로컬 signOut), auth.ts에서 ensureSession·getCurrentUser·onAuthChange 제거, Profile은 store 사용. 브라우저 직접 쓰기는 events·client_errors뿐이고 둘 다 anon 허용이라 안전(그룹·공유는 서버 API).
 - 09-30 코드리뷰 반영: v2-schema 007(비회원 슬롯 행동 판정 함수 can_act_on_slot, 정리 1시간 유예) — **dev에 실행 필요**. Profile은 ready 전 로그인 영역 숨김, 익명 세션 signOut은 setTimeout으로 미룸, coords.ts·proj4 삭제, 배치 설명 노트 6개에 갱신 표시.
-- 남은 일: dev 배포 → 대시보드 Anonymous sign-ins OFF → v2-schema 006 실행(익명 계정 삭제). 인허가 배치 삭제 배포 후 005-2 실행. Vercel에서 PUBLIC_DATA_SERVICE_KEY·ADMIN_REFRESH_SECRET·CRON_SECRET 제거 가능.
+- **09-30 dev DB 실행 완료(유저)**: 007, 006(익명 계정 삭제), 005-2(license_cache 삭제). dev에 남은 005는 005-3(recommendation_log·mint_activity_log, 3번 작업 후)·005-4(events, 어드민 교체 후).
+- **09-30 완료(유저)**: dev 배포, Anonymous sign-ins OFF, dev Vercel에서 PUBLIC_DATA_SERVICE_KEY·ADMIN_REFRESH_SECRET·CRON_SECRET 삭제. 운영 Vercel 키는 main 교체 때 삭제(릴리즈 체크).
+- (이전 기록) 남은 일: dev 배포 → 대시보드 Anonymous sign-ins OFF → v2-schema 006 실행(익명 계정 삭제). 인허가 배치 삭제 배포 후 005-2 실행. Vercel에서 PUBLIC_DATA_SERVICE_KEY·ADMIN_REFRESH_SECRET·CRON_SECRET 제거 가능.
 - auth.ts의 signInAnonymously 경로 제거. 회원 판정 = 세션 있음.
 - store: 로그인 구독 1회, 세션·회원 여부·로딩·닉네임·사진, 구독 등급 자리.
 - 프로필 페이지의 자체 구독을 store로 교체.
@@ -48,6 +50,16 @@
 ### 4. 저장 정리(17번 10-3 갱신판)
 - 결과 스냅샷: localStorage에 검색 조건 + 슬롯별 장소 ID만. 새로고침 시 재검색 복원.
 - 공유: 버튼 누를 때 서버 저장(조건 + ID), 링크 열면 재검색 복원, 7일 삭제 배치.
+- 공유 투표(mint_share_votes): place_name 칸 제거(카카오 이름 저장 불가, 선택 번호가 슬롯을 가리키므로 이름은 재검색 결과를 쓴다). 통계가 필요하면 이름 대신 카카오 장소 ID. 투표 테이블은 공유와 같이 7일 삭제.
+- 투표 실시간 갱신(09-30 논의): 공유 화면에서 3~5초 주기 조회 또는 Supabase Realtime. 어느 쪽이든 Vercel이 아니라 브라우저→Supabase 직접(투표 테이블 anon 읽기 정책 필요). 탭 백그라운드·10분 경과 시 중단. Realtime 무료 한도(동시 200, 월 200만 메시지)는 당분간 여유.
+- 공유한 사람 결과 화면에도 같은 집계 표시(공유 ID를 결과 상태에 보관). 실시간 갱신과 같이.
+- 투표 알림: 보류(알림톡은 비용, 웹 푸시는 iOS 도달률 낮음).
+- 공유 화면 지도에 1차만 마커(SharedResult가 MiniMap에 pins를 안 넘김). 4번 재검색 복원 때 1·2·3차 pins로.
+
+### 보류: 카톡 공유의 카카오맵 버튼 (09-30 숨김)
+- 원인: 카톡 공유 버튼 링크는 제품 링크 관리에 등록된 도메인만 열리고, map.kakao.com은 대표 도메인(운영 랜딩)으로 바뀐다. 운영에서도 같은 문제였다.
+- 조치: useShareResult에서 버튼만 뺌(대체 공유 텍스트의 카카오맵 주소는 유지). 기획자가 물으면 "기능 문제로 잠시 뺐다".
+- 되살릴 때: 우리 도메인 경로(예: /go/map)가 카카오맵으로 넘기는 방식. 열린 리다이렉트가 되지 않게 map.kakao.com·place.map.kakao.com만 허용.
 - 그룹 결과(mint_sessions.result_json): 조건 + ID만, 7일 삭제.
 - 삭제 배치 신규: 공유·그룹 7일, api_hits 1일, client_errors 30일(제안). 현재 삭제 작업은 하나도 없음(09-30 확인). Supabase DB 스케줄러.
 - 옛 localStorage 키 삭제 코드(찜·포인트·인증·이력·파일럿 핸드오프 등).
