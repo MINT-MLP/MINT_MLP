@@ -58,6 +58,8 @@ function RetentionBody({ data, estimate }: { data: RetentionData; estimate?: boo
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [returningOnly, setReturningOnly] = useState(false);
   const [shown, setShown] = useState(PAGE);
+  // 목록이 길어 아래 섹션까지 스크롤이 멀어진다 — 카드째 접을 수 있게 한다
+  const [listOpen, setListOpen] = useState(true);
 
   const s = data.summary;
   const allUsers = data.users ?? [];
@@ -119,7 +121,21 @@ function RetentionBody({ data, estimate }: { data: RetentionData; estimate?: boo
       )}
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-        <div className="flex items-center justify-between mb-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setListOpen((v) => !v)}
+          className="w-full flex items-center justify-between gap-2 text-left"
+          aria-expanded={listOpen}
+        >
+          <span className="text-xs font-bold text-gray-500">
+            유저 목록 <span className="text-gray-400 font-normal">({list.length}명 · {unitWord} 많은 순)</span>
+          </span>
+          <span className="text-[11px] text-gray-400 shrink-0">{listOpen ? '접기 ▲' : '펼치기 ▼'}</span>
+        </button>
+
+        {listOpen && (
+        <>
+        <div className="flex items-center justify-between mt-3 mb-2 gap-2">
           <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
             <input
               type="checkbox"
@@ -128,7 +144,17 @@ function RetentionBody({ data, estimate }: { data: RetentionData; estimate?: boo
             />
             2회 이상만
           </label>
-          <span className="text-[11px] text-gray-400">{unitWord} 많은 순 · 탭하면 회차별 기록</span>
+          {expanded.size > 0 ? (
+            <button
+              type="button"
+              onClick={() => setExpanded(new Set())}
+              className="text-[11px] font-bold text-gray-500 bg-gray-50 rounded-lg px-2 py-1"
+            >
+              펼친 기록 모두 접기
+            </button>
+          ) : (
+            <span className="text-[11px] text-gray-400">탭하면 회차별 기록</span>
+          )}
         </div>
 
         {list.length === 0 ? (
@@ -188,6 +214,19 @@ function RetentionBody({ data, estimate }: { data: RetentionData; estimate?: boo
           >
             더 보기 ({list.length - shown}명 남음)
           </button>
+        )}
+
+        {/* 긴 목록 끝에서 맨 위 헤더까지 올라가지 않고 바로 접는다 */}
+        {list.length > 5 && (
+          <button
+            type="button"
+            onClick={() => setListOpen(false)}
+            className="mt-2 w-full text-xs font-bold text-gray-400 py-2"
+          >
+            목록 접기 ▲
+          </button>
+        )}
+        </>
         )}
       </div>
 
