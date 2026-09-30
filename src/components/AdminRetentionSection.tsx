@@ -5,6 +5,7 @@ import { pctLabel, formatDate } from '@/utils/format';
 
 // 어드민 재방문(리텐션) 섹션 — api/_lib/retention.ts가 접어 보낸 기기별 방문 타임라인을 보여준다.
 // 방문 = 기기당 KST 하루 1회(sql/user-visits.sql). 수집은 2026-10-01부터라 그 전 방문은 없다.
+// 그 전 구간은 버튼을 누르면 행동 흔적(탭 클릭·찜·피드백 등)으로 추정한 값을 따로 보여준다 — 정답과 섞지 않는다.
 
 export interface RetentionStep {
   n: number;
@@ -38,10 +39,13 @@ export interface RetentionData {
   users?: RetentionUser[];
   visitsScanned?: number;
   truncated?: boolean;
+  failedSources?: string[];   // 추정 전용 — 조회에 실패해 빠진 흔적 소스
 }
 
 // 한 번에 그리는 유저 행 수 — 300명을 한꺼번에 펼치면 모바일에서 스크롤이 끝나지 않는다
 const PAGE = 30;
+
+const REACH_BARS: `bg-${string}`[] = ['bg-mint-500', 'bg-sky-500', 'bg-violet-500', 'bg-amber-500', 'bg-rose-500'];
 
 function gapLabel(gapDays: number | null): string {
   if (gapDays == null) return '첫 방문';
@@ -49,15 +53,16 @@ function gapLabel(gapDays: number | null): string {
   return `이전 방문 ${gapDays}일 뒤`;
 }
 
-export default function AdminRetentionSection({ data }: { data: RetentionData | null }) {
+// 요약 카드 + N번째 도달 막대 + 기기별 타임라인. 정답(user_visits)과 추정이 같은 모양을 쓴다.
+function RetentionBody({ data, estimate }: { data: RetentionData; estimate?: boolean }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [returningOnly, setReturningOnly] = useState(false);
   const [shown, setShown] = useState(PAGE);
 
-  const since = data?.since ?? '2026-10-01';
-  const s = data?.summary;
-  const allUsers = data?.users ?? [];
+  const s = data.summary;
+  const allUsers = data.users ?? [];
   const list = returningOnly ? allUsers.filter((u) => u.visitCount >= 2) : allUsers;
+  const unitWord = estimate ? '활동' : '방문';
 
   function toggle(id: string) {
     setExpanded((prev) => {
@@ -70,14 +75,154 @@ export default function AdminRetentionSection({ data }: { data: RetentionData | 
 
   // "N번째 방문까지 온 기기" — 분포를 누적해 퍼널로 본다(2번째까지 온 비율 = 재방문율)
   const d = s?.distribution;
-  const reach = d ? [
+  const reach = s && d ? [
     { label: '1번째', count: s.users },
     { label: '2번째', count: d.two + d.three + d.four + d.fivePlus },
     { label: '3번째', count: d.three + d.four + d.fivePlus },
     { label: '4번째', count: d.four + d.fivePlus },
     { label: '5번째+', count: d.fivePlus },
   ] : [];
-  const reachBars: `bg-${string}`[] = ['bg-mint-500', 'bg-sky-500', 'bg-violet-500', 'bg-amber-500', 'bg-rose-500'];
+
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <AdminStatCard label={`${unitWord} 유저(기기)`} value={s?.users ?? 0} unit="명" />
+        <AdminStatCard
+          label="재방문 유저 (2회+)"
+          value={s?.returning ?? 0}
+          unit="명"
+          sub={`재방문율 ${pctLabel(s?.returning ?? 0, s?.users ?? 0)}`}
+          highlight={!estimate}
+        />
+        <AdminStatCard label={`평균 ${unitWord} 일수`} value={s?.avgVisits ?? '—'} unit={s?.avgVisits != null ? '회' : undefined} />
+        <AdminStatCard
+          label="첫 재방문까지 (중앙값)"
+          value={s?.medianFirstGapDays ?? '—'}
+          unit={s?.medianFirstGapDays != null ? '일' : undefined}
+          sub="1번째 → 2번째 방문 간격"
+        />
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3">
+        <div className="text-xs font-bold text-gray-500 mb-3">N번째 {unitWord}까지 온 유저</div>
+        <div className="flex flex-col gap-2">
+          {reach.map((r, i) => (
+            <AdminBarRow key={r.label} label={r.label} count={r.count} total={s?.users ?? 0} bar={REACH_BARS[i]} />
+          ))}
+        </div>
+      </div>
+
+      {data.truncated && (
+        <div className="mb-3 bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs text-amber-600">
+          ⚠️ 기록 {data.visitsScanned?.toLocaleString()}건 상한에 걸려 오래된 기록부터 이만큼만 집계했어요.
+        </div>
+      )}
+
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+        <div className="flex items-center justify-between mb-2 gap-2">
+          <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={returningOnly}
+              onChange={(e) => { setReturningOnly(e.target.checked); setShown(PAGE); }}
+            />
+            2회 이상만
+          </label>
+          <span className="text-[11px] text-gray-400">{unitWord} 많은 순 · 탭하면 회차별 기록</span>
+        </div>
+
+        {list.length === 0 ? (
+          <div className="text-xs text-gray-400 py-4 text-center">
+            {returningOnly ? '아직 다시 온 유저가 없어요.' : `아직 기록된 ${unitWord}이 없어요.`}
+          </div>
+        ) : (
+          <ul className="flex flex-col divide-y divide-gray-100">
+            {list.slice(0, shown).map((u) => {
+              const open = expanded.has(u.deviceId);
+              return (
+                <li key={u.deviceId} className="py-2">
+                  <button
+                    type="button"
+                    onClick={() => toggle(u.deviceId)}
+                    className="w-full flex items-center gap-3 text-left"
+                    aria-expanded={open}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-bold text-gray-700 truncate">
+                        {u.nickname ?? `기기 ${u.deviceId.slice(0, 10)}`}
+                        {u.userId && (
+                          <span className="ml-1.5 text-[10px] font-bold text-mint-600 bg-mint-100 rounded px-1 py-0.5 align-middle">로그인</span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-gray-400">
+                        첫 {unitWord} {formatDate(u.firstAt)} · 최근 {formatDate(u.lastAt)}
+                      </div>
+                    </div>
+                    <span className={`text-sm font-black shrink-0 ${estimate ? 'text-gray-500' : 'text-mint-500'}`}>{u.visitCount}회</span>
+                    <span className="text-[10px] text-gray-300 shrink-0">{open ? '▲' : '▼'}</span>
+                  </button>
+                  {open && (
+                    <ol className={`mt-2 ml-1 pl-3 border-l-2 flex flex-col gap-1.5 ${estimate ? 'border-gray-200' : 'border-mint-200'}`}>
+                      {u.steps.map((st) => (
+                        <li key={st.n} className="text-xs flex flex-wrap items-baseline gap-x-2">
+                          <span className="font-black text-gray-700 w-12 shrink-0">{st.n}번째</span>
+                          <span className="text-gray-600">{formatDate(st.at)}</span>
+                          <span className="text-[11px] text-gray-400">
+                            {gapLabel(st.gapDays)}{st.path ? ` · ${st.path}` : ''}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {list.length > shown && (
+          <button
+            type="button"
+            onClick={() => setShown((n) => n + PAGE)}
+            className="mt-2 w-full text-xs font-bold text-gray-500 bg-gray-50 rounded-xl py-2"
+          >
+            더 보기 ({list.length - shown}명 남음)
+          </button>
+        )}
+      </div>
+
+      {allUsers.length > 0 && s && s.users > allUsers.length && (
+        <p className="text-[11px] text-gray-400 mt-2 px-1">
+          * 목록은 {unitWord} 많은 순 상위 {allUsers.length}명만 보여요(요약 수치는 전체 기준).
+        </p>
+      )}
+    </>
+  );
+}
+
+export default function AdminRetentionSection({ data, onLoadEstimate }: {
+  data: RetentionData | null;
+  onLoadEstimate: () => Promise<RetentionData>;
+}) {
+  const since = data?.since ?? '2026-10-01';
+  const [estimate, setEstimate] = useState<RetentionData | null>(null);
+  const [estimateOpen, setEstimateOpen] = useState(false);
+  const [estimateLoading, setEstimateLoading] = useState(false);
+  const [estimateError, setEstimateError] = useState<string | null>(null);
+
+  async function openEstimate() {
+    setEstimateOpen((v) => !v);
+    if (estimate || estimateLoading) return;
+    setEstimateLoading(true);
+    setEstimateError(null);
+    try {
+      setEstimate(await onLoadEstimate());
+    } catch (e) {
+      setEstimateError(e instanceof Error ? e.message : '불러오지 못했어요.');
+    } finally {
+      setEstimateLoading(false);
+    }
+  }
 
   return (
     <section className="mb-6">
@@ -100,120 +245,56 @@ export default function AdminRetentionSection({ data }: { data: RetentionData | 
           실행했는지 확인해주세요. 실행 후 배포되면 그때부터 쌓여요.
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <AdminStatCard label="방문 유저(기기)" value={s?.users ?? 0} unit="명" />
-            <AdminStatCard
-              label="재방문 유저 (2회+)"
-              value={s?.returning ?? 0}
-              unit="명"
-              sub={`재방문율 ${pctLabel(s?.returning ?? 0, s?.users ?? 0)}`}
-              highlight
-            />
-            <AdminStatCard label="평균 방문 횟수" value={s?.avgVisits ?? '—'} unit={s?.avgVisits != null ? '회' : undefined} />
-            <AdminStatCard
-              label="첫 재방문까지 (중앙값)"
-              value={s?.medianFirstGapDays ?? '—'}
-              unit={s?.medianFirstGapDays != null ? '일' : undefined}
-              sub="1번째 → 2번째 방문 간격"
-            />
-          </div>
-
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3">
-            <div className="text-xs font-bold text-gray-500 mb-3">N번째 방문까지 온 유저</div>
-            <div className="flex flex-col gap-2">
-              {reach.map((r, i) => (
-                <AdminBarRow key={r.label} label={r.label} count={r.count} total={s?.users ?? 0} bar={reachBars[i]} />
-              ))}
-            </div>
-          </div>
-
-          {data.truncated && (
-            <div className="mb-3 bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs text-amber-600">
-              ⚠️ 방문 기록 {data.visitsScanned?.toLocaleString()}건 상한에 걸려 오래된 기록부터 이만큼만 집계했어요.
-            </div>
-          )}
-
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-            <div className="flex items-center justify-between mb-2 gap-2">
-              <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={returningOnly}
-                  onChange={(e) => { setReturningOnly(e.target.checked); setShown(PAGE); }}
-                />
-                2회 이상만
-              </label>
-              <span className="text-[11px] text-gray-400">방문 많은 순 · 탭하면 회차별 기록</span>
-            </div>
-
-            {list.length === 0 ? (
-              <div className="text-xs text-gray-400 py-4 text-center">
-                {returningOnly ? '아직 다시 온 유저가 없어요.' : '아직 기록된 방문이 없어요.'}
-              </div>
-            ) : (
-              <ul className="flex flex-col divide-y divide-gray-100">
-                {list.slice(0, shown).map((u) => {
-                  const open = expanded.has(u.deviceId);
-                  return (
-                    <li key={u.deviceId} className="py-2">
-                      <button
-                        type="button"
-                        onClick={() => toggle(u.deviceId)}
-                        className="w-full flex items-center gap-3 text-left"
-                        aria-expanded={open}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-bold text-gray-700 truncate">
-                            {u.nickname ?? `기기 ${u.deviceId.slice(0, 10)}`}
-                            {u.userId && (
-                              <span className="ml-1.5 text-[10px] font-bold text-mint-600 bg-mint-100 rounded px-1 py-0.5 align-middle">로그인</span>
-                            )}
-                          </div>
-                          <div className="text-[11px] text-gray-400">
-                            첫 방문 {formatDate(u.firstAt)} · 최근 {formatDate(u.lastAt)}
-                          </div>
-                        </div>
-                        <span className="text-sm font-black text-mint-500 shrink-0">{u.visitCount}회</span>
-                        <span className="text-[10px] text-gray-300 shrink-0">{open ? '▲' : '▼'}</span>
-                      </button>
-                      {open && (
-                        <ol className="mt-2 ml-1 pl-3 border-l-2 border-mint-200 flex flex-col gap-1.5">
-                          {u.steps.map((st) => (
-                            <li key={st.n} className="text-xs flex flex-wrap items-baseline gap-x-2">
-                              <span className="font-black text-gray-700 w-12 shrink-0">{st.n}번째</span>
-                              <span className="text-gray-600">{formatDate(st.at)}</span>
-                              <span className="text-[11px] text-gray-400">
-                                {gapLabel(st.gapDays)}{st.path ? ` · ${st.path}` : ''}
-                              </span>
-                            </li>
-                          ))}
-                        </ol>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-
-            {list.length > shown && (
-              <button
-                type="button"
-                onClick={() => setShown((n) => n + PAGE)}
-                className="mt-2 w-full text-xs font-bold text-gray-500 bg-gray-50 rounded-xl py-2"
-              >
-                더 보기 ({list.length - shown}명 남음)
-              </button>
-            )}
-          </div>
-        </>
+        <RetentionBody data={data} />
       )}
 
       <p className="text-[11px] text-gray-400 mt-2 px-1">
         * 기기 기준이라 같은 사람이 폰·PC로 오면 2명, 브라우저 데이터를 지우면 새 유저로 잡혀요.
         하루에 여러 번 켜도 1회이고, 시각은 그날 첫 접속이에요. 로그인 유저는 닉네임으로 보여요.
-        {allUsers.length > 0 && s && s.users > allUsers.length && ` 목록은 방문 많은 순 상위 ${allUsers.length}명만 보여요(요약 수치는 전체 기준).`}
       </p>
+
+      {/* ── 수집 시작 전 추정 — 누를 때만 불러온다(과거 흔적 전체를 훑는 무거운 조회) ── */}
+      <div className="mt-4">
+        <button
+          type="button"
+          onClick={openEstimate}
+          className="w-full flex items-center justify-between bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-left"
+          aria-expanded={estimateOpen}
+        >
+          <span>
+            <span className="text-sm font-bold text-gray-600">📜 {since} 이전 재방문 (추정치)</span>
+            <span className="block text-[11px] text-gray-400">버튼 클릭 등 행동 흔적으로 추정 · 누르면 불러와요</span>
+          </span>
+          <span className="text-[10px] text-gray-400">{estimateOpen ? '▲' : '▼'}</span>
+        </button>
+
+        {estimateOpen && (
+          <div className="mt-3">
+            <div className="mb-3 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+              <div className="text-sm font-bold text-amber-700 mb-1">⚠️ 정확한 방문 기록이 아니에요</div>
+              <div className="text-xs text-amber-600">
+                {since} 전에는 방문 자체를 기록하지 않았어요. 대신 기기 ID가 남은 행동(탭 클릭·찜·피드백·그룹 참여·
+                로그인 유저 추천 기록 등)이 있었던 날을 방문일로 잡았어요. 들어와서 아무것도 안 누른 날은 빠지므로
+                실제보다 <b>적게</b> 잡혀요(하한값). 회차별 기록의 오른쪽 글자는 그날 잡힌 흔적 종류예요.
+              </div>
+            </div>
+            {estimateLoading && <div className="text-xs text-gray-400 py-4 text-center">과거 기록을 훑는 중이에요…</div>}
+            {estimateError && (
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-xs text-red-500">{estimateError}</div>
+            )}
+            {estimate && (
+              <>
+                {(estimate.failedSources?.length ?? 0) > 0 && (
+                  <div className="mb-3 text-[11px] text-gray-400 px-1">
+                    * 조회에 실패해 빠진 소스: {estimate.failedSources?.join(', ')}
+                  </div>
+                )}
+                <RetentionBody data={estimate} estimate />
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </section>
   );
 }

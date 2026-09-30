@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildRetention, RETENTION_USER_CAP, type VisitRow } from './retention';
+import { buildRetention, activityToVisits, kstDate, RETENTION_USER_CAP, type VisitRow } from './retention';
 
 function v(device_id: string, visit_date: string, hhmm = '10:00', user_id: string | null = null): VisitRow {
   // KST hh:mm → UTC ISO
@@ -62,5 +62,28 @@ describe('buildRetention', () => {
     const { summary, users } = buildRetention([], []);
     expect(users).toEqual([]);
     expect(summary).toMatchObject({ users: 0, returning: 0, avgVisits: null, medianFirstGapDays: null });
+  });
+});
+
+describe('activityToVisits (수집 시작 전 추정)', () => {
+  it('KST 날짜 경계 — UTC 15시가 다음 날', () => {
+    expect(kstDate('2026-09-20T14:59:00Z')).toBe('2026-09-20');
+    expect(kstDate('2026-09-20T15:00:00Z')).toBe('2026-09-21');
+  });
+
+  it('기기·KST 하루당 1행, 그날 가장 이른 흔적을 남긴다', () => {
+    const visits = activityToVisits([
+      { device_id: 'a', user_id: null, created_at: '2026-09-20T05:00:00Z', source: 'wishlist_add' },
+      { device_id: 'a', user_id: null, created_at: '2026-09-20T01:00:00Z', source: 'tab_click' },
+      { device_id: 'a', user_id: 'u1', created_at: '2026-09-20T06:00:00Z', source: '추천 기록' },
+      { device_id: 'a', user_id: null, created_at: '2026-09-22T01:00:00Z', source: 'tab_click' },
+      { device_id: 'd_anon', user_id: null, created_at: '2026-09-22T01:00:00Z', source: 'tab_click' },
+    ]);
+    expect(visits).toHaveLength(2);
+    const first = visits.find((v) => v.visit_date === '2026-09-20')!;
+    expect(first.path).toBe('tab_click');
+    expect(first.user_id).toBe('u1');
+    const { users } = buildRetention(visits, []);
+    expect(users[0].steps.map((s) => s.gapDays)).toEqual([null, 2]);
   });
 });

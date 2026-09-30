@@ -659,7 +659,14 @@ export default function Admin() {
         </section>
 
         {/* ── 재방문 — 2026-10-01부터 수집. 기간 필터와 무관하게 전체 이력으로 본다 ── */}
-        <AdminRetentionSection data={retention} />
+        <AdminRetentionSection
+          data={retention}
+          onLoadEstimate={async () => {
+            if (!password) throw new Error('다시 로그인해주세요.');
+            const res = await callAdmin(password, { action: 'retention_estimate' });
+            return res.estimate as RetentionData;
+          }}
+        />
 
         {/* ── 핵심 지표 카드 ── */}
         <div className="grid grid-cols-2 gap-3 mb-6">

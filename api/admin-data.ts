@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
 import { verifyAdminPassword, validateNewPassword, setAdminPassword } from './_lib/adminAuth.js';
 import { clientIp, checkRateLimit } from './_lib/guard.js';
-import { buildRetention, type VisitRow, type ProfileRow } from './_lib/retention.js';
+import { buildRetention, activityToVisits, type VisitRow, type ProfileRow, type ActivityRow } from './_lib/retention.js';
 
 // 어드민 데이터 API — 비밀번호는 Supabase admin_credentials(없으면 env ADMIN_PASSWORD 폴백)로 검증
 // — api/_lib/adminAuth.ts.
@@ -86,6 +86,26 @@ const EVENTS_MAX_PAGES = 60;
 const RETENTION_SINCE = '2026-10-01';
 // 기기당 하루 1행이라 events보다 훨씬 느리게 자란다. 3만 행 = 예: 1000기기 × 30일.
 const VISITS_MAX_PAGES = 30;
+// 수집 시작 전 추정의 상한 시각 = 2026-10-01 00:00 KST. 이후 구간은 user_visits가 정답이라 섞지 않는다.
+const RETENTION_SINCE_ISO = '2026-09-30T15:00:00.000Z';
+// 추정용 과거 행동 흔적 — 소스마다 이만큼까지 읽는다(1000 × 30 = 3만 행)
+const ESTIMATE_MAX_PAGES = 30;
+
+// range 페이지네이션 공통 — max_rows 침묵 절단 때문에 한 방 select를 쓰지 않는다(events와 같은 이유).
+async function paginate<T>(
+  loadPage: (offset: number) => PromiseLike<{ data: unknown[] | null; error: { code?: string } | null }>,
+  maxPages: number,
+): Promise<{ rows: T[]; truncated: boolean; failed: boolean; code?: string }> {
+  const rows: T[] = [];
+  for (let page = 0; page < maxPages; page += 1) {
+    const r = await loadPage(page * EVENTS_PAGE);
+    if (r.error) return { rows, truncated: false, failed: true, code: r.error.code };
+    const batch = (r.data ?? []) as T[];
+    rows.push(...batch);
+    if (batch.length < EVENTS_PAGE) return { rows, truncated: false, failed: false };
+  }
+  return { rows, truncated: true, failed: false };
+}
 
 // 프로토타입 오염 방어. bump는 payload에서 온 문자열을 그대로 키로 쓰는데, 'constructor'가 오면
 // map['constructor']는 Object 함수라 `?? 0`을 통과하고 함수+1이 문자열로 박힌다.
@@ -190,6 +210,70 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await supabase.from('events').delete().not('id', 'is', null);
         return res.status(200).json({ ok: true });
       }
+      case 'retention_estimate': {
+        // 수집 시작(2026-10-01) 전 재방문 추정 — 버튼을 눌렀을 때만 돈다. 과거 데이터는 더 늘지 않으니
+        // 어드민을 열 때마다 훑을 이유가 없다.
+        // 흔적 소스: device_id를 payload에 실은 events(탭 클릭·찜·피드백 등), 그룹 참여, 상시 피드백,
+        // 로그인 유저 추천 기록(live만 — backfill 행은 올린 시각이라 방문일이 아니다).
+        const cutoff = RETENTION_SINCE_ISO;
+        const [ev, members, fb, act, profilesRes] = await Promise.all([
+          paginate<{ type: string; created_at: string; device_id: string | null }>((o) => supabase.from('events')
+            .select('type, created_at, device_id:payload->>device_id')
+            .not('payload->>device_id', 'is', null)
+            .lt('created_at', cutoff)
+            .order('created_at', { ascending: true })
+            .range(o, o + EVENTS_PAGE - 1), ESTIMATE_MAX_PAGES),
+          paginate<{ device_id: string | null; submitted_at: string }>((o) => supabase.from('mint_session_members')
+            .select('device_id, submitted_at')
+            .not('device_id', 'is', null)
+            .lt('submitted_at', cutoff)
+            .order('submitted_at', { ascending: true })
+            .range(o, o + EVENTS_PAGE - 1), ESTIMATE_MAX_PAGES),
+          paginate<{ device_id: string | null; created_at: string }>((o) => supabase.from('user_feedback')
+            .select('device_id, created_at')
+            .not('device_id', 'is', null)
+            .lt('created_at', cutoff)
+            .order('created_at', { ascending: true })
+            .range(o, o + EVENTS_PAGE - 1), ESTIMATE_MAX_PAGES),
+          paginate<{ device_id: string | null; user_id: string; created_at: string }>((o) => supabase.from('mint_activity_log')
+            .select('device_id, user_id, created_at')
+            .not('device_id', 'is', null)
+            .eq('source', 'live')
+            .lt('created_at', cutoff)
+            .order('created_at', { ascending: true })
+            .range(o, o + EVENTS_PAGE - 1), ESTIMATE_MAX_PAGES),
+          supabase.from('mint_profiles').select('id, nickname, device_id'),
+        ]);
+
+        // 한 소스가 실패해도(테이블·컬럼 없음 등) 나머지로 추정한다 — 실패한 소스는 응답에 이름을 남긴다
+        const failedSources: string[] = [];
+        const activity: ActivityRow[] = [];
+        if (ev.failed) failedSources.push('events'); else for (const r of ev.rows) {
+          if (r.device_id) activity.push({ device_id: r.device_id, user_id: null, created_at: r.created_at, source: r.type });
+        }
+        if (members.failed) failedSources.push('mint_session_members'); else for (const r of members.rows) {
+          if (r.device_id) activity.push({ device_id: r.device_id, user_id: null, created_at: r.submitted_at, source: '그룹 참여' });
+        }
+        if (fb.failed) failedSources.push('user_feedback'); else for (const r of fb.rows) {
+          if (r.device_id) activity.push({ device_id: r.device_id, user_id: null, created_at: r.created_at, source: '피드백' });
+        }
+        if (act.failed) failedSources.push('mint_activity_log'); else for (const r of act.rows) {
+          if (r.device_id) activity.push({ device_id: r.device_id, user_id: r.user_id, created_at: r.created_at, source: '추천 기록' });
+        }
+        if (failedSources.length > 0) console.warn('[admin-data] 재방문 추정 일부 소스 실패', failedSources);
+
+        const built = buildRetention(activityToVisits(activity), (profilesRes.data ?? []) as ProfileRow[]);
+        return res.status(200).json({
+          estimate: {
+            available: true,
+            since: RETENTION_SINCE,
+            ...built,
+            visitsScanned: activity.length,
+            truncated: ev.truncated || members.truncated || fb.truncated || act.truncated,
+            failedSources,
+          },
+        });
+      }
       default: {
         // 'load' — 분석 지표 + 예약 목록. from/to(ISO)로 기간 필터 가능.
         const from = toIso(body.from);
@@ -256,21 +340,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // 재방문 — 기간 필터를 걸지 않는다. "1번째 방문"을 알려면 수집 시작일부터 전체 이력이 필요하다.
         // events와 같은 이유(max_rows 침묵 절단)로 페이지를 돈다. 오래된 순으로 읽어 잘려도 초기 이력은 보존.
-        const collectVisits = async (): Promise<{ rows: VisitRow[]; truncated: boolean; failed: boolean; code?: string }> => {
-          const rows: VisitRow[] = [];
-          for (let page = 0; page < VISITS_MAX_PAGES; page += 1) {
-            const offset = page * EVENTS_PAGE;
-            const r = await supabase.from('user_visits')
-              .select('device_id, user_id, visit_date, created_at, path')
-              .order('created_at', { ascending: true })
-              .range(offset, offset + EVENTS_PAGE - 1);
-            if (r.error) return { rows: [], truncated: false, failed: true, code: r.error.code };
-            const batch = (r.data ?? []) as VisitRow[];
-            rows.push(...batch);
-            if (batch.length < EVENTS_PAGE) return { rows, truncated: false, failed: false };
-          }
-          return { rows, truncated: true, failed: false };
-        };
+        const collectVisits = () => paginate<VisitRow>((o) => supabase.from('user_visits')
+          .select('device_id, user_id, visit_date, created_at, path')
+          .order('created_at', { ascending: true })
+          .range(o, o + EVENTS_PAGE - 1), VISITS_MAX_PAGES);
         // 닉네임 표시용 — 로그인 유저만 존재한다
         const profilesQuery = supabase.from('mint_profiles').select('id, nickname, device_id');
 

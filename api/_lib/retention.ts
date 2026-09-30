@@ -58,6 +58,49 @@ function median(values: number[]): number | null {
   return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
+// ── 수집 시작 전(추정) ──
+// user_visits가 생기기 전에는 "방문" 기록이 없다. 대신 device_id를 실어 둔 행동 흔적(탭 클릭·찜·피드백·
+// 그룹 참여 등)이 남아 있어, "그 기기가 무언가를 누른 날"을 방문일로 추정한다.
+// 들어왔다가 아무것도 안 누른 날은 빠지므로 재방문은 실제보다 적게 잡힌다(하한 추정).
+export interface ActivityRow {
+  device_id: string;
+  user_id: string | null;
+  created_at: string;
+  source: string;   // 어떤 흔적으로 잡혔나 — 타임라인의 path 자리에 보여준다
+}
+
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+export function kstDate(iso: string): string | null {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return null;
+  return new Date(t + KST_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+// 행동 흔적을 user_visits와 같은 모양(기기당 KST 하루 1행, 그날 가장 이른 흔적)으로 접는다
+export function activityToVisits(rows: ActivityRow[]): VisitRow[] {
+  const byKey = new Map<string, VisitRow>();
+  for (const r of rows) {
+    if (!r.device_id || r.device_id === 'd_anon') continue;
+    const date = kstDate(r.created_at);
+    if (!date) continue;
+    const key = `${r.device_id}|${date}`;
+    const prev = byKey.get(key);
+    if (!prev || r.created_at < prev.created_at) {
+      byKey.set(key, {
+        device_id: r.device_id,
+        user_id: r.user_id ?? prev?.user_id ?? null,
+        visit_date: date,
+        created_at: r.created_at,
+        path: r.source,
+      });
+    } else if (!prev.user_id && r.user_id) {
+      prev.user_id = r.user_id;
+    }
+  }
+  return [...byKey.values()];
+}
+
 export function buildRetention(
   rows: VisitRow[], profiles: ProfileRow[],
 ): { summary: RetentionSummary; users: RetentionUser[] } {
