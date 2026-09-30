@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   fetchPlaceCategories, flatOptions, riceGroups, categoryLabel, QUICK_GROUPS, type PlaceCategory,
 } from '@/services/placeCategories';
-import { PICK_TONE, type PickCourse } from '@/constants/colors';
+import { PICK_TONE, CHIP_ROW, type PickCourse } from '@/constants/colors';
 import { cn } from '@/utils/cn';
 import CategorySheet from '@/components/CategorySheet';
 import { Icon } from '@/components/icons';
@@ -58,7 +58,7 @@ export default function CategoryPicker({ purpose, course, value, onChange }: Pro
         )}
       </div>
 
-      <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+      <div className={CHIP_ROW}>
         <button type="button" onClick={() => onChange(null)} aria-pressed={!value} className={chip(!value)}>
           상관없음
         </button>

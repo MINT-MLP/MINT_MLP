@@ -7,7 +7,7 @@ import MintShop from '@/pages/mock/MintShop';
 import Profile from '@/pages/Profile';
 import { clearRecommendSession, loadResultSummary } from '@/storage/history';
 import { trackEvent } from '@/services/analytics';
-import { ensureSession } from '@/services/auth';
+import { initUserStore } from '@/stores/userStore';
 import { bindOutboxExitFlush, flushOutbox } from '@/storage/feedback';
 import type { TabKey, ResultSummary } from '@/types';
 
@@ -30,9 +30,7 @@ export default function AppShell() {
   // 나갈 때(pagehide·백그라운드 전환)도 한 번 더 시도한다 — 광고로 들어온 사람은 대개 앱을
   // 다시 켜지 않아서, 재전송 기회가 "앱 켜기"뿐이면 밀린 피드백이 영영 못 나간다.
   useEffect(() => {
-    // /app에 들어온 방문자는 익명 사용자로 세션을 갖는다(랜딩만 보고 나가는 사람은 제외).
-    // 이후 서버 저장은 전부 이 user.id 기준. 카카오 로그인은 세션을 회원 유저로 교체한다.
-    void ensureSession();
+    initUserStore();
     flushOutbox();
     bindOutboxExitFlush();
   }, []);

@@ -13,6 +13,9 @@ export const COURSE_TONE = {
 } as const;
 export type CourseTone = keyof typeof COURSE_TONE;
 
+// 칩 한 줄. 터치는 옆으로 밀고, 마우스는 가로로 못 밀어 잘려 보이므로 줄바꿈해 전부 보여준다.
+export const CHIP_ROW = 'flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide [@media(hover:hover)_and_(pointer:fine)]:flex-wrap [@media(hover:hover)_and_(pointer:fine)]:overflow-visible';
+
 // 입력 화면(목적·종류·메뉴) 선택 상태. 1차는 연한 민트, 2차는 진한 청록 채움 — 결과 카드의 코스 색과 같다.
 // 글자는 민트-800 이상: 민트-600을 연한 민트 위에 올리면 대비가 2.4:1이라 작은 글씨가 안 읽힌다.
 export const PICK_TONE = {

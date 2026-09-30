@@ -1,5 +1,7 @@
 # 03. 백엔드 API (api/, 약 5,000줄)
 
+> **2026-09-30 갱신:** 관리자 배치(`/api/admin/batch`, refresh-license)와 크론은 삭제됐다. 인허가 캐시(license_cache)·버즈 캐시(place_buzz_cache)도 삭제 대상(v2-schema 005). 아래의 배치·크론 설명은 과거 기록이다. 현재 계획은 20번 노트.
+
 ## 0. 구성 개요
 - Vercel Serverless(`@vercel/node`) 함수 10개. Hobby 플랜 12개 상한이 설계를 지배한다. `session.ts`(5기능), `admin-batch.ts`(2배치), `recommend.ts`(추천 + `stage:'enrich'`)가 전부 단일 파일 action 분기.
 - `vercel.json`: (2026-09-22 함수 2개로 통합 후) `api/**/*.ts` 전부 maxDuration 60s. 함수는 `api/[...path].ts`(유저 8개 엔드포인트, URL 불변)와 `api/admin/[...path].ts`(/api/admin/batch, /api/admin/data) 둘뿐. 핸들러 본문은 `api/_routes/`. 이전: recommend 60s, session 10s, admin-batch 60s, 나머지 7개 기본 10s. 크론 `0 18 * * *`(UTC, KST 03:00) → `GET /api/admin-batch`. rewrite `/api/session-create|join|get` → `/api/session`.

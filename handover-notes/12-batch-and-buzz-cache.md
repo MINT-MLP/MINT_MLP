@@ -1,5 +1,7 @@
 # 12. 배치(admin-batch)와 버즈 캐시
 
+> **2026-09-30 갱신:** 관리자 배치(`/api/admin/batch`, refresh-license)와 크론은 삭제됐다. 인허가 캐시(license_cache)·버즈 캐시(place_buzz_cache)도 삭제 대상(v2-schema 005). 아래의 배치·크론 설명은 과거 기록이다. 현재 계획은 20번 노트.
+
 정리일: 2026-09-16
 대상 파일: [api/admin-batch.ts](../api/admin/batch.ts), [api/_lib/blogBuzz.ts](../api/_lib/blogBuzz.ts), [api/_lib/scoring.ts](../api/_lib/scoring.ts)
 

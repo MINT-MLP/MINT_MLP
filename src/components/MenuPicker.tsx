@@ -1,5 +1,5 @@
 import { useId, useState } from 'react';
-import { PICK_TONE, type PickCourse } from '@/constants/colors';
+import { PICK_TONE, CHIP_ROW, type PickCourse } from '@/constants/colors';
 import { cn } from '@/utils/cn';
 import { Icon } from '@/components/icons';
 
@@ -107,7 +107,7 @@ export default function MenuPicker({ course, menus, onChange }: Props) {
       {!full && suggest.length > 0 && (
         <div className="flex flex-col gap-2">
           <span className="text-xs font-bold text-gray-500">이런 메뉴도 있어요</span>
-          <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+          <div className={CHIP_ROW}>
             {suggest.map((s) => (
               <button
                 key={s}

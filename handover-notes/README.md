@@ -1,5 +1,7 @@
 # MINT_MLP 인수 분석 노트
 
+> **2026-09-30 갱신:** 관리자 배치(`/api/admin/batch`, refresh-license)와 크론은 삭제됐다. 인허가 캐시(license_cache)·버즈 캐시(place_buzz_cache)도 삭제 대상(v2-schema 005). 아래의 배치·크론 설명은 과거 기록이다. 현재 계획은 20번 노트.
+
 작성일: 2026-09-15
 대상: 이 저장소를 이어받아 개발하는 본인
 원 저장소: https://github.com/yoonbea12345-create/MINT_MLP (private)

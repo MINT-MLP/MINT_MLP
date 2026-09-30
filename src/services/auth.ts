@@ -2,8 +2,8 @@ import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/services/supabase';
 import type { ActivityPayload, ActivityRow } from '@/types';
 
-// 인증 모델 — 모든 /app 방문자는 익명 사용자(auth.users, is_anonymous=true)로 시작한다.
-// 카카오 로그인은 일반 로그인이라 세션이 익명 유저에서 회원 유저로 교체된다(user.id가 바뀐다).
+// 인증 모델 — 세션이 있으면 회원(카카오 로그인), 없으면 비회원. 비회원은 서버에 아무것도 남기지 않는다(09-29 결정).
+// 로그인 상태를 화면에서 읽을 때는 stores/userStore를 쓴다.
 // public.users 행 생성과 kakao_id·닉네임 채움은 DB 트리거가 하므로 클라이언트는 여기에 쓰지 않는다.
 // supabase-js v2는 detectSessionInUrl/persistSession이 기본 true라 OAuth 콜백 파싱·세션 저장은 자동이다.
 
@@ -16,39 +16,12 @@ export async function getSession(): Promise<Session | null> {
   return data.session ?? null;
 }
 
-export async function getCurrentUser(): Promise<User | null> {
-  const { data } = await supabase.auth.getUser();
-  return data.user ?? null;
-}
-
-export function onAuthChange(cb: (session: Session | null) => void): () => void {
-  const { data } = supabase.auth.onAuthStateChange((_event, session) => cb(session));
-  return () => data.subscription.unsubscribe();
-}
-
-// 회원 = 카카오가 연결된 사용자. 익명 세션은 user가 있어도 회원이 아니다.
+// 예전에 만들어진 익명 세션이 남아 있을 수 있어 is_anonymous도 거른다.
 export function isMember(user: User | null | undefined): user is User {
   return !!user && !user.is_anonymous;
 }
 
-// /app 진입 시 세션을 보장한다. 없으면 익명 사용자를 만든다(랜딩에서는 부르지 않는다).
-// 실패해도 앱은 동작한다 — 서버 저장이 안 될 뿐 추천 플로우는 localStorage로 돈다.
-export async function ensureSession(): Promise<Session | null> {
-  const existing = await getSession();
-  if (existing) return existing;
-  try {
-    const { data } = await supabase.auth.signInAnonymously();
-    return data.session ?? null;
-  } catch {
-    return null;
-  }
-}
-
-// 카카오 로그인은 항상 일반 로그인(signInWithOAuth)이다 — 기존 회원이면 그 계정으로, 아니면 새 계정.
-// 현재 익명 세션은 그대로 버려진다(고아 익명 유저는 정리 크론이 지운다). linkIdentity로 익명 세션에
-// 카카오를 '연결'하는 방식은 쓰지 않는다: 이미 가입된 카카오면 카카오를 두 번 다녀와야 하고,
-// 지금 익명 유저가 서버에 남기는 데이터는 events뿐이라 이어 줄 것이 없다.
-// 익명 상태로 포인트·방문 인증이 서버에 쌓이기 시작하면 그때 서버 병합 API를 붙인다.
+// 카카오 로그인은 일반 로그인(signInWithOAuth)이다 — 기존 회원이면 그 계정으로, 아니면 새 계정.
 export async function signInWithKakao(): Promise<void> {
   // 비즈앱 전환으로 account_email 권한이 열려 KOE205가 해소됐다. 그래도 scope는 계속 명시한다 —
   // 우리가 무엇을 받는지 코드에 남겨두기 위해서, 그리고 기본 scope가 바뀌어도 흔들리지 않기 위해서.

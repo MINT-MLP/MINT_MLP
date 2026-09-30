@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import type { User } from '@supabase/supabase-js';
 import { getDeviceId } from '@/storage/device';
 import { getBalance, getLedger } from '@/storage/points';
 import { loadHistory, openHistoryEntry } from '@/storage/history';
 import {
-  getSession, onAuthChange, signInWithKakao, signOut, syncProfile, deleteAccount,
-  getNickname, getAvatarUrl, getActivityHistory, clearActivityCache, isMember, ensureSession,
+  signInWithKakao, signOut, syncProfile, deleteAccount, getActivityHistory, clearActivityCache,
 } from '@/services/auth';
+import { useUserStore } from '@/stores/userStore';
 import { Icon, IconUserCircle, IconGift, PointsBadge } from '@/components';
 import type { HistoryEntry, ActivityRow } from '@/types';
 
@@ -26,19 +25,23 @@ export default function Profile({ onChromeChange }: Props) {
   const [history] = useState<HistoryEntry[]>(() => loadHistory());
   const [pushOn, setPushOn] = useState(true);
   const [marketingOn, setMarketingOn] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const ready = useUserStore((s) => s.ready);
+  const user = useUserStore((s) => s.user);
+  const nickname = useUserStore((s) => s.nickname);
+  const avatarUrl = useUserStore((s) => s.avatarUrl);
+  const userId = user?.id ?? null;
   const [signingIn, setSigningIn] = useState(false);
   const [serverRows, setServerRows] = useState<ActivityRow[]>([]);
   const [serverCount, setServerCount] = useState<number | null>(null);
   const [serverLoading, setServerLoading] = useState(false);
   const [serverError, setServerError] = useState(false);
 
+  // 회원이 바뀔 때마다(로그인·계정 전환) 계정에 저장된 기록을 읽는다.
   useEffect(() => {
+    if (!userId) return;
     let alive = true;
-
-    // 회원만: 계정에 저장된 기록을 읽는다.
-    const loadServerHistory = async () => {
-      if (!alive) return;
+    void syncProfile();
+    void (async () => {
       setServerLoading(true);
       setServerError(false);
       try {
@@ -51,19 +54,9 @@ export default function Profile({ onChromeChange }: Props) {
       } finally {
         if (alive) setServerLoading(false);
       }
-    };
-
-    // 익명 세션은 user가 있어도 화면상 '비로그인'이다 — 회원(카카오 연결)일 때만 user를 세팅한다.
-    const applySession = (s: { user: User } | null) => {
-      if (!alive) return;
-      const member = isMember(s?.user) ? s!.user : null;
-      setUser(member);
-      if (member) { void syncProfile(); void loadServerHistory(); }
-    };
-    void getSession().then(applySession);
-    const unsubscribe = onAuthChange(applySession);
-    return () => { alive = false; unsubscribe(); };
-  }, []);
+    })();
+    return () => { alive = false; };
+  }, [userId]);
 
   const retryServerHistory = async () => {
     setServerLoading(true);
@@ -87,9 +80,6 @@ export default function Profile({ onChromeChange }: Props) {
     (r) => !shownLocalKeys.has(`${r.place_name ?? ''}|${r.second_place_name ?? ''}`),
   );
 
-  const nickname = getNickname(user);
-  const avatarUrl = getAvatarUrl(user);
-
   const handleSignIn = async () => {
     setSigningIn(true);
     try {
@@ -102,9 +92,6 @@ export default function Profile({ onChromeChange }: Props) {
 
   const handleSignOut = async () => {
     await signOut();
-    setUser(null);
-    // 로그아웃 뒤에도 서버 저장이 되도록 새 익명 세션을 바로 만든다(새로고침 전까지 세션이 비지 않게).
-    void ensureSession();
     // 다른 계정으로 재로그인할 때 이전 계정 기록이 잠깐 보이지 않도록
     clearActivityCache();
     setServerRows([]);
@@ -115,7 +102,6 @@ export default function Profile({ onChromeChange }: Props) {
     if (!window.confirm('정말 탈퇴하시겠어요? 로그인 정보가 모두 삭제돼요.')) return;
     const r = await deleteAccount();
     if (r.ok) {
-      setUser(null);
       alert('탈퇴가 완료됐어요. 그동안 이용해주셔서 고마워요.');
     } else {
       alert(r.error ?? '탈퇴 처리에 실패했어요. 잠시 후 다시 시도해주세요.');
@@ -161,8 +147,8 @@ export default function Profile({ onChromeChange }: Props) {
         </div>
       </div>
 
-      {/* 로그인 유도 — 비로그인 상태에서만. 로그인은 어디까지나 선택이다. */}
-      {!user && (
+      {/* 로그인 유도 — 비로그인 상태에서만. 세션 확인 전에는 숨겨 로그인 버튼이 깜빡이지 않게 */}
+      {ready && !user && (
         <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-4">
           {/* 지키지 못할 약속은 쓰지 않는다 — 계정에 남는 건 장소 기록뿐이고 찜·포인트는 아직 로컬이다 */}
           <p className="text-sm font-black text-gray-800">다른 기기에서도 지난 모임을 보고 싶다면</p>
