@@ -1,6 +1,5 @@
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/services/supabase';
-import type { ActivityPayload, ActivityRow } from '@/types';
 
 // 인증 모델 — 세션이 있으면 회원(카카오 로그인), 없으면 비회원. 비회원은 서버에 아무것도 남기지 않는다(09-29 결정).
 // 로그인 상태를 화면에서 읽을 때는 stores/userStore를 쓴다.
@@ -72,71 +71,6 @@ export async function syncProfile(): Promise<void> {
   }
 }
 
-// 회원만 가벼운 활동 로그를 남긴다. 익명·비로그인이면 즉시 no-op.
-// 추천 플로우를 절대 깨면 안 되므로 어떤 실패도 조용히 삼킨다.
-export async function logActivityIfSignedIn(payload: ActivityPayload): Promise<void> {
-  try {
-    const session = await getSession();
-    if (!isMember(session?.user)) return;
-
-    await supabase.from('mint_activity_log').insert({
-      user_id: session!.user.id,
-      place_name: payload.placeName,
-      second_place_name: payload.secondPlaceName ?? null,
-      area_name: payload.areaName ?? null,
-      purpose_first: payload.purposeFirst ?? null,
-      group_size: payload.groupSize ?? null,
-    });
-  } catch {
-    /* 로그 실패는 사용자에게 보이지 않는다 */
-  }
-}
-
-// 모듈 전역 캐시 — Profile은 탭 전환마다 언마운트→재마운트되므로 React state로는 중복 요청을 못 막는다.
-let activityCache: { userId: string; fetchedAt: number; rows: ActivityRow[]; count: number } | null = null;
-const ACTIVITY_CACHE_TTL_MS = 60_000;
-
-export function clearActivityCache(): void {
-  activityCache = null;
-}
-
-// 계정에 저장된 모임 기록 조회. 회원이 아니면 null.
-// 실패 시 throw — 호출부가 잡아 "불러오지 못했어요" 상태를 보여줘야 하므로 조용히 삼키지 않는다.
-export async function getActivityHistory(
-  force = false
-): Promise<{ rows: ActivityRow[]; count: number } | null> {
-  const session = await getSession();
-  if (!isMember(session?.user)) return null;
-  const userId = session!.user.id;
-
-  if (
-    !force &&
-    activityCache &&
-    activityCache.userId === userId &&
-    Date.now() - activityCache.fetchedAt < ACTIVITY_CACHE_TTL_MS
-  ) {
-    return { rows: activityCache.rows, count: activityCache.count };
-  }
-
-  // count: 'exact'로 총 건수를 같은 요청에서 받는다 — 전체 행을 내려받지 않고 "총 N번째"를 표시하기 위해.
-  const { data, count, error } = await supabase
-    .from('mint_activity_log')
-    .select(
-      'id, place_name, second_place_name, area_name, purpose_first, group_size, created_at, source',
-      { count: 'exact' }
-    )
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(5);
-
-  if (error) throw error;
-
-  const rows = (data ?? []) as ActivityRow[];
-  const total = count ?? rows.length;
-  activityCache = { userId, fetchedAt: Date.now(), rows, count: total };
-  return { rows, count: total };
-}
-
 export async function deleteAccount(): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
   if (!session?.access_token) return { ok: false, error: '로그인 상태가 아니에요.' };
@@ -147,7 +81,6 @@ export async function deleteAccount(): Promise<{ ok: boolean; error?: string }> 
     const { error } = await supabase.rpc('delete_own_account');
     if (error) return { ok: false, error: '탈퇴 처리에 실패했어요. 잠시 후 다시 시도해주세요.' };
 
-    clearActivityCache();
     await signOut();
     return { ok: true };
   } catch {

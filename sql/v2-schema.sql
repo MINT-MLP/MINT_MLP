@@ -8,7 +8,8 @@
 --   2026-09-20  001 users, 002 events·client_errors 정책
 --   2026-09-23  003 place_category
 --   2026-09-30  004 회원 데이터(1-1), 004-15 보완, 005 안 쓰는 테이블 정리(단계별), 006 익명 로그인 제거,
---               007 004 보완(비회원 슬롯 행동 판정, 정리 경합)
+--               007 004 보완(비회원 슬롯 행동 판정, 정리 경합), 008 추천 자동 저장(save_recommendation),
+--               009 비회원 추천을 로그인 뒤 계정으로(claim_recommendation)
 -- ═══════════════════════════════════════════════════════════════════════════
 
 
@@ -761,8 +762,8 @@ create policy slot_action_insert on public.slot_action
 
 
 -- 007-2. 정리 작업과 추천 저장의 경합
--- 추천 API는 조건과 추천을 따로 저장한다. 그 사이에 정리가 돌면 막 저장한 조건이 익명화된다.
--- 만든 지 1시간이 안 된 조건은 건드리지 않는다.
+-- 만든 지 1시간이 안 된 조건은 건드리지 않는다. (008 이후 저장은 RPC 하나라 경합은 없지만,
+-- 추천 직후 로그인해 계정으로 옮기는(009) 사이의 조건을 보호하는 여유로 남긴다)
 create or replace function public.prune_recommendations(p_days int default 90, p_keep int default 20)
 returns int
 language plpgsql
@@ -803,3 +804,235 @@ end;
 $fn$;
 
 revoke all on function public.prune_recommendations(int, int) from public, anon, authenticated;
+
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- 008. 추천 자동 저장 (3번 작업, 09-30)
+-- 추천 API가 결과를 돌려주기 전에 save_recommendation 한 번으로 조건·추천·슬롯을 함께 저장한다(원자적).
+-- 복원: 앱이 검색 중심을 입력에서 다시 계산하고(좌표 저장 안 함), 슬롯마다 기록한 카카오 호출을 같은 반경으로 재실행해
+--       장소 ID가 일치하는 가게를 찾는다.
+-- ───────────────────────────────────────────────────────────────────────────
+
+-- 008-1. 복원에 필요한 칸
+alter table public.search_condition    add column if not exists area_query    varchar(60);
+alter table public.recommendation_slot add column if not exists search_radius int;
+alter table public.wishlist            add column if not exists search_radius int;
+
+comment on column public.search_condition.area_query     is '직접 입력 지역의 검색어. 복원 때 이 검색어로 지역 중심을 다시 찾는다';
+comment on column public.recommendation_slot.search_radius is '그 검색의 반경(m). 중심은 저장하지 않고 조건에서 다시 계산';
+comment on column public.wishlist.search_radius          is '그 검색의 반경(m)';
+
+
+-- 008-2. 저장 함수. 서비스 키(추천 API)만 호출한다
+-- p 구조:
+--   user_id, condition{...}, menus[{course,ord,menu}], origins[{ord,query,kakao_place_id}],
+--   choices[{course,label,kind}] (kind: 'vibe' | 'keyword'), recommendation{retried_from_id,retry_reason,search_version},
+--   slots[{course,role,rank,kakao_place_id,search_kind,search_query,search_page,search_radius}]
+-- 반환: {condition_id, recommendation_id, slot_ids[]}  (slot_ids는 slots와 같은 순서)
+create or replace function public.save_recommendation(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $fn$
+declare
+  v_user uuid := nullif(p->>'user_id', '')::uuid;
+  c jsonb := p->'condition';
+  v_cond bigint;
+  v_rec bigint;
+  v_retry bigint;
+  v_slot bigint;
+  v_slots bigint[] := '{}';
+  s jsonb;
+begin
+  insert into public.search_condition (
+    user_id, mode, group_size, first_purpose, first_category_path, second_purpose, second_category_path,
+    relation, occasion, budget, area_type, area_label, area_query, region_level
+  ) values (
+    v_user, c->>'mode', c->>'group_size', c->>'first_purpose', nullif(c->>'first_category_path', ''),
+    nullif(c->>'second_purpose', ''), nullif(c->>'second_category_path', ''),
+    nullif(c->>'relation', ''), nullif(c->>'occasion', ''), nullif(c->>'budget', ''),
+    c->>'area_type', c->>'area_label', nullif(c->>'area_query', ''), nullif(c->>'region_level', '')
+  ) returning id into v_cond;
+
+  insert into public.search_menu (condition_id, course, ord, menu)
+  select v_cond, x.course, x.ord, x.menu
+  from jsonb_to_recordset(coalesce(p->'menus', '[]'::jsonb)) as x(course text, ord smallint, menu text);
+
+  -- 출발지는 회원만(비회원 통계 행에는 준식별 정보를 남기지 않는다)
+  if v_user is not null then
+    insert into public.search_origin (condition_id, ord, query, kakao_place_id)
+    select v_cond, x.ord, x.query, x.kakao_place_id
+    from jsonb_to_recordset(coalesce(p->'origins', '[]'::jsonb)) as x(ord smallint, query text, kakao_place_id text);
+  end if;
+
+  -- 선택지: 라벨로 목록과 맞춘다. 조건(주차 등)은 코스 구분이 없어 'all'. 목록에 없으면 직접 입력으로 남긴다
+  insert into public.search_choice (condition_id, course, option_id, custom_text)
+  select v_cond,
+         case when o.kind = 'condition' then 'all' else x.course end,
+         o.id,
+         case when o.id is null then left(x.label, 30) end
+  from jsonb_to_recordset(coalesce(p->'choices', '[]'::jsonb)) as x(course text, label text, kind text)
+  left join lateral (
+    select co.id, co.kind from public.choice_option co
+    where co.label = x.label and co.is_active
+      and ((x.kind = 'keyword' and co.kind = 'keyword') or (x.kind <> 'keyword' and co.kind in ('mood', 'pref', 'condition')))
+    order by co.id limit 1
+  ) o on true
+  where coalesce(x.label, '') <> '';
+
+  -- 다시 추천받기의 이전 추천은 같은 회원의 것일 때만 잇는다
+  if v_user is not null then
+    select r.id into v_retry from public.recommendation r
+    where r.id = nullif(p->'recommendation'->>'retried_from_id', '')::bigint and r.user_id = v_user;
+  end if;
+
+  insert into public.recommendation (user_id, condition_id, retried_from_id, retry_reason, search_version)
+  values (
+    v_user, v_cond, v_retry,
+    case when v_retry is not null then nullif(p->'recommendation'->>'retry_reason', '') end,
+    coalesce((p->'recommendation'->>'search_version')::smallint, 1)
+  ) returning id into v_rec;
+
+  for s in select * from jsonb_array_elements(coalesce(p->'slots', '[]'::jsonb)) loop
+    insert into public.recommendation_slot (
+      recommendation_id, course, role, rank, kakao_place_id, search_kind, search_query, search_page, search_radius
+    ) values (
+      v_rec, s->>'course', s->>'role', (s->>'rank')::smallint, s->>'kakao_place_id',
+      s->>'search_kind', nullif(s->>'search_query', ''), (s->>'search_page')::smallint, (s->>'search_radius')::int
+    ) returning id into v_slot;
+    v_slots := v_slots || v_slot;
+  end loop;
+
+  return jsonb_build_object('condition_id', v_cond, 'recommendation_id', v_rec, 'slot_ids', to_jsonb(v_slots));
+end;
+$fn$;
+
+revoke all on function public.save_recommendation(jsonb) from public, anon, authenticated;
+
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- 009. 비회원 추천을 로그인 뒤 내 계정으로 (09-30 코드리뷰 1번)
+-- 비회원이 결과에서 하트 → 로그인 → 돌아오면, 그 추천은 비회원 통계 행이라 찜할 조건이 없다.
+-- 저장할 때 일회용 토큰을 만들어 해시만 남기고(원문은 응답으로 그 브라우저에만), 로그인 뒤 토큰을 내면 계정으로 옮긴다.
+-- 비회원 때는 출발지를 저장하지 않았으므로, 옮겨 받은 추천의 복원은 상권 좌표로 근사한다.
+-- ───────────────────────────────────────────────────────────────────────────
+
+alter table public.recommendation add column if not exists claim_token_hash char(64);
+comment on column public.recommendation.claim_token_hash is '비회원 추천을 로그인 뒤 계정으로 옮기는 일회용 토큰의 sha256(hex). 옮기면 비운다';
+
+-- 저장 함수: p.claim_hash가 있으면(비회원 저장) 추천 행에 남긴다. 나머지는 008과 같다.
+create or replace function public.save_recommendation(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $fn$
+declare
+  v_user uuid := nullif(p->>'user_id', '')::uuid;
+  c jsonb := p->'condition';
+  v_cond bigint;
+  v_rec bigint;
+  v_retry bigint;
+  v_slot bigint;
+  v_slots bigint[] := '{}';
+  s jsonb;
+begin
+  insert into public.search_condition (
+    user_id, mode, group_size, first_purpose, first_category_path, second_purpose, second_category_path,
+    relation, occasion, budget, area_type, area_label, area_query, region_level
+  ) values (
+    v_user, c->>'mode', c->>'group_size', c->>'first_purpose', nullif(c->>'first_category_path', ''),
+    nullif(c->>'second_purpose', ''), nullif(c->>'second_category_path', ''),
+    nullif(c->>'relation', ''), nullif(c->>'occasion', ''), nullif(c->>'budget', ''),
+    c->>'area_type', c->>'area_label', nullif(c->>'area_query', ''), nullif(c->>'region_level', '')
+  ) returning id into v_cond;
+
+  insert into public.search_menu (condition_id, course, ord, menu)
+  select v_cond, x.course, x.ord, x.menu
+  from jsonb_to_recordset(coalesce(p->'menus', '[]'::jsonb)) as x(course text, ord smallint, menu text);
+
+  if v_user is not null then
+    insert into public.search_origin (condition_id, ord, query, kakao_place_id)
+    select v_cond, x.ord, x.query, x.kakao_place_id
+    from jsonb_to_recordset(coalesce(p->'origins', '[]'::jsonb)) as x(ord smallint, query text, kakao_place_id text);
+  end if;
+
+  insert into public.search_choice (condition_id, course, option_id, custom_text)
+  select v_cond,
+         case when o.kind = 'condition' then 'all' else x.course end,
+         o.id,
+         case when o.id is null then left(x.label, 30) end
+  from jsonb_to_recordset(coalesce(p->'choices', '[]'::jsonb)) as x(course text, label text, kind text)
+  left join lateral (
+    select co.id, co.kind from public.choice_option co
+    where co.label = x.label and co.is_active
+      and ((x.kind = 'keyword' and co.kind = 'keyword') or (x.kind <> 'keyword' and co.kind in ('mood', 'pref', 'condition')))
+    order by co.id limit 1
+  ) o on true
+  where coalesce(x.label, '') <> '';
+
+  if v_user is not null then
+    select r.id into v_retry from public.recommendation r
+    where r.id = nullif(p->'recommendation'->>'retried_from_id', '')::bigint and r.user_id = v_user;
+  end if;
+
+  insert into public.recommendation (user_id, condition_id, retried_from_id, retry_reason, search_version, claim_token_hash)
+  values (
+    v_user, v_cond, v_retry,
+    case when v_retry is not null then nullif(p->'recommendation'->>'retry_reason', '') end,
+    coalesce((p->'recommendation'->>'search_version')::smallint, 1),
+    case when v_user is null then nullif(p->>'claim_hash', '') end
+  ) returning id into v_rec;
+
+  for s in select * from jsonb_array_elements(coalesce(p->'slots', '[]'::jsonb)) loop
+    insert into public.recommendation_slot (
+      recommendation_id, course, role, rank, kakao_place_id, search_kind, search_query, search_page, search_radius
+    ) values (
+      v_rec, s->>'course', s->>'role', (s->>'rank')::smallint, s->>'kakao_place_id',
+      s->>'search_kind', nullif(s->>'search_query', ''), (s->>'search_page')::smallint, (s->>'search_radius')::int
+    ) returning id into v_slot;
+    v_slots := v_slots || v_slot;
+  end loop;
+
+  return jsonb_build_object('condition_id', v_cond, 'recommendation_id', v_rec, 'slot_ids', to_jsonb(v_slots));
+end;
+$fn$;
+
+revoke all on function public.save_recommendation(jsonb) from public, anon, authenticated;
+
+
+-- 옮기기. 로그인한 본인만, 아직 주인이 없고 토큰이 맞고 24시간 안의 추천만. 성공하면 검색 조건 ID를 돌려준다.
+create or replace function public.claim_recommendation(p_rec bigint, p_token text)
+returns bigint
+language plpgsql
+security definer
+set search_path = ''
+as $fn$
+declare
+  v_uid uuid := auth.uid();
+  v_cond bigint;
+begin
+  if v_uid is null or p_token is null or length(p_token) < 20 then
+    return null;
+  end if;
+
+  update public.recommendation r
+  set user_id = v_uid, claim_token_hash = null
+  where r.id = p_rec
+    and r.user_id is null
+    and r.claim_token_hash = encode(sha256(convert_to(p_token, 'UTF8')), 'hex')
+    and r.created_at > now() - interval '24 hours'
+  returning r.condition_id into v_cond;
+
+  if v_cond is null then
+    return null;
+  end if;
+
+  update public.search_condition set user_id = v_uid where id = v_cond and user_id is null;
+  return v_cond;
+end;
+$fn$;
+
+revoke all on function public.claim_recommendation(bigint, text) from public, anon;
+grant execute on function public.claim_recommendation(bigint, text) to authenticated;

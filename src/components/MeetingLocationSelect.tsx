@@ -67,7 +67,7 @@ export default function MeetingLocationSelect({ value, onSelect }: Props) {
   }
 
   // 시/구/동 제안 선택 → 그 행정단위 스코프로 확정 (추천이 그 범위 안에서만 검색됨)
-  function pickPlace(s: RegionSuggestion) {
+  function pickPlace(s: RegionSuggestion, typed: string) {
     search.reset();
     onSelect({
       type: 'manual',
@@ -75,7 +75,7 @@ export default function MeetingLocationSelect({ value, onSelect }: Props) {
       area: s.label,
       lat: s.lat,
       lng: s.lng,
-      scope: { level: s.level, matchTokens: s.matchTokens, searchAreas: s.searchAreas },
+      scope: { level: s.level, matchTokens: s.matchTokens, searchAreas: s.searchAreas, query: typed.trim() || s.query },
     });
   }
 
@@ -176,7 +176,7 @@ export default function MeetingLocationSelect({ value, onSelect }: Props) {
                   <div className="w-4 h-4 border-2 border-mint-500 border-t-transparent rounded-full animate-spin" />
                 </div>
               )}
-              <SuggestionDropdown suggestions={search.suggestions} getAnchor={() => wrapperRef.current} onPick={pickPlace} />
+              <SuggestionDropdown suggestions={search.suggestions} getAnchor={() => wrapperRef.current} onPick={(s) => pickPlace(s, search.query)} />
             </>
           )}
         </div>
@@ -184,7 +184,7 @@ export default function MeetingLocationSelect({ value, onSelect }: Props) {
         <RegionSearchSheet
           open={sheetOpen}
           onClose={() => setSheetOpen(false)}
-          onPick={(s) => { setSheetOpen(false); pickPlace(s); }}
+          onPick={(s, typed) => { setSheetOpen(false); pickPlace(s, typed); }}
         />
         {customSelected && (
           <p className="-mt-2 text-xs text-mint-600 font-medium"><Icon name="pin" className="mr-1" />{(value as { area: string }).area} 범위 안에서 추천해요</p>

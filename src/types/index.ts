@@ -10,5 +10,4 @@ export type * from '@/types/pilot';
 export type * from '@/types/recommend';
 export type * from '@/types/share';
 export type * from '@/types/travel';
-export type * from '@/types/user';
 export type * from '@/types/wishlist';

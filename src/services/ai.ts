@@ -1,5 +1,6 @@
 import type { AreaCongestion } from '@/services/seoulData';
-import type { Coordinates, UserInput, PlaceRecommendation, WeatherSummary, RecommendationResult, RegionScope, PlaceEnrichment } from '@/types';
+import type { Coordinates, UserInput, PlaceRecommendation, WeatherSummary, RecommendationResult, RegionScope, PlaceEnrichment, RecommendSaveMeta } from '@/types';
+import { supabase } from '@/services/supabase';
 
 // 행정단위 스코프 — 시/구/동 단위로 추천 범위를 고정 (있을 때만 전송)
 
@@ -11,13 +12,17 @@ export async function getAIRecommendation(
   areas: string[] = [],
   regionScope: RegionScope | null = null,
   sessionKey: string | null = null,
+  save: RecommendSaveMeta | null = null,
 ): Promise<RecommendationResult> {
+  // 회원이면 토큰을 실어 보낸다 — 서버가 추천 기록을 계정에 저장한다(비회원은 식별자 없는 통계로만)
+  // getSession은 만료된 토큰이면 갱신해서 준다(모바일 복귀 직후 오래된 토큰으로 비회원 저장되는 것 방지)
+  const token = (await supabase.auth.getSession()).data.session?.access_token;
   const res = await fetch('/api/recommend', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     // areas를 보내면 혼잡도는 서버가 네이버 검색과 병렬로 조회 (클라이언트 왕복 1회 절감)
     // sessionKey: 같은 탐색 에피소드(초기→재시도→선택)를 recommendation_log·events에서 조인하기 위한 키
-    body: JSON.stringify({ input, midpoint, congestionData, excludeNames, areas, ...(regionScope ? { regionScope } : {}), ...(sessionKey ? { sessionKey } : {}) }),
+    body: JSON.stringify({ input, midpoint, congestionData, excludeNames, areas, ...(regionScope ? { regionScope } : {}), ...(sessionKey ? { sessionKey } : {}), ...(save ? { save } : {}) }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -36,6 +41,7 @@ export async function getAIRecommendation(
     thirdLabel: (data.thirdLabel ?? null) as string | null,
     serial: (data.serial ?? null) as string | null,
     courses: data.courses === 1 || data.courses === 2 ? data.courses : null,
+    recommendationId: typeof data.recommendationId === 'number' ? data.recommendationId : null,
   };
 }
 

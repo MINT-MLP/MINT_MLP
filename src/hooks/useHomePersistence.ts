@@ -3,7 +3,6 @@ import type { Coordinates, MeetingLocation, PlaceRecommendation, PurposeValue, S
 import { OCCASION_BY_RELATION } from '@/constants/occasion';
 import { saveResultSnapshot, loadResultSnapshot, saveHistory, INPUT_DRAFT_KEY, GROUP_SESSION_KEY, INPUT_DRAFT_TTL_MS, GROUP_SESSION_TTL_MS } from '@/storage/history';
 import { trackSessionDuration } from '@/services/analytics';
-import { logActivityIfSignedIn } from '@/services/auth';
 import { migrateVibeState } from '@/utils/vibeMigrate';
 import type { RecommendFlow } from '@/hooks/useRecommendFlow';
 import type { RecommendInput } from '@/hooks/useRecommendInput';
@@ -13,7 +12,7 @@ import type { RequestState } from '@/hooks/useRequestState';
 
 // localStorage 복원·저장. 복원 layout effect 3개의 선언 순서(결과→입력초안→그룹세션)는 동작에 영향을 주므로
 // (그룹세션 복원이 결과 복원의 view/step을 덮어써야 한다) 한 훅 안에 원래 순서대로 둔다.
-export function useHomePersistence({ flow, input, group, result: resultState, request }: {
+export function useHomePersistence({ flow, input, group, result: resultState }: {
   flow: RecommendFlow; input: RecommendInput; group: GroupSession; result: ResultState; request: RequestState;
 }) {
   const { view, setView, step, setStep, appMode, setAppMode, isGroup } = flow;
@@ -28,9 +27,7 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
     midpointData, setMidpointData, treasurer, setTreasurer, resultTravelTimes, setResultTravelTimes,
     resultWeather, setResultWeather,
   } = resultState;
-  const { sessionKeyRef } = request;
   const lastSessionResultRef = useRef<string | null>(null); // 그룹 결과 세션 저장 중복 억제
-  const loggedActivityRef = useRef<string | null>(null);    // 활동 로그 적재한 세션키 — 에피소드당 1건 보장
 
   useEffect(() => {
     if (!sessionStorage.getItem('mintSessionStart')) {
@@ -189,19 +186,7 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
       purposeFirst: purpose?.first ?? null,
       snapshot,
     });
-    // 활동 로그는 탐색 에피소드당 1건 — 이 effect는 enrich·이동시간 갱신마다 다시 도니 세션키로 걸러낸다.
-    // 세션키가 없으면(스냅샷 복원으로 결과만 되살아난 경우) 새 추천이 아니므로 적재하지 않는다.
-    if (sessionKeyRef.current && loggedActivityRef.current !== sessionKeyRef.current) {
-      loggedActivityRef.current = sessionKeyRef.current;
-      void logActivityIfSignedIn({
-        placeName: result[0].placeName,
-        secondPlaceName: hasSecondCourse ? result[1]?.placeName ?? null : null,
-        areaName: midpointData?.areaName ?? null,
-        purposeFirst: purpose?.first ?? null,
-        groupSize: isGroup ? `${expectedCount}명` : groupSize,
-      });
-    }
-  }, [view, result, resultThird, resultThirdLabel, resultSecondMissing, purpose, midpointData, treasurer, meetingLocation, resultTravelTimes, resultWeather, vibe, keywords, conditions, sessionId, isGroup, expectedCount, groupSize, sessionKeyRef]);
+  }, [view, result, resultThird, resultThirdLabel, resultSecondMissing, purpose, midpointData, treasurer, meetingLocation, resultTravelTimes, resultWeather, vibe, keywords, conditions, sessionId]);
 
   // 그룹 호스트가 추천을 받으면 결과 요약을 세션에 저장 → 게스트 done 화면이 폴링으로 수신(협업 루프 완결).
   // enrich·재추천으로 결과가 바뀌면 자동 재저장. 실패는 무해(게스트가 못 볼 뿐, 카톡 공유로도 전달 가능).

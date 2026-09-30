@@ -4,9 +4,36 @@ import { getDeviceId } from '@/storage/device';
 import { trackEvent } from '@/services/analytics';
 import type { WishItem } from '@/types';
 import { Icon } from '@/components/icons';
+import { MemberWishList } from '@/components/MemberPlaces';
+import { useUserStore } from '@/stores/userStore';
 
 // 내 찜 목록 바텀시트 — 저장한 곳을 모아 보고 지도로 바로 열기.
+// 회원은 계정에 저장된 찜(카카오 재검색으로 이름 복원), 비회원은 예전 기기 저장 목록.
 export default function WishlistSheet({ onClose }: { onClose: () => void }) {
+  const isMember = useUserStore((s) => s.isMember);
+  useEffect(() => {
+    if (isMember) trackEvent('wishlist_open', { member: true });
+  }, [isMember]);
+  if (isMember) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/40" onClick={onClose}>
+        <div
+          className="fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto bg-white rounded-t-3xl px-5 pt-5 pb-[max(2rem,calc(env(safe-area-inset-bottom)+0.75rem))] max-h-[80vh] flex flex-col animate-fade-in-up"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-black text-gray-900"><Icon name="heart" className="mr-1" />내가 찜한 곳</h3>
+            <button onClick={onClose} className="text-gray-400 text-sm font-bold px-2 active:scale-95">닫기</button>
+          </div>
+          <div className="flex-1 overflow-y-auto"><MemberWishList /></div>
+        </div>
+      </div>
+    );
+  }
+  return <LocalWishlistSheet onClose={onClose} />;
+}
+
+function LocalWishlistSheet({ onClose }: { onClose: () => void }) {
   const [items, setItems] = useState<WishItem[]>(() => getWishlist());
 
   useEffect(() => {

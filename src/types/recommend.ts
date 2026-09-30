@@ -8,6 +8,8 @@ export interface LocationEntry {
   name: string;
   lat?: number;
   lng?: number;
+  query?: string;          // 사용자가 친 검색어 — 저장은 이것과 장소 ID만(복원 때 재검색)
+  kakaoPlaceId?: string;
 }
 
 export interface PurposeValue {
@@ -30,6 +32,7 @@ export interface RegionScopeInfo {
   level: RegionLevel;
   matchTokens: string[];
   searchAreas: string[];
+  query?: string;          // 이 지역을 찾은 검색어(복원 때 같은 검색어로 중심을 다시 찾는다)
 }
 
 export type MeetingLocation =
@@ -79,6 +82,25 @@ export interface PlaceRecommendation {
   walkingToNext?: number;
   fitScore?: number;
   imageUrl?: string;
+  record?: PlaceRecord;    // 서버가 저장한 슬롯(찜·복원용). 저장 실패·옛 서버면 없음
+}
+
+// 이 장소를 다시 찾는 데 필요한 것 — 검색 조건 ID와, 이 장소 ID를 돌려준 카카오 호출
+export interface SearchSource {
+  kind: 'keyword' | 'category';
+  query: string;
+  page: number;
+  radius: number;
+}
+
+export interface PlaceRecord {
+  slotId: number;
+  conditionId: number;
+  recommendationId: number;
+  course: 'first' | 'second';
+  search: SearchSource;
+  member: boolean;         // 회원 계정으로 저장됐는가(찜은 이때만)
+  claimToken?: string;     // 비회원 저장일 때만. 로그인 뒤 이 추천을 내 계정으로 옮기는 일회용 토큰
 }
 
 export interface WeatherSummary {
@@ -96,6 +118,19 @@ export interface RecommendationResult {
   thirdLabel?: string | null;               // 3차 성격 라벨(예: '카페·디저트', '술 한잔')
   serial?: string | null;                   // 파일럿 일련번호(내부 조인키, 유저 비노출)
   courses?: 1 | 2 | null;                   // 서버가 실제로 채운 코스 수. 2차를 골랐는데 1이면 2차 후보가 없었던 것
+  recommendationId?: number | null;         // 저장된 추천 ID(다시 추천받기 연결용)
+}
+
+// 추천 요청에 같이 보내는 저장용 정보(좌표 없음)
+export interface RecommendSaveMeta {
+  mode: 'solo' | 'group';
+  areaType: 'auto' | 'region' | 'preset';
+  areaLabel: string;
+  areaQuery?: string | null;
+  regionLevel?: RegionScope['level'] | null;
+  origins?: { query: string; kakaoPlaceId: string }[];
+  retriedFromId?: number | null;
+  retryReason?: 'expensive' | 'far' | 'vibe' | null;
 }
 
 export interface PlaceEnrichment {

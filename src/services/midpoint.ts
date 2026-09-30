@@ -240,3 +240,11 @@ export const PRESET_REGIONS: PresetRegion[] = [
   { id: 'gyeonggi-north', label: '경기 북부',   sublabel: '고양·일산·의정부',     midpoint: { lat: 37.6600, lng: 126.8900 } },
   { id: 'incheon',        label: '인천/부천',   sublabel: '인천·부천·김포',       midpoint: { lat: 37.4900, lng: 126.7500 } },
 ];
+
+// 상권·프리셋 이름 → 우리 좌표(복원 때 검색 중심을 다시 찾는 데 쓴다)
+export function areaCoords(name: string): Coordinates | null {
+  const hub = ALL_AREAS.find((a) => a.name === name);
+  if (hub) return { lat: hub.lat, lng: hub.lng };
+  const preset = PRESET_REGIONS.find((r) => r.label === name);
+  return preset ? preset.midpoint : null;
+}

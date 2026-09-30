@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { VibeWeights } from '@/components';
-import type { ChangeReason, Coordinates, LocationEntry, MeetingLocation, PlaceRecommendation, PresetRegion, RegionScope, UserInput } from '@/types';
+import type { ChangeReason, Coordinates, LocationEntry, MeetingLocation, PlaceRecommendation, PresetRegion, RecommendSaveMeta, RegionScope, UserInput } from '@/types';
 import { VIBE_KEY_TO_LABEL, ATMOSPHERE_LABELS } from '@/constants/vibeOptions';
 import { SEOUL_CENTER } from '@/constants/geo';
 import { PRESET_REGIONS, findNearestAreas, findBalancedAreas } from '@/services/midpoint';
@@ -37,6 +37,10 @@ export function useRecommendActions({ flow, input, group, result: resultState, r
     setLoading, setLoadingMsg, setLoadingProgress, setError,
     travelReqRef, enrichReqRef, loadingStartRef, lastRecommendRef, sessionKeyRef,
   } = request;
+
+  // 저장용 지역 정보(좌표 없음)와 직전 추천 ID. 재추천도 같은 지역으로 저장하고 이전 추천에 잇는다.
+  const areaMetaRef = useRef<Pick<RecommendSaveMeta, 'areaType' | 'areaLabel' | 'areaQuery' | 'regionLevel'> | null>(null);
+  const lastRecIdRef = useRef<number | null>(null);
 
   // 대기 화면 "지금 추천받기" — 집계(setState) 반영 뒤 다음 렌더에서 추천을 트리거해 stale 상태를 피한다
   useEffect(() => {
@@ -85,6 +89,7 @@ export function useRecommendActions({ flow, input, group, result: resultState, r
           centerLng: loc.lng,
         };
         setMidpointData({ midpoint, areaName: loc.area, nearestAreas: loc.scope.searchAreas, scope });
+        areaMetaRef.current = { areaType: 'region', areaLabel: loc.area, areaQuery: loc.scope.query ?? loc.area, regionLevel: loc.scope.level };
         setResultTravelTimes(null);
         applyCompromiseMessage(undefined); // 직접 검색 지역은 중간지점 안내 대상이 아님 — stale 제거
         handleRecommend(midpoint, loc.scope.searchAreas, validLocs, undefined, [], undefined, scope);
@@ -94,6 +99,7 @@ export function useRecommendActions({ flow, input, group, result: resultState, r
         const nearby = findNearestAreas(midpoint, 3).filter((a) => a !== loc.area);
         const searchAreas = [loc.area, ...nearby].slice(0, 3);
         setMidpointData({ midpoint, areaName: loc.area, nearestAreas: searchAreas });
+        areaMetaRef.current = { areaType: 'region', areaLabel: loc.area, areaQuery: loc.area, regionLevel: null };
         setResultTravelTimes(null);
         applyCompromiseMessage(undefined); // 직접 검색 지역은 중간지점 안내 대상이 아님 — stale 제거
         handleRecommend(midpoint, searchAreas, validLocs);
@@ -103,6 +109,7 @@ export function useRecommendActions({ flow, input, group, result: resultState, r
         const balanced = findBalancedAreas(coords.length >= 1 ? coords : [SEOUL_CENTER]);
         const nearestAreas = findNearestAreas(balanced.midpoint, 3);
         setMidpointData({ midpoint: balanced.midpoint, areaName: loc.area, nearestAreas });
+        areaMetaRef.current = { areaType: 'auto', areaLabel: balanced.areaName };
         setResultTravelTimes(null);
         applyCompromiseMessage(balanced.compromiseMessage);
         handleRecommend(balanced.midpoint, nearestAreas, validLocs);
@@ -137,6 +144,9 @@ export function useRecommendActions({ flow, input, group, result: resultState, r
 
     const nearestAreas = findNearestAreas(midpoint, 3);
     setMidpointData({ midpoint, areaName, nearestAreas });
+    areaMetaRef.current = presetRegion
+      ? { areaType: 'preset', areaLabel: presetRegion.label }
+      : { areaType: 'auto', areaLabel: areaName };
     setResultTravelTimes(null);
     handleRecommend(midpoint, nearestAreas, validLocs);
   }
@@ -237,7 +247,19 @@ export function useRecommendActions({ flow, input, group, result: resultState, r
       }, 250);
 
       // 실제 마일스톤 2: AI 추천 완료 (재추천 시 이전 장소 제외)
-      const { places: recommendation, weather, thirdStop, thirdLabel, serial, courses } = await getAIRecommendation(input, midpoint, [], excludeNames, nearestAreas, scope, sessionKeyRef.current);
+      const retryReason = changeReason === 'expensive' || changeReason === 'far' || changeReason === 'vibe' ? changeReason : null;
+      // 출발지는 전부 검색어·ID가 있을 때만 보낸다. 일부만 보내면 복원이 그 일부의 중간점을 정답처럼 쓴다
+      const originsOk = !isGroup && validLocs.length > 0 && validLocs.every((l) => !!l.query && !!l.kakaoPlaceId);
+      const saveMeta: RecommendSaveMeta = {
+        mode: isGroup ? 'group' : 'solo',
+        ...(areaMetaRef.current ?? areaMetaFrom(meetingLocation, midpointData, nearestAreas)),
+        origins: originsOk ? validLocs.map((l) => ({ query: l.query as string, kakaoPlaceId: l.kakaoPlaceId as string })) : [],
+        // 새로고침으로 ref가 비었으면 스냅샷으로 되살아난 결과의 추천 ID로 잇는다
+        retriedFromId: changeReason ? (lastRecIdRef.current ?? result?.[0]?.record?.recommendationId ?? null) : null,
+        retryReason,
+      };
+      const { places: recommendation, weather, thirdStop, thirdLabel, serial, courses, recommendationId } = await getAIRecommendation(input, midpoint, [], excludeNames, nearestAreas, scope, sessionKeyRef.current, saveMeta);
+      lastRecIdRef.current = recommendationId ?? null;
       clearInterval(aiProgressInterval);
       setLoadingProgress(100); // 실제 완료
 
@@ -413,3 +435,22 @@ export function useRecommendActions({ flow, input, group, result: resultState, r
   return { handleConfirmMeetingLocation, handleMidpointSelect, handleRecommend, handleRetry, handleAdjust, handleRetryWithWeights, handleReject, applyCompromiseMessage };
 }
 export type RecommendActions = ReturnType<typeof useRecommendActions>;
+
+// 새로고침·로그인 복귀로 저장용 지역 정보(ref)가 비었을 때, 스냅샷에 남은 만날 장소·중간지점 정보로 다시 만든다.
+function areaMetaFrom(
+  loc: MeetingLocation | null | undefined,
+  mid: { areaName: string; scope?: RegionScope | null } | null | undefined,
+  nearestAreas: string[],
+): Pick<RecommendSaveMeta, 'areaType' | 'areaLabel' | 'areaQuery' | 'regionLevel'> {
+  if (loc?.type === 'manual') {
+    const preset = PRESET_REGIONS.find((r) => r.id === loc.regionId);
+    if (preset) return { areaType: 'preset', areaLabel: preset.label };
+    return {
+      areaType: 'region',
+      areaLabel: loc.area,
+      areaQuery: loc.scope?.query ?? loc.area,
+      regionLevel: loc.scope?.level ?? mid?.scope?.level ?? null,
+    };
+  }
+  return { areaType: 'auto', areaLabel: mid?.areaName || nearestAreas[0] || '' };
+}

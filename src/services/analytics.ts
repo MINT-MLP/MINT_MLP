@@ -33,7 +33,7 @@ type EventType = 'landing_view' | 'cta_click' | 'reservation_attempt' | 'session
   // C. 참석 확정(가요/못가요)
   | 'rsvp_submit'
   // D. 찜(발굴) 기록 — 1호 발굴자 소급 씨앗
-  | 'wishlist_add' | 'wishlist_remove' | 'wishlist_open'
+  | 'wishlist_add' | 'wishlist_remove' | 'wishlist_open' | 'wishlist_login_prompt'
   // E. 탭 셸 — 어떤 탭이 실제로 쓰이나 + 민트샵 쿠폰 수요(가짜 문)
   | 'tab_click' | 'shop_coupon_click'
   // F. 골목 쿠폰 알림 신청(가짜 문) — 어떤 혜택 유형·가격대를 원하나

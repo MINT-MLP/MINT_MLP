@@ -24,9 +24,9 @@ const MAX_ROWS = 6;
 let rowSeq = 0;
 const newRow = (place: LocationEntry | null = null): Row => ({ key: rowSeq++, place });
 
-function placeToEntry(p: KakaoPlace): LocationEntry {
-  // 출발지는 사용자가 고른 정확한 좌표를 그대로 쓴다(중간지점 계산 정확도)
-  return { name: p.place_name, lat: parseFloat(p.y), lng: parseFloat(p.x) };
+function placeToEntry(p: KakaoPlace, query: string): LocationEntry {
+  // 좌표는 중간지점 계산에만 쓴다. 저장되는 건 검색어와 장소 ID뿐
+  return { name: p.place_name, lat: parseFloat(p.y), lng: parseFloat(p.x), query: query.trim(), kakaoPlaceId: p.id };
 }
 
 export default function LocationInput({ locations, onChange }: Props) {
@@ -58,7 +58,7 @@ export default function LocationInput({ locations, onChange }: Props) {
           place={row.place}
           isMobile={isMobile}
           removable={rows.length > MIN_ROWS}
-          onPick={(p) => setPlace(row.key, placeToEntry(p))}
+          onPick={(p, q) => setPlace(row.key, placeToEntry(p, q))}
           onClear={() => setPlace(row.key, null)}
           onRemove={() => commit(rows.filter((r) => r.key !== row.key))}
           onOpenSheet={() => setSheetRow(row.key)}
@@ -92,7 +92,7 @@ export default function LocationInput({ locations, onChange }: Props) {
           places={sheetSearch.results}
           variant="sheet"
           onPick={(p) => {
-            if (sheetRow !== null) setPlace(sheetRow, placeToEntry(p));
+            if (sheetRow !== null) setPlace(sheetRow, placeToEntry(p, sheetSearch.query));
             closeSheet();
           }}
         />
@@ -108,7 +108,7 @@ function OriginRow({
   place: LocationEntry | null;
   isMobile: boolean;
   removable: boolean;
-  onPick: (p: KakaoPlace) => void;
+  onPick: (p: KakaoPlace, query: string) => void;
   onClear: () => void;
   onRemove: () => void;
   onOpenSheet: () => void;
@@ -171,7 +171,7 @@ function OriginRow({
               </div>
             )}
             <AnchoredDropdown open={search.results.length > 0} getAnchor={() => wrapperRef.current}>
-              <PlaceSuggestionList places={search.results} onPick={(p) => { search.reset(); onPick(p); }} />
+              <PlaceSuggestionList places={search.results} onPick={(p) => { const q = search.query; search.reset(); onPick(p, q); }} />
             </AnchoredDropdown>
           </>
         )}

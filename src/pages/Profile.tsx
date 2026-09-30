@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { getDeviceId } from '@/storage/device';
 import { getBalance, getLedger } from '@/storage/points';
 import { loadHistory, openHistoryEntry } from '@/storage/history';
-import {
-  signInWithKakao, signOut, syncProfile, deleteAccount, getActivityHistory, clearActivityCache,
-} from '@/services/auth';
+import { signInWithKakao, signOut, syncProfile, deleteAccount } from '@/services/auth';
+import { clearMemberCache } from '@/services/memberData';
 import { useUserStore } from '@/stores/userStore';
 import { Icon, IconUserCircle, IconGift, PointsBadge } from '@/components';
-import type { HistoryEntry, ActivityRow } from '@/types';
+import { MemberHistoryList, MemberWishList } from '@/components/MemberPlaces';
+import type { HistoryEntry } from '@/types';
 
 // 문의는 메일 대신 카카오톡 오픈채팅으로 받는다(답장 속도·피드백 수집).
 const CONTACT_URL = 'https://open.kakao.com/o/skLK6YGi';
@@ -31,54 +31,11 @@ export default function Profile({ onChromeChange }: Props) {
   const avatarUrl = useUserStore((s) => s.avatarUrl);
   const userId = user?.id ?? null;
   const [signingIn, setSigningIn] = useState(false);
-  const [serverRows, setServerRows] = useState<ActivityRow[]>([]);
-  const [serverCount, setServerCount] = useState<number | null>(null);
-  const [serverLoading, setServerLoading] = useState(false);
-  const [serverError, setServerError] = useState(false);
 
-  // 회원이 바뀔 때마다(로그인·계정 전환) 계정에 저장된 기록을 읽는다.
+  // 회원이 바뀔 때마다(로그인·계정 전환) 최근 로그인 시각만 갱신한다
   useEffect(() => {
-    if (!userId) return;
-    let alive = true;
-    void syncProfile();
-    void (async () => {
-      setServerLoading(true);
-      setServerError(false);
-      try {
-        const r = await getActivityHistory();
-        if (!alive || !r) return;
-        setServerRows(r.rows);
-        setServerCount(r.count);
-      } catch {
-        if (alive) setServerError(true);
-      } finally {
-        if (alive) setServerLoading(false);
-      }
-    })();
-    return () => { alive = false; };
+    if (userId) void syncProfile();
   }, [userId]);
-
-  const retryServerHistory = async () => {
-    setServerLoading(true);
-    setServerError(false);
-    try {
-      const r = await getActivityHistory(true);
-      if (r) { setServerRows(r.rows); setServerCount(r.count); }
-    } catch {
-      setServerError(true);
-    } finally {
-      setServerLoading(false);
-    }
-  };
-
-  // Section A가 화면에 그리는 항목과 겹치는 서버 기록은 숨긴다.
-  // 서버 created_at과 로컬 savedAt은 별도 Date.now()라 정확히 일치하지 않으므로 장소명으로만 맞춘다.
-  const shownLocalKeys = new Set(
-    history.slice(0, 3).map((h) => `${h.placeName}|${h.secondPlaceName ?? ''}`),
-  );
-  const remoteOnlyRows = serverRows.filter(
-    (r) => !shownLocalKeys.has(`${r.place_name ?? ''}|${r.second_place_name ?? ''}`),
-  );
 
   const handleSignIn = async () => {
     setSigningIn(true);
@@ -92,10 +49,7 @@ export default function Profile({ onChromeChange }: Props) {
 
   const handleSignOut = async () => {
     await signOut();
-    // 다른 계정으로 재로그인할 때 이전 계정 기록이 잠깐 보이지 않도록
-    clearActivityCache();
-    setServerRows([]);
-    setServerCount(null);
+    clearMemberCache();
   };
 
   const handleDeleteAccount = async () => {
@@ -126,14 +80,6 @@ export default function Profile({ onChromeChange }: Props) {
             <p className="truncate text-sm font-black text-gray-800">{user ? `${nickname ?? '카카오 이용자'}님` : 'MINT 이용자님'}</p>
             {/* 포인트는 아래 PointsBadge가 맡는다 — 같은 데이터를 두 번 말하지 않는다 */}
             <p className="text-xs text-gray-400">방문 인증 {ledger.length}회</p>
-            {/* 로딩·에러 중에는 이 줄 자체를 숨긴다 — 틀린 숫자를 잠깐이라도 보여주지 않기 위해 */}
-            {user && !serverLoading && !serverError && serverCount !== null && (
-              <p className="mt-0.5 text-[11px] text-gray-400">
-                {serverCount >= 1
-                  ? `카카오 계정으로 총 ${serverCount}번째 모임이에요`
-                  : '이 계정은 아직 첫 모임 전이에요. 다음 추천부터 자동으로 기록돼요.'}
-              </p>
-            )}
           </div>
           {user && (
             <button onClick={() => void handleSignOut()} className="flex min-h-10 shrink-0 items-center px-1 text-[11px] text-gray-400 underline">로그아웃</button>
@@ -150,9 +96,8 @@ export default function Profile({ onChromeChange }: Props) {
       {/* 로그인 유도 — 비로그인 상태에서만. 세션 확인 전에는 숨겨 로그인 버튼이 깜빡이지 않게 */}
       {ready && !user && (
         <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-4">
-          {/* 지키지 못할 약속은 쓰지 않는다 — 계정에 남는 건 장소 기록뿐이고 찜·포인트는 아직 로컬이다 */}
-          <p className="text-sm font-black text-gray-800">다른 기기에서도 지난 모임을 보고 싶다면</p>
-          <p className="mt-0.5 text-xs text-gray-400">카카오로 로그인하면 어떤 곳으로 갔는지는 계정에 남아요. 찜·포인트·방문 인증은 아직 이 기기에만 저장돼요.</p>
+          <p className="text-sm font-black text-gray-800">찜과 지난 추천을 계정에 모아두세요</p>
+          <p className="mt-0.5 text-xs text-gray-400">카카오로 로그인하면 찜한 곳과 받은 추천이 계정에 저장돼 어느 기기에서든 다시 볼 수 있어요.</p>
           <button
             onClick={() => void handleSignIn()}
             disabled={signingIn}
@@ -167,8 +112,18 @@ export default function Profile({ onChromeChange }: Props) {
         </div>
       )}
 
-      {/* 지난 추천 — 스냅샷 복원 */}
-      {history.length > 0 && (
+      {/* 회원: 계정에 저장된 지난 추천·찜(카카오 재검색으로 이름 복원) */}
+      {user && (
+        <>
+          <p className="mt-6 px-1 mb-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">지난 추천</p>
+          <MemberHistoryList key={`h-${userId}`} />
+          <p className="mt-6 px-1 mb-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">찜한 곳</p>
+          <MemberWishList key={`w-${userId}`} />
+        </>
+      )}
+
+      {/* 비회원: 이 기기의 지난 추천(저장 정리 작업 때 걷어낸다) */}
+      {ready && !user && history.length > 0 && (
         <>
           <p className="mt-6 px-1 mb-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">지난 추천</p>
           <div className="flex flex-col gap-2">
@@ -188,46 +143,6 @@ export default function Profile({ onChromeChange }: Props) {
               </button>
             ))}
           </div>
-        </>
-      )}
-
-      {/* 계정에 저장된 모임 — 서버엔 스냅샷이 없어 복원 불가. 읽기 전용임을 시각적으로 먼저 알린다. */}
-      {user && (serverLoading || serverError || remoteOnlyRows.length > 0) && (
-        <>
-          <p className="mt-6 px-1 mb-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">계정에 저장된 모임</p>
-          {serverLoading ? (
-            /* 스피너는 VisitCertModal의 로딩 패턴과 동일한 문법 */
-            <div className="flex items-center gap-2 px-1 text-xs text-gray-400">
-              <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-mint-500 border-t-transparent" />
-              기록을 불러오는 중이에요…
-            </div>
-          ) : serverError ? (
-            <div className="flex items-center justify-between gap-3 px-1">
-              <p className="text-xs text-gray-400">기록을 불러오지 못했어요. 잠시 후 다시 시도해주세요.</p>
-              <button onClick={() => void retryServerHistory()} className="flex min-h-10 shrink-0 items-center px-1 text-[11px] text-gray-400 underline">다시 시도</button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {remoteOnlyRows.map((r) => (
-                <button
-                  key={r.id}
-                  onClick={() => alert('다른 기기에서 만든 기록이라 지금 기기에서는 다시 볼 수 없어요. 장소명은 계정에 안전하게 남아있어요.')}
-                  className="w-full text-left rounded-2xl border border-gray-100 bg-white px-4 py-3"
-                >
-                  <div className="flex items-center gap-2">
-                    <p className="min-w-0 flex-1 truncate text-sm font-bold text-gray-400">
-                      {r.place_name ?? '이름 없는 장소'}{r.second_place_name ? ` → ${r.second_place_name}` : ''}
-                    </p>
-                    <span className="shrink-0 rounded-full bg-gray-50 px-2 py-0.5 text-[10px] text-gray-400">읽기 전용</span>
-                  </div>
-                  <p className="mt-0.5 text-xs text-gray-300 truncate">
-                    {r.area_name ? `${r.area_name} · ` : ''}
-                    {new Date(r.created_at).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
-                  </p>
-                </button>
-              ))}
-            </div>
-          )}
         </>
       )}
 

@@ -46,6 +46,24 @@
 ### 3. 추천 API 자동 저장(회원만)
 - 클라이언트가 /api/recommend에 로그인 토큰을 실어 보내야 함(지금은 안 보냄).
 - 서버가 토큰 검증 후 검색 조건·추천·슬롯 저장. 비회원은 식별자 없는 통계 행만.
+- **09-30 코드 완료(미커밋, dev DB에 v2-schema 008 실행 필요)**:
+  - 서버: api/_lib/recordRecommendation.ts(저장 인자 조립·토큰 검증·RPC), recommend-search가 후보마다 출처 호출(kind·query·page·radius) 기록 → 응답 전에 save_recommendation 한 번 → places[].record(slotId·conditionId·recommendationId·course·search·member), recommendationId.
+  - 앱: ai.ts가 회원 토큰·save 메타 전송. 출발지는 검색어+장소 ID(LocationEntry.query·kakaoPlaceId), 직접 입력 지역은 검색어(RegionScopeInfo.query). 재추천은 retriedFromId·사유.
+  - 복원: src/services/restore.ts(중심 재계산: 프리셋=우리 좌표, 직접 입력=지역 재검색 라벨 일치, 자동=출발지 재검색→findBalancedAreas, 스냅이면 상권 좌표, 실패·그룹이면 상권 근사) + 기록 페이지와 앞뒤 페이지 재검색으로 ID 찾기. 못 찾으면 카카오맵 링크만.
+  - 회원 기능: services/memberData.ts, components/MemberPlaces.tsx(지난 추천 목록·상세 시트, 찜 목록). 찜 버튼은 record 있으면 회원 찜(비회원은 로그인 안내), 없으면(공유·목업) 옛 기기 저장 그대로. 프로필은 회원이면 서버 목록, 비회원이면 기기 지난 추천.
+  - mint_activity_log 쓰기·읽기 제거(auth.ts 함수, types/user.ts). recommendation_log 쓰기는 아직 유지(파일럿 serial). 005-3의 mint_activity_log는 배포 후 삭제 가능.
+  - 포인트·방문 인증은 보류(유저 09-30).
+  - 테스트: recordRecommendation 8, restore 7. 카카오 재검색 실동작은 dev에서만 확인 가능(로컬 키 제한).
+- **09-30 코드리뷰 반영(미커밋)**:
+  - 비회원 → 로그인 → 찜: 저장 때 일회용 토큰(해시만 DB, 원문은 record.claimToken) → 하트가 claim_recommendation(009)으로 내 계정에 옮긴 뒤 찜. 24시간 제한. 이미 옮긴 추천이면 내 것으로 읽어 그대로 진행. 옮긴 추천은 출발지가 없어 상권 근사 복원.
+  - record 없는 화면(공유·그룹 게스트·옛 결과)에서는 회원에게 하트 숨김(유저 결정: 공유 링크는 카톡에서 어느 브라우저로 열릴지 모름). 비회원은 기기 저장 유지(4번 때 제거).
+  - 새로고침 뒤 재추천: 지역 메타를 스냅샷의 meetingLocation·midpointData에서 다시 계산, 이전 추천 ID는 result[0].record.
+  - 직접 입력 지역: 사용자가 친 글자를 저장(RegionSearchSheet·드롭다운), 복원 때 라벨 불일치면 null(첫 결과 폴백 제거). 지역 제안 좌표가 "검색 결과 첫 장소"라 친 글자로도 중심이 달라질 수 있는 한계는 남음.
+  - 출발지는 전부 검색어·ID가 있을 때만 저장(일부면 비워 상권 근사).
+  - 프로필 부하: 목록 조회 사용자별 60초 기억, 찜 여부 조회 공유·실패 미기억, 복원 동시 3개·탭 메모리 캐시(일시 오류는 기억 안 함, kakaoMap.searchKakaoPage는 오류 시 reject).
+  - 토큰은 요청 직전 supabase.auth.getSession(). 찜 실패 안내, 회원 찜 시트 wishlist_open.
+  - api 폴더는 기본 tsc -b에 안 들어간다(tsconfig include가 src뿐). 임시 설정으로 따로 검사해야 함 — 09-30 변경분 통과(hcx.ts의 erasableSyntaxOnly 2건은 원래 있던 것).
+- **배포 순서: dev DB에 008 → 009 실행 후 배포.** 008 전에 배포하면 회원 프로필 목록이 오류(area_query·search_radius 조회).
 
 ### 4. 저장 정리(17번 10-3 갱신판)
 - 결과 스냅샷: localStorage에 검색 조건 + 슬롯별 장소 ID만. 새로고침 시 재검색 복원.

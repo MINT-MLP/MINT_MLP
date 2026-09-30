@@ -302,3 +302,26 @@ export async function geocodeArea(area: string): Promise<{ lat: number; lng: num
     return null;
   }
 }
+
+// 기록해 둔 카카오 호출을 그대로 한 페이지 다시 한다(복원용). 추천 서버와 같은 크기·정렬.
+// 캐시하지 않는다 — 결과를 저장하지 않는 것이 약관 조건이다.
+export async function searchKakaoPage(
+  kind: 'keyword' | 'category',
+  query: string,
+  opts: { x: number; y: number; radius: number; page: number },
+): Promise<KakaoPlace[]> {
+  await ensureKakaoMaps();
+  return new Promise((resolve, reject) => {
+    const ps = new window.kakao.maps.services.Places();
+    const { OK, ZERO_RESULT } = window.kakao.maps.services.Status;
+    const base = { x: opts.x, y: opts.y, radius: Math.min(opts.radius, 20000), page: opts.page, size: 15 };
+    // 결과 없음은 빈 목록, 호출 오류는 실패로 — 복원이 일시 오류를 "없는 가게"로 기억하지 않게
+    const done = (results: KakaoPlace[], status: string) => {
+      if (status === OK) resolve(results);
+      else if (status === ZERO_RESULT) resolve([]);
+      else reject(new Error('카카오 장소 검색 실패'));
+    };
+    if (kind === 'keyword') ps.keywordSearch(query, done, base);
+    else ps.categorySearch(query, done, { ...base, sort: window.kakao.maps.services.SortBy.DISTANCE });
+  });
+}

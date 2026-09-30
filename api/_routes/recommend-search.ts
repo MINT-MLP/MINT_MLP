@@ -10,6 +10,9 @@ import {
   type FinalistPlace, type RegionScope,
 } from '../_lib/recommendCore.js';
 import { OCCASION_HINT } from '../_lib/occasion.js';
+import {
+  buildSavePayload, slotsFromRanks, memberIdFromRequest, saveRecommendation, newClaimToken, type SearchSource, type SaveMeta,
+} from '../_lib/recordRecommendation.js';
 
 // 검색 우선 추천 — 후보는 카카오 로컬 검색(실존·위치·카테고리가 보장됨)에서 받고, LLM은 그 목록 안에서
 // "이 모임에 맞는 순서"만 매긴다.
@@ -72,6 +75,7 @@ interface Candidate {
   path: string[];        // ['음식점','한식','국밥']
   distanceM: number;
   categoryId: number | null;   // place_category.id — 로그에 남기는 건 이것뿐(카카오 문자열 아님)
+  src: SearchSource;           // 이 후보를 처음 돌려준 카카오 호출(복원용)
 }
 
 interface KakaoDoc {
@@ -95,7 +99,7 @@ async function kakaoSearch(
   }
 }
 
-function toCandidate(d: KakaoDoc, centerLat: number, centerLng: number): Candidate | null {
+function toCandidate(d: KakaoDoc, centerLat: number, centerLng: number, src: SearchSource): Candidate | null {
   const lat = parseFloat(d.y); const lng = parseFloat(d.x);
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   const path = (d.category_name ?? '').split('>').map((s) => s.trim());
@@ -104,6 +108,7 @@ function toCandidate(d: KakaoDoc, centerLat: number, centerLng: number): Candida
     id: d.id, name: d.place_name, url: d.place_url, lat, lng,
     roadAddress: d.road_address_name ?? '', jibun: d.address_name ?? '', path, distanceM,
     categoryId: null,
+    src,
   };
 }
 
@@ -129,10 +134,10 @@ interface FetchOpts {
 async function fetchCandidates(o: FetchOpts): Promise<{ list: Candidate[]; calls: number; scopeRelaxed: boolean }> {
   const seen = new Map<string, Candidate>();
   let calls = 0;
-  const add = (docs: KakaoDoc[]) => {
+  const add = (docs: KakaoDoc[], src: SearchSource) => {
     for (const d of docs) {
       if (seen.has(d.id)) continue;
-      const c = toCandidate(d, o.centerLat, o.centerLng);
+      const c = toCandidate(d, o.centerLat, o.centerLng, src);
       if (c) seen.set(c.id, c);
     }
   };
@@ -156,7 +161,7 @@ async function fetchCandidates(o: FetchOpts): Promise<{ list: Candidate[]; calls
   await Promise.all(keywordQueries.map(async (q) => {
     for (let page = 1; page <= 2; page++) {
       const r = await kakaoSearch(o.key, 'keyword', { ...base, query: q, page }); calls++;
-      add(r.docs);
+      add(r.docs, { kind: 'keyword', query: q, page, radius: base.radius });
       if (r.isEnd) break;
     }
   }));
@@ -166,7 +171,7 @@ async function fetchCandidates(o: FetchOpts): Promise<{ list: Candidate[]; calls
   if (!o.customMenus.length) {
     for (let page = 1; page <= 3; page++) {
       const r = await kakaoSearch(o.key, 'category', { ...base, category_group_code: group, page, sort: 'distance' }); calls++;
-      add(r.docs);
+      add(r.docs, { kind: 'category', query: group, page, radius: base.radius });
       if (r.isEnd) break;
     }
   }
@@ -250,6 +255,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { input, midpoint } = req.body;
+    const memberIdPromise = memberIdFromRequest(getSupabaseAdmin(), req.headers.authorization);
 
     const sessionKey: string | null = (() => {
       const sk = req.body.sessionKey;
@@ -560,6 +566,36 @@ places는 적합한 순서대로 ${Math.min(count, list.length)}개`;
     if (rank1 && rank2 && typeof rank1.lat === 'number' && typeof rank2.lat === 'number') {
       rank1.walkingToNext = walkingMinutes(rank1.lat, rank1.lng as number, rank2.lat, rank2.lng as number);
     }
+    // ── 자동 저장(008). 회원이면 계정에, 아니면 식별자 없는 통계로. 실패해도 추천은 그대로 낸다 ──
+    const twoCourses = places.some((p) => p.rank === 2 && p.purposeSlot === 2);
+    const srcById = new Map(deduped.map((s) => [s.cand.id, s.cand.src]));
+    const slotInputs = slotsFromRanks(places, twoCourses, (id) => srcById.get(id));
+    const memberId = await memberIdPromise;
+    const claim = memberId ? null : newClaimToken();
+    const saved = await saveRecommendation(getSupabaseAdmin(), {
+      ...buildSavePayload({
+        userId: memberId,
+        input,
+        save: req.body.save as SaveMeta | undefined,
+        areaFallback: areaList[0] ?? '',
+        slots: slotInputs,
+      }),
+      ...(claim ? { claim_hash: claim.hash } : {}),
+    });
+    if (saved) {
+      slotInputs.forEach((si, i) => {
+        const p = places.find((x) => x.kakaoPlaceId === si.kakaoPlaceId);
+        const slotId = saved.slotIds[i];
+        if (p && slotId) {
+          p.record = {
+            slotId, conditionId: saved.conditionId, recommendationId: saved.recommendationId,
+            course: si.course, search: si.src, member: !!memberId,
+            ...(claim ? { claimToken: claim.token } : {}),
+          };
+        }
+      });
+    }
+
     for (const p of places) delete p.purposeSlot;
 
     const makeSerial = (): string => {
@@ -636,6 +672,7 @@ places는 적합한 순서대로 ${Math.min(count, list.length)}개`;
       places,
       serial,
       courses,
+      recommendationId: saved?.recommendationId ?? null,
       secondUnavailable: hasTwoPurposes && courses === 1,
       genreRelaxed: { first: slot1.genreRelaxed, second: !!slot2?.genreRelaxed },
       thirdStop: null,

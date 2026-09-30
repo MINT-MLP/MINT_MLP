@@ -9,14 +9,14 @@ import type { RegionSuggestion } from '@/types';
 interface Props {
   open: boolean;
   onClose: () => void;
-  onPick: (s: RegionSuggestion) => void;
+  onPick: (s: RegionSuggestion, typed: string) => void;   // typed: 사용자가 친 글자(복원 때 같은 검색을 하려고 저장)
 }
 
 export default function RegionSearchSheet({ open, onClose, onPick }: Props) {
   const search = useRegionSearch();
 
   const close = () => { search.reset(); onClose(); };
-  const pick = (s: RegionSuggestion) => { search.reset(); onPick(s); };
+  const pick = (s: RegionSuggestion) => { const typed = search.query; search.reset(); onPick(s, typed); };
 
   return (
     <SearchSheet
