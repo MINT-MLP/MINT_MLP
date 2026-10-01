@@ -50,6 +50,9 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
     // 살아 있는 그룹 세션이 다른 세션이면 그 대기 화면이 우선이다(그룹 세션 복원이 이어서 연다). 결과 복원은 하지 않는다.
     if (otherGroupSessionAlive(snap.sessionId)) return;
 
+    // 혼자/다같이 선택은 저장본에 따로 없다 — 그룹 결과에만 sessionId가 있으므로 그걸로 판정한다.
+    // 안 넣으면 'mode-select'로 남아, 결과에서 입력 화면으로 돌아갔을 때 선택이 풀려 보인다.
+    setAppMode(snap.sessionId ? 'group' : 'solo');
     const mem = recallResult(snap.recommendationId);
     if (mem) {
       setResult(mem.result);
@@ -95,7 +98,7 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
       })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [setView, setResult, setResultThird, setResultThirdLabel, setResultSecondMissing, setPurpose, setMidpointData, setTreasurer, setMeetingLocation, setResultTravelTimes, setResultWeather, setVibe, setKeywords, setConditions, setLoading, setLoadingProgress, loadingStartRef]);
+  }, [setAppMode, setView, setResult, setResultThird, setResultThirdLabel, setResultSecondMissing, setPurpose, setMidpointData, setTreasurer, setMeetingLocation, setResultTravelTimes, setResultWeather, setVibe, setKeywords, setConditions, setLoading, setLoadingProgress, loadingStartRef]);
 
   // 입력 초안 복원 — 결과가 없을 때만. 그룹도 링크 생성 전에는 서버 세션이 없으므로 로컬 초안에서 복원한다.
   useLayoutEffect(() => {
