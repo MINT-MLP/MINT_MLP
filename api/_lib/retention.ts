@@ -26,7 +26,9 @@ export interface VisitStep {
 }
 
 export interface RetentionUser {
-  deviceId: string;
+  key: string;             // 그룹 키 — 로그인 유저는 'u:<userId>', 아니면 device_id
+  deviceId: string;        // 대표 기기(가장 최근 방문 기기)
+  deviceCount: number;     // 합쳐진 기기 수 — 로그인 유저가 폰·PC로 온 경우 2 이상
   userId: string | null;
   nickname: string | null;
   visitCount: number;
@@ -36,7 +38,7 @@ export interface RetentionUser {
 }
 
 export interface RetentionSummary {
-  users: number;                     // 방문 기기 수
+  users: number;                     // 방문 유저 수(로그인 유저는 계정 1명, 나머지는 기기 1대)
   returning: number;                 // 2회 이상
   threePlus: number;                 // 3회 이상
   avgVisits: number | null;          // 기기당 평균 방문 횟수(소수 1자리)
@@ -113,17 +115,36 @@ export function buildRetention(
   }
 
   const nickByUser = new Map<string, string>();
-  const nickByDevice = new Map<string, string>();
+  const userByDevice = new Map<string, string>();
   for (const p of profiles) {
-    if (!p.nickname) continue;
-    nickByUser.set(p.id, p.nickname);
-    if (p.device_id) nickByDevice.set(p.device_id, p.nickname);
+    if (p.nickname) nickByUser.set(p.id, p.nickname);
+    if (p.device_id) userByDevice.set(p.device_id, p.id);
+  }
+
+  // 로그인 유저는 계정 하나로 합친다 — 같은 사람이 폰·PC·인앱/외부 브라우저로 오면 기기가 여럿이라
+  // 기기 기준으로는 한 사람이 여러 줄로 쪼개진다. 기기의 계정은 행의 user_id(가장 최근) → 프로필의 device_id 순.
+  // 로그인 전 방문 행은 user_id가 비어 있어도 같은 기기라면 그 계정으로 함께 묶인다.
+  const groups = new Map<string, { userId: string | null; rows: VisitRow[]; devices: Map<string, string> }>();
+  for (const [deviceId, list] of byDevice) {
+    const fromRows = [...list].sort((a, b) => b.created_at.localeCompare(a.created_at)).find((r) => r.user_id)?.user_id;
+    const userId = fromRows ?? userByDevice.get(deviceId) ?? null;
+    const key = userId ? `u:${userId}` : deviceId;
+    const g = groups.get(key) ?? { userId, rows: [], devices: new Map<string, string>() };
+    g.rows.push(...list);
+    const lastAt = list.reduce((m, r) => (r.created_at > m ? r.created_at : m), '');
+    g.devices.set(deviceId, lastAt);
+    groups.set(key, g);
   }
 
   const users: RetentionUser[] = [];
-  for (const [deviceId, list] of byDevice) {
-    // 날짜가 1차 키 — 같은 날 행은 유니크라 없지만, created_at 역전(서버 시계 보정 등)에도 순서를 지킨다
-    list.sort((a, b) => a.visit_date.localeCompare(b.visit_date) || a.created_at.localeCompare(b.created_at));
+  for (const [key, g] of groups) {
+    // 여러 기기가 같은 날 왔으면 하루 1회로 접는다(그날 가장 이른 접속)
+    const byDate = new Map<string, VisitRow>();
+    for (const r of g.rows) {
+      const prev = byDate.get(r.visit_date);
+      if (!prev || r.created_at < prev.created_at) byDate.set(r.visit_date, r);
+    }
+    const list = [...byDate.values()].sort((a, b) => a.visit_date.localeCompare(b.visit_date));
     const steps: VisitStep[] = list.map((r, i) => ({
       n: i + 1,
       at: r.created_at,
@@ -131,12 +152,13 @@ export function buildRetention(
       gapDays: i === 0 ? null : dayDiff(list[i - 1].visit_date, r.visit_date),
       path: r.path ?? null,
     }));
-    // 로그인 전 방문 행은 user_id가 비어 있다 — 한 행이라도 있으면 그 계정으로 본다(가장 최근 것)
-    const userId = [...list].reverse().find((r) => r.user_id)?.user_id ?? null;
+    const deviceId = [...g.devices].sort((a, b) => b[1].localeCompare(a[1]))[0][0];
     users.push({
+      key,
       deviceId,
-      userId,
-      nickname: (userId ? nickByUser.get(userId) : undefined) ?? nickByDevice.get(deviceId) ?? null,
+      deviceCount: g.devices.size,
+      userId: g.userId,
+      nickname: g.userId ? nickByUser.get(g.userId) ?? null : null,
       visitCount: steps.length,
       firstAt: steps[0].at,
       lastAt: steps[steps.length - 1].at,

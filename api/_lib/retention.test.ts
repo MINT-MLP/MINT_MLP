@@ -21,17 +21,31 @@ describe('buildRetention', () => {
     expect(users[0].steps.map((s) => s.gapDays)).toEqual([null, 1, 7]);
   });
 
-  it('닉네임은 user_id 우선, 없으면 device_id로 찾는다', () => {
+  it('계정은 행의 user_id 우선, 없으면 프로필의 device_id로 찾는다', () => {
     const profiles = [
       { id: 'u1', nickname: '민트', device_id: 'x' },
       { id: 'u2', nickname: '초코', device_id: 'b' },
     ];
-    const { users } = buildRetention([v('a', '2026-10-01', '10:00', 'u1'), v('b', '2026-10-01')], profiles);
+    const { users } = buildRetention([v('a', '2026-10-01', '10:00', 'u1'), v('b', '2026-10-01'), v('c', '2026-10-01')], profiles);
     const byDevice = Object.fromEntries(users.map((u) => [u.deviceId, u]));
-    expect(byDevice.a.nickname).toBe('민트');
-    expect(byDevice.a.userId).toBe('u1');
-    expect(byDevice.b.nickname).toBe('초코');
-    expect(byDevice.b.userId).toBeNull();
+    expect(byDevice.a).toMatchObject({ key: 'u:u1', userId: 'u1', nickname: '민트' });
+    expect(byDevice.b).toMatchObject({ key: 'u:u2', userId: 'u2', nickname: '초코' });
+    expect(byDevice.c).toMatchObject({ key: 'c', userId: null, nickname: null, deviceCount: 1 });
+  });
+
+  it('같은 계정의 여러 기기는 한 줄로 합치고, 같은 날은 1회로 접는다', () => {
+    const rows = [
+      v('phone', '2026-10-01', '09:00', 'u1'),
+      v('pc', '2026-10-01', '08:00', 'u1'),
+      v('pc', '2026-10-03', '12:00'),              // 로그인 전 방문 — 같은 기기라 함께 묶인다
+      v('phone', '2026-10-05', '20:00', 'u1'),
+    ];
+    const { users, summary } = buildRetention(rows, [{ id: 'u1', nickname: '민트', device_id: 'phone' }]);
+    expect(users).toHaveLength(1);
+    expect(summary.users).toBe(1);
+    expect(users[0]).toMatchObject({ key: 'u:u1', deviceCount: 2, visitCount: 3, deviceId: 'phone', nickname: '민트' });
+    expect(users[0].steps.map((s) => [s.date, s.gapDays])).toEqual([['2026-10-01', null], ['2026-10-03', 2], ['2026-10-05', 2]]);
+    expect(users[0].firstAt).toBe(rows[1].created_at); // 그날 더 이른 pc 접속
   });
 
   it('요약 — 분포·재방문 수·평균·첫 재방문 간격 중앙값', () => {

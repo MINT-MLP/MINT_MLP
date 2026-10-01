@@ -16,7 +16,9 @@ export interface RetentionStep {
 }
 
 export interface RetentionUser {
-  deviceId: string;
+  key?: string;          // 로그인 유저는 'u:<userId>'(기기 여러 대를 계정 하나로 합침). 구버전 응답엔 없다
+  deviceId: string;      // 대표 기기(가장 최근)
+  deviceCount?: number;
   userId: string | null;
   nickname: string | null;
   visitCount: number;
@@ -88,7 +90,7 @@ function RetentionBody({ data, estimate }: { data: RetentionData; estimate?: boo
   return (
     <>
       <div className="grid grid-cols-2 gap-3 mb-3">
-        <AdminStatCard label={`${unitWord} 유저(기기)`} value={s?.users ?? 0} unit="명" />
+        <AdminStatCard label={`${unitWord} 유저`} value={s?.users ?? 0} unit="명" />
         <AdminStatCard
           label="재방문 유저 (2회+)"
           value={s?.returning ?? 0}
@@ -164,12 +166,13 @@ function RetentionBody({ data, estimate }: { data: RetentionData; estimate?: boo
         ) : (
           <ul className="flex flex-col divide-y divide-gray-100">
             {list.slice(0, shown).map((u) => {
-              const open = expanded.has(u.deviceId);
+              const rowKey = u.key ?? u.deviceId;
+              const open = expanded.has(rowKey);
               return (
-                <li key={u.deviceId} className="py-2">
+                <li key={rowKey} className="py-2">
                   <button
                     type="button"
-                    onClick={() => toggle(u.deviceId)}
+                    onClick={() => toggle(rowKey)}
                     className="w-full flex items-center gap-3 text-left"
                     aria-expanded={open}
                   >
@@ -178,6 +181,9 @@ function RetentionBody({ data, estimate }: { data: RetentionData; estimate?: boo
                         {u.nickname ?? `기기 ${u.deviceId.slice(0, 10)}`}
                         {u.userId && (
                           <span className="ml-1.5 text-[10px] font-bold text-mint-600 bg-mint-100 rounded px-1 py-0.5 align-middle">로그인</span>
+                        )}
+                        {(u.deviceCount ?? 1) > 1 && (
+                          <span className="ml-1 text-[10px] font-bold text-gray-500 bg-gray-100 rounded px-1 py-0.5 align-middle">기기 {u.deviceCount}대</span>
                         )}
                       </div>
                       <div className="text-[11px] text-gray-400">
@@ -288,8 +294,9 @@ export default function AdminRetentionSection({ data, onLoadEstimate }: {
       )}
 
       <p className="text-[11px] text-gray-400 mt-2 px-1">
-        * 기기 기준이라 같은 사람이 폰·PC로 오면 2명, 브라우저 데이터를 지우면 새 유저로 잡혀요.
-        하루에 여러 번 켜도 1회이고, 시각은 그날 첫 접속이에요. 로그인 유저는 닉네임으로 보여요.
+        * 카카오 로그인 유저는 계정 기준으로 기기를 합쳐 카카오 닉네임으로 보여요.
+        비로그인은 기기 기준이라 폰·PC로 오면 2명, 브라우저 데이터를 지우면 새 유저로 잡혀요.
+        하루에 여러 번 켜도 1회이고, 시각은 그날 첫 접속이에요.
       </p>
 
       {/* ── 수집 시작 전 추정 — 누를 때만 불러온다(과거 흔적 전체를 훑는 무거운 조회) ── */}
