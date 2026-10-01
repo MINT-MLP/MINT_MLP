@@ -4,12 +4,12 @@ import { getDeviceId } from '@/storage/device';
 import { placeKey } from '@/storage/points';
 import { trackEvent } from '@/services/analytics';
 import { signInWithKakao } from '@/services/auth';
-import { addWish, removeWish, wishedIds, claimRecommendation } from '@/services/memberData';
+import { addWish, removeWish, wishedIds, claimRecommendation, wishFromSlot } from '@/services/memberData';
 import { useUserStore } from '@/stores/userStore';
-import type { PlaceRecord, WishTargetInput } from '@/types';
+import type { PlaceRecord, SlotRef, WishTargetInput } from '@/types';
 
 interface Props {
-  place: WishTargetInput & { priceRange?: string; kakaoPlaceId?: string; record?: PlaceRecord };
+  place: WishTargetInput & { priceRange?: string; kakaoPlaceId?: string; record?: PlaceRecord; shareSlot?: SlotRef };
   rank: 'first' | 'second' | 'candidate';
   source: 'result' | 'shared' | 'discover';
   // 카드 위(어두운 그라디언트)에 얹으면 'onDark', 흰 카드면 'light'
@@ -17,18 +17,21 @@ interface Props {
   onChange?: () => void;
 }
 
-// 찜 하트. 서버에 저장된 추천(record 있음)은 회원 찜(계정 저장, 비회원은 로그인 안내).
-// record가 없는 곳(공유·그룹 게스트·옛 결과)은 회원에게 하트를 숨긴다 — 눌러도 계정 찜 목록에 나올 수 없어서다.
-// 비회원은 그런 곳에서 예전 기기 저장을 그대로 쓴다(저장 정리 4번 때 걷어낸다).
+// 찜 하트. 회원 찜은 계정에 저장하고, 비회원이 누르면 로그인 안내를 띄운다.
+//  - 내 추천 결과(record): 그 추천의 검색 조건으로 찜
+//  - 공유·그룹 화면(shareSlot): 그 슬롯을 보여준 링크·세션을 근거로 조건을 내 것으로 복사해 찜(010)
+// 둘 다 없는 곳(옛 링크·저장 안 된 결과)은 하트를 숨긴다 — 회원·비회원 모두. 기기 저장 찜은 없앴다(10-01).
+// 예외: 목업 발굴 페이지(source='discover')는 퍼블리싱 페이지라 예전 기기 저장을 그대로 쓴다.
 export default function WishlistButton(props: Props) {
-  const isMember = useUserStore((s) => s.isMember);
-  if (props.place.record && props.place.kakaoPlaceId) {
-    return <MemberWish {...props} placeId={props.place.kakaoPlaceId} record={props.place.record} />;
+  const placeId = props.place.kakaoPlaceId;
+  if (props.source === 'discover') return <LocalWish {...props} />;
+  if (placeId && (props.place.record || props.place.shareSlot)) {
+    return <MemberWish {...props} placeId={placeId} record={props.place.record} slotRef={props.place.shareSlot} />;
   }
-  return isMember ? null : <LocalWish {...props} />;
+  return null;
 }
 
-function MemberWish({ placeId, record, rank, source, tone = 'light', onChange }: Props & { placeId: string; record: PlaceRecord }) {
+function MemberWish({ placeId, record, slotRef, rank, source, tone = 'light', onChange }: Props & { placeId: string; record?: PlaceRecord; slotRef?: SlotRef }) {
   const isMember = useUserStore((s) => s.isMember);
   const [wished, setWished] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -47,10 +50,27 @@ function MemberWish({ placeId, record, rank, source, tone = 'light', onChange }:
     if (busy) return;
     if (!isMember) {
       trackEvent('wishlist_login_prompt', { rank, source });
-      if (window.confirm('찜은 카카오 로그인 후 쓸 수 있어요. 로그인할까요?\n로그인 후 이 결과로 돌아와요.')) void signInWithKakao();
+      // 공유·그룹 화면은 그 화면으로 돌아오고, 내 결과는 앱이 복귀 후 결과를 이어서 보여준다
+      const back = slotRef ? `${window.location.pathname}${window.location.search}` : undefined;
+      if (window.confirm('찜은 카카오 로그인 후 쓸 수 있어요. 로그인할까요?\n로그인 후 이 화면으로 돌아와요.')) void signInWithKakao(back);
       return;
     }
     setBusy(true);
+    if (!record && slotRef) {
+      const next = !wished;
+      setWished(next);
+      const ok = next ? await wishFromSlot(placeId, slotRef) : await removeWish(placeId);
+      if (!ok) {
+        setWished(!next);
+        window.alert(next ? '찜하지 못했어요. 링크가 만료됐을 수 있어요.' : '찜을 해제하지 못했어요. 잠시 후 다시 시도해주세요.');
+      } else {
+        trackEvent(next ? 'wishlist_add' : 'wishlist_remove', { rank, source, slot_id: slotRef.slotId });
+      }
+      setBusy(false);
+      onChange?.();
+      return;
+    }
+    if (!record) { setBusy(false); return; }
     // 로그인 전에 받은 추천이면 먼저 내 계정으로 옮긴다(009). 토큰이 없거나 24시간이 지났으면 옮길 수 없다.
     let rec = claimedCond !== null ? { ...record, member: true, conditionId: claimedCond } : record;
     if (!rec.member) {

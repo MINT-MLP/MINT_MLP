@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState, type ReactElement } from 'react';
 import { getDeviceId } from '@/storage/device';
 import { getBalance } from '@/storage/points';
 import { trackEvent } from '@/services/analytics';
-import { MOCK_COUPONS, type CouponBenefitType, type MintCoupon } from '@/pages/mock/data/coupons';
+import type { CouponBenefitType, MintCoupon } from '@/pages/mock/data/coupons';
+import { loadCoupons } from '@/pages/mock/data/sources';
 import { getNotifyList, toggleNotify } from '@/pages/mock/couponNotify';
 import { PointsBadge } from '@/components';
 import Reserve from '@/pages/Reserve';
@@ -57,6 +58,7 @@ export default function MintShop({ onChromeChange }: Props) {
   const [balance] = useState(() => getBalance());
   const [notified, setNotified] = useState<string[]>(() => getNotifyList());
   const [filterKey, setFilterKey] = useState('all');
+  const [coupons] = useState(loadCoupons);
   const [page, setPage] = useState(1);
   const [toast, setToast] = useState<string | null>(null);
   const [selectedCoupon, setSelectedCoupon] = useState<MintCoupon | null>(null);
@@ -70,8 +72,8 @@ export default function MintShop({ onChromeChange }: Props) {
 
   const filtered = useMemo(() => {
     const types = FILTERS.find((f) => f.key === filterKey)?.types;
-    return types ? MOCK_COUPONS.filter((c) => types.includes(c.benefitType)) : MOCK_COUPONS;
-  }, [filterKey]);
+    return types ? coupons.filter((c) => types.includes(c.benefitType)) : coupons;
+  }, [filterKey, coupons]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const current = Math.min(page, pageCount);

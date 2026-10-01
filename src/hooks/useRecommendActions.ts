@@ -395,7 +395,7 @@ export function useRecommendActions({ flow, input, group, result: resultState, r
     if (!midpointData) return;
     // payload: 무엇을 왜 거절했나(현 1순위의 가격대·적합도). session_key로 어떤 추천이었는지 조인 가능.
     const rejected = result?.[0];
-    trackEvent(`reject_${reason}`, rejected ? { placeName: rejected.placeName, address: rejected.address, priceRange: rejected.priceRange, fitScore: rejected.fitScore } : undefined);
+    trackEvent(`reject_${reason}`, rejected ? { place_id: rejected.kakaoPlaceId ?? null, slot_id: rejected.record?.slotId ?? null } : undefined);
     const validLocs = locations.filter((l) => l.lat != null && l.lng != null);
     const exclude = currentExclude();
     setTreasurer(null);

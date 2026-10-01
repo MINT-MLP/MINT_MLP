@@ -21,14 +21,16 @@ export function isMember(user: User | null | undefined): user is User {
 }
 
 // 카카오 로그인은 일반 로그인(signInWithOAuth)이다 — 기존 회원이면 그 계정으로, 아니면 새 계정.
-export async function signInWithKakao(): Promise<void> {
+// returnPath: 로그인 뒤 돌아올 경로(공유 화면 등). 없으면 앱 프로필 탭.
+// Supabase Authentication → URL Configuration의 Redirect URLs에 그 주소가 허용돼 있어야 한다(아니면 Site URL로 간다).
+export async function signInWithKakao(returnPath?: string): Promise<void> {
   // 비즈앱 전환으로 account_email 권한이 열려 KOE205가 해소됐다. 그래도 scope는 계속 명시한다 —
   // 우리가 무엇을 받는지 코드에 남겨두기 위해서, 그리고 기본 scope가 바뀌어도 흔들리지 않기 위해서.
   // 이메일은 카카오에서 '선택 동의'라 거부하는 사용자가 있다. 그 경우 user.email이 비므로
   // 이메일을 로그인의 전제로 삼지 않는다(Supabase의 'Allow users without an email' 유지).
   await supabase.auth.signInWithOAuth({
     provider: 'kakao',
-    options: { redirectTo: kakaoRedirectTo(), scopes: KAKAO_SCOPES },
+    options: { redirectTo: returnPath ? `${window.location.origin}${returnPath}` : kakaoRedirectTo(), scopes: KAKAO_SCOPES },
   });
 }
 

@@ -330,7 +330,7 @@ export default function ResultCard({
             href={kakaoUrl(thirdResult)}
             target="_blank"
             rel="noreferrer"
-            onClick={() => trackEvent('place_click_third', { placeName: thirdResult.placeName, address: thirdResult.address })}
+            onClick={() => trackEvent('place_click_third', { place_id: thirdResult.kakaoPlaceId ?? null })}
             aria-label={`${thirdResult.placeName} 카카오맵에서 열기`}
             className={cn('block rounded-2xl bg-white border border-gray-200 border-l-4 p-3.5 shadow-sm active:scale-[0.99] transition-transform outline-none focus-visible:ring-2 focus-visible:ring-mint-900 focus-visible:ring-offset-2', COURSE_TONE.third.borderL)}
           >
@@ -409,7 +409,7 @@ export default function ResultCard({
 
       {/* ── 방문 인증 → 포인트 (추천→실제 방문 전환율 씨앗) ── */}
       <button
-        onClick={() => { trackEvent('visit_cert_open', { device_id: getDeviceId(), place_key: `${result.placeName}|${result.address ?? ''}`, source: 'result' }); setShowVisitCert(true); }}
+        onClick={() => { trackEvent('visit_cert_open', { device_id: getDeviceId(), place_id: result.kakaoPlaceId ?? null, source: 'result' }); setShowVisitCert(true); }}
         className="w-full py-3 rounded-2xl bg-mint-100 border-2 border-mint-500/40 text-mint-600 font-black text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
       >
         <Icon name="pin" className="text-lg" />

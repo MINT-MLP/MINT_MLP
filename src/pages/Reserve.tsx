@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { trackEvent } from '@/services/analytics';
+import { recordSlotAction } from '@/services/slotAction';
 import { Icon } from '@/components/icons';
 
 export interface ReservationRecord {
@@ -16,10 +17,11 @@ interface Props {
   placeName: string;
   address: string;
   openingHours: string;
+  slotId?: number;          // 저장된 추천 슬롯(있으면 '예약하러 가기' 행동을 남긴다 — 방문 인증 조건)
   onBack: () => void;
 }
 
-export default function Reserve({ placeName, address, openingHours, onBack }: Props) {
+export default function Reserve({ placeName, address, openingHours, slotId, onBack }: Props) {
   // 자체 예약 연동은 준비 중 — 타이핑 없이 원탭으로 '수요'만 집계한다(이름·인원 입력 제거).
   const [requested, setRequested] = useState(false);
 
@@ -30,6 +32,7 @@ export default function Reserve({ placeName, address, openingHours, onBack }: Pr
       body: JSON.stringify({ placeName, address, guestName: '관심표시', people: '-' }),
     }).catch(() => {});
     trackEvent('reservation_attempt');
+    recordSlotAction(slotId, 'reserve');
     setRequested(true);
   }
 

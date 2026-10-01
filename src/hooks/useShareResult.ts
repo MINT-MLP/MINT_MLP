@@ -1,13 +1,14 @@
 import type { PlaceRecommendation } from '@/types';
 import { trackEvent } from '@/services/analytics';
-import { newShareId, saveShareSnapshot, shareViaKakaoOrFallback } from '@/services/share';
+import { recordSlotAction } from '@/services/slotAction';
+import { newShareId, saveShareLink, shareViaKakaoOrFallback } from '@/services/share';
 import type { RecommendInput } from '@/hooks/useRecommendInput';
 import { resultHasSecond, type ResultState } from '@/hooks/useResultState';
 
-// 결과 카카오톡 공유 — 스냅샷 저장 후 짧은 링크, 실패 시 레거시 ?data= 링크.
+// 결과 카카오톡 공유 — 저장된 추천 ID로 짧은 링크, 저장 안 된 추천은 레거시 ?data= 링크.
 export function useShareResult({ input, result: resultState }: { input: RecommendInput; result: ResultState }) {
   const { purpose } = input;
-  const { result, resultThird, resultThirdLabel, resultSecondMissing, midpointData, treasurer } = resultState;
+  const { result, resultThird, resultThirdLabel, resultSecondMissing, treasurer } = resultState;
 
   async function handleShare() {
     if (!result || result.length === 0) return;
@@ -43,28 +44,12 @@ export function useShareResult({ input, result: resultState }: { input: Recommen
     };
     const legacyUrl = `${mlpUrl}/shared?data=${encodeURIComponent(JSON.stringify(sharedData))}`;
 
-    // 풀코스 스냅샷을 서버에 저장하고 짧은 링크(/shared?id=)로 공유 → URL 잘림 리스크 제거 + 수신자가 1·2·3차 전체를 봄.
-    const slim = (p: PlaceRecommendation) => ({
-      placeName: p.placeName, category: p.category, description: p.description,
-      priceRange: p.priceRange, vibeTags: p.vibeTags, address: p.address, area: p.area,
-      congestionLevel: p.congestionLevel ?? null, lat: p.lat ?? null, lng: p.lng ?? null,
-      imageUrl: p.imageUrl ?? null, kakaoPlaceUrl: p.kakaoPlaceUrl ?? null,
-    });
-    const snapshot = {
-      v: 1,
-      shareId,
-      first: slim(primary),
-      second: secondPlace ? slim(secondPlace) : null,
-      third: resultThird ? slim(resultThird) : null,
-      thirdLabel: resultThird ? (resultThirdLabel ?? '이어서') : null,
-      purposeFirst: purpose?.first ?? null,
-      purposeSecond: hasSecond ? purpose?.second ?? null : null,
-      areaName: midpointData?.areaName ?? null,
-      treasurer: treasurer ?? null,
-      candidates: firstCandidates.length >= 2 ? firstCandidates : undefined,
-    };
-    const snapshotSaved = await saveShareSnapshot(shareId, snapshot);
-    const sharedUrl = snapshotSaved ? `${mlpUrl}/shared?id=${shareId}` : legacyUrl;
+    // 저장된 추천(record)이면 추천 ID로 짧은 링크(/shared?id=). 받는 쪽은 재검색으로 1·2차 전체를 본다.
+    // 저장이 안 된 추천(옛 결과·저장 실패)만 레거시 ?data= 링크.
+    const rec = primary.record;
+    const linkSaved = rec ? await saveShareLink(shareId, rec.recommendationId, rec.claimToken) : false;
+    if (linkSaved) recordSlotAction(rec?.slotId, 'share');
+    const sharedUrl = linkSaved ? `${mlpUrl}/shared?id=${shareId}` : legacyUrl;
 
     const mapUrl = (p: typeof primary) =>
       p.lat && p.lng

@@ -5,8 +5,12 @@ import App from '@/App'
 import { initErrorLogging } from '@/services/errorLog'
 import { captureAttribution } from '@/services/attribution'
 import { trackEvent } from '@/services/analytics'
+import { runLegacyCleanup } from '@/storage/legacyCleanup'
 
 initErrorLogging()
+
+// 예전 폰 저장분(카카오 가게 정보·좌표) 1회 정리 — 복원 effect들보다 먼저
+runLegacyCleanup()
 
 // 어느 광고로 들어왔는지는 최초 문서 URL에만 적혀 있다. 라우팅·로그인 복귀가 search를 지우기 전,
 // React 렌더보다도 먼저 여기서 읽어둔다(URL은 읽기만 한다 — 정리는 하지 않는다).

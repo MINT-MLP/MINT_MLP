@@ -1,32 +1,38 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
-import type { Coordinates, MeetingLocation, PlaceRecommendation, PurposeValue, Step, TravelTimeData, VibeState, WeatherSummary } from '@/types';
+import type { MeetingLocation, PurposeValue, Step } from '@/types';
 import { OCCASION_BY_RELATION } from '@/constants/occasion';
-import { saveResultSnapshot, loadResultSnapshot, saveHistory, INPUT_DRAFT_KEY, GROUP_SESSION_KEY, INPUT_DRAFT_TTL_MS, GROUP_SESSION_TTL_MS } from '@/storage/history';
+import { saveResultSnapshot, loadResultSnapshot, clearResultSnapshot, INPUT_DRAFT_KEY, GROUP_SESSION_KEY, INPUT_DRAFT_TTL_MS, GROUP_SESSION_TTL_MS } from '@/storage/history';
+import { restoreResultSnapshot, stripMeetingLocation, resolveMeetingLocation, resolveOrigins, stripOrigins } from '@/services/resultRestore';
+import { RecRestoreError } from '@/services/recRestore';
+import { rememberResult, recallResult, forgetResult } from '@/stores/resultMemory';
 import { trackSessionDuration } from '@/services/analytics';
+import { supabase } from '@/services/supabase';
 import { migrateVibeState } from '@/utils/vibeMigrate';
 import type { RecommendFlow } from '@/hooks/useRecommendFlow';
 import type { RecommendInput } from '@/hooks/useRecommendInput';
 import type { GroupSession } from '@/hooks/useGroupSession';
-import { resultHasSecond, type ResultState } from '@/hooks/useResultState';
+import type { ResultState } from '@/hooks/useResultState';
 import type { RequestState } from '@/hooks/useRequestState';
 
 // localStorage 복원·저장. 복원 layout effect 3개의 선언 순서(결과→입력초안→그룹세션)는 동작에 영향을 주므로
 // (그룹세션 복원이 결과 복원의 view/step을 덮어써야 한다) 한 훅 안에 원래 순서대로 둔다.
-export function useHomePersistence({ flow, input, group, result: resultState }: {
+export function useHomePersistence({ flow, input, group, result: resultState, request }: {
   flow: RecommendFlow; input: RecommendInput; group: GroupSession; result: ResultState; request: RequestState;
 }) {
   const { view, setView, step, setStep, appMode, setAppMode, isGroup } = flow;
   const {
-    groupSize, setGroupSize, setCustomOccasion, setEtcRelOpen, setOccasionChip, locations, setLocations,
+    groupSize, setGroupSize, setCustomOccasion, setEtcRelOpen, setOccasionChip, locations, setLocations, setLocationsVersion,
     purpose, setPurpose, vibe, setVibe, budget, setBudget, meetingLocation, setMeetingLocation,
     keywords, setKeywords, conditions, setConditions, vibeCustom, setVibeCustom, customOccasion,
   } = input;
   const { sessionId, setSessionId, expectedCount, setExpectedCount } = group;
   const {
-    result, setResult, setResultThird, resultThird, setResultThirdLabel, resultThirdLabel, resultSecondMissing, setResultSecondMissing,
-    midpointData, setMidpointData, treasurer, setTreasurer, resultTravelTimes, setResultTravelTimes,
-    resultWeather, setResultWeather,
+    result, setResult, resultSecondMissing, setResultSecondMissing,
+    midpointData, setMidpointData, resultWeather, setResultWeather,
+    resultThird, setResultThird, resultThirdLabel, setResultThirdLabel, treasurer, setTreasurer,
+    resultTravelTimes, setResultTravelTimes,
   } = resultState;
+  const { setLoading, setLoadingProgress, loadingStartRef } = request;
   const lastSessionResultRef = useRef<string | null>(null); // 그룹 결과 세션 저장 중복 억제
 
   useEffect(() => {
@@ -35,42 +41,61 @@ export function useHomePersistence({ flow, input, group, result: resultState }: 
     }
   }, []);
 
-  // 마지막 추천 결과 복원 (새로고침·홈 이탈·앱 전환 후 재진입 시 추천이 증발하지 않게)
+  // 마지막 추천 결과 복원 (탭 이동·새로고침·앱 전환 후 재진입 시 추천이 증발하지 않게).
+  //  - 탭 이동(같은 탭 세션): 메모리에 든 화면 상태를 그대로 되살린다 — 서버·카카오 호출 없음
+  //  - 새로고침·재진입: 폰엔 추천 ID와 화면 상태만 있어, 서버 슬롯 → 카카오 재검색으로 채운다(그동안 로딩 화면)
   useLayoutEffect(() => {
-    try {
-      const saved = loadResultSnapshot() as {
-        result?: PlaceRecommendation[];
-        resultThird?: PlaceRecommendation | null;
-        resultThirdLabel?: string | null;
-        resultSecondMissing?: boolean;
-        purpose?: PurposeValue;
-        midpointData?: { midpoint: Coordinates; areaName: string; nearestAreas: string[] };
-        treasurer?: string;
-        meetingLocation?: MeetingLocation;
-        resultTravelTimes?: TravelTimeData;
-        resultWeather?: WeatherSummary;
-        vibe?: VibeState;
-        keywords?: string[];
-        conditions?: string[];
-      } | null;
-      if (!saved || !Array.isArray(saved.result) || saved.result.length === 0) return;
-      // 마운트 시 localStorage 스냅샷을 페인트 전에 복원(useLayoutEffect, 깜빡임 방지)
-      setResult(saved.result);
-      if (saved.resultThird) setResultThird(saved.resultThird);
-      if (saved.resultThirdLabel) setResultThirdLabel(saved.resultThirdLabel);
-      setResultSecondMissing(saved.resultSecondMissing === true);
-      if (saved.purpose) setPurpose(saved.purpose);
-      if (saved.midpointData) setMidpointData(saved.midpointData);
-      if (saved.treasurer) setTreasurer(saved.treasurer);
-      if (saved.meetingLocation) setMeetingLocation(saved.meetingLocation);
-      if (saved.resultTravelTimes) setResultTravelTimes(saved.resultTravelTimes);
-      if (saved.resultWeather) setResultWeather(saved.resultWeather);
-      if (saved.vibe) setVibe(migrateVibeState(saved.vibe));            // 개인화 배너 복원용
-      if (Array.isArray(saved.keywords)) setKeywords(saved.keywords);
-      if (Array.isArray(saved.conditions)) setConditions(saved.conditions);
+    const snap = loadResultSnapshot();
+    if (!snap) return;
+    // 살아 있는 그룹 세션이 다른 세션이면 그 대기 화면이 우선이다(그룹 세션 복원이 이어서 연다). 결과 복원은 하지 않는다.
+    if (otherGroupSessionAlive(snap.sessionId)) return;
+
+    const mem = recallResult(snap.recommendationId);
+    if (mem) {
+      setResult(mem.result);
+      setResultThird(mem.resultThird);
+      setResultThirdLabel(mem.resultThirdLabel);
+      setResultSecondMissing(mem.resultSecondMissing);
+      if (mem.midpointData) setMidpointData(mem.midpointData);
+      setTreasurer(mem.treasurer);
+      if (mem.meetingLocation) setMeetingLocation(mem.meetingLocation);
+      setResultTravelTimes(mem.resultTravelTimes);
+      setResultWeather(mem.resultWeather);
+      if (snap.purpose) setPurpose(snap.purpose);
+      if (snap.vibe) setVibe(migrateVibeState(snap.vibe));
+      if (Array.isArray(snap.keywords)) setKeywords(snap.keywords);
+      if (Array.isArray(snap.conditions)) setConditions(snap.conditions);
       setView('result');
-    } catch { /* 손상된 캐시는 무시 */ }
-  }, [setView, setResult, setResultThird, setResultThirdLabel, setResultSecondMissing, setPurpose, setMidpointData, setTreasurer, setMeetingLocation, setResultTravelTimes, setResultWeather, setVibe, setKeywords, setConditions]);
+      return;
+    }
+
+    if (snap.purpose) setPurpose(snap.purpose);
+    if (snap.vibe) setVibe(migrateVibeState(snap.vibe));            // 개인화 배너 복원용
+    if (Array.isArray(snap.keywords)) setKeywords(snap.keywords);
+    if (Array.isArray(snap.conditions)) setConditions(snap.conditions);
+    if (snap.resultWeather) setResultWeather(snap.resultWeather);
+    setView('result');
+    loadingStartRef.current = Date.now();
+    setLoadingProgress(60);
+    setLoading(true);
+    let alive = true;
+    restoreResultSnapshot(snap)
+      .then((r) => {
+        if (!alive) return;
+        setResult(r.places);
+        setResultSecondMissing(r.secondMissing);
+        setMidpointData(r.midpointData);
+        if (r.meetingLocation) setMeetingLocation(r.meetingLocation);
+      })
+      .catch((e) => {
+        if (!alive) return;
+        // 권한 없음·없는 추천(익명화·삭제)만 스냅샷을 지운다. 네트워크·한도 초과는 남겨 다음에 다시 시도한다.
+        if (e instanceof RecRestoreError && (e.status === 403 || e.status === 404)) clearResultSnapshot();
+        setView('steps');
+      })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [setView, setResult, setResultThird, setResultThirdLabel, setResultSecondMissing, setPurpose, setMidpointData, setTreasurer, setMeetingLocation, setResultTravelTimes, setResultWeather, setVibe, setKeywords, setConditions, setLoading, setLoadingProgress, loadingStartRef]);
 
   // 입력 초안 복원 — 결과가 없을 때만. 그룹도 링크 생성 전에는 서버 세션이 없으므로 로컬 초안에서 복원한다.
   useLayoutEffect(() => {
@@ -96,7 +121,10 @@ export function useHomePersistence({ flow, input, group, result: resultState }: 
       if (Array.isArray(d.keywords)) setKeywords(d.keywords);
       if (Array.isArray(d.conditions)) setConditions(d.conditions);
       if (d.vibeCustom) setVibeCustom(d.vibeCustom);
-      if (d.meetingLocation) setMeetingLocation(d.meetingLocation);
+      if (d.meetingLocation) {
+        setMeetingLocation(d.meetingLocation);
+        void resolveMeetingLocation(d.meetingLocation).then((loc) => { if (loc !== d.meetingLocation) setMeetingLocation(loc); });
+      }
       if (d.budget !== undefined) setBudget(d.budget);
       if (typeof d.customOccasion === 'string') setCustomOccasion(d.customOccasion);
       // 기타 콕! 자유입력 모드 복원 (occasion만 있고 relation 없으면 기타콕으로 입력한 것)
@@ -106,9 +134,16 @@ export function useHomePersistence({ flow, input, group, result: resultState }: 
         const chip = OCCASION_BY_RELATION[d.purpose.relation]?.find((c) => c.occasion === d.purpose.occasion);
         if (chip) setOccasionChip(chip.key);
       }
-      if (Array.isArray(d.locations)) setLocations(d.locations);
+      // 출발지는 검색어·ID만 저장돼 있다 — 다시 찾아 채우고 입력 칸을 다시 그린다
+      if (Array.isArray(d.origins) && d.origins.length > 0) {
+        void resolveOrigins(d.origins).then((list) => {
+          if (list.length === 0) return;
+          setLocations(list);
+          setLocationsVersion((v) => v + 1);
+        });
+      }
     } catch { /* 손상된 초안 무시 */ }
-  }, [setAppMode, setStep, setExpectedCount, setGroupSize, setPurpose, setVibe, setKeywords, setConditions, setVibeCustom, setMeetingLocation, setBudget, setCustomOccasion, setEtcRelOpen, setOccasionChip, setLocations]);
+  }, [setAppMode, setStep, setExpectedCount, setGroupSize, setPurpose, setVibe, setKeywords, setConditions, setVibeCustom, setMeetingLocation, setBudget, setCustomOccasion, setEtcRelOpen, setOccasionChip, setLocations, setLocationsVersion]);
 
   // 그룹 호스트 세션 복원 — 결과 스냅샷 유무와 무관하게 항상 복원한다.
   // 예전에는 결과가 있으면 통째로 skip했는데, 그러면 혼자 모드로 먼저 써본 유저(광고 유입은 거의 전부)가
@@ -133,7 +168,11 @@ export function useHomePersistence({ flow, input, group, result: resultState }: 
       setSessionId(g.sessionId);
       if (typeof g.expectedCount === 'number') setExpectedCount(g.expectedCount);
       if (g.purpose) setPurpose(g.purpose);              // 호스트가 정한 코스 복원
-      if (g.meetingLocation) setMeetingLocation(g.meetingLocation); // 호스트가 정한 지역 복원
+      if (g.meetingLocation) {                                      // 호스트가 정한 지역 복원(좌표는 다시 찾는다)
+        setMeetingLocation(g.meetingLocation);
+        const saved = g.meetingLocation;
+        void resolveMeetingLocation(saved).then((loc) => { if (loc !== saved) setMeetingLocation(loc); });
+      }
       setStep(2);                 // 공유·대기 화면(step 2)으로 되돌린다
       setAppMode('group');        // 폴링이 다시 붙어 멤버 현황을 서버에서 재수화한다
       // 살아있는 그룹 세션이 있으면 기본적으로 대기 화면을 연다. 예외는 '이 세션으로 이미 받은 결과'뿐.
@@ -149,7 +188,7 @@ export function useHomePersistence({ flow, input, group, result: resultState }: 
     if (appMode !== 'group' || !sessionId) return;
     try {
       localStorage.setItem(GROUP_SESSION_KEY, JSON.stringify({
-        savedAt: Date.now(), sessionId, expectedCount, purpose, meetingLocation,
+        savedAt: Date.now(), sessionId, expectedCount, purpose, meetingLocation: stripMeetingLocation(meetingLocation),
       }));
     } catch { /* 저장 실패는 치명적이지 않음 */ }
   }, [appMode, sessionId, expectedCount, purpose, meetingLocation]);
@@ -163,81 +202,69 @@ export function useHomePersistence({ flow, input, group, result: resultState }: 
       localStorage.setItem(INPUT_DRAFT_KEY, JSON.stringify({
         savedAt: Date.now(),
         appMode, step, groupSize, expectedCount, purpose, vibe, keywords, conditions, vibeCustom,
-        meetingLocation, budget, customOccasion, locations,
+        meetingLocation: stripMeetingLocation(meetingLocation), budget, customOccasion,
+        origins: stripOrigins(locations),   // 지명·좌표 대신 검색어·장소 ID(복원 때 재검색)
       }));
     } catch { /* 저장 실패는 치명적이지 않음 */ }
   }, [view, appMode, sessionId, step, groupSize, expectedCount, purpose, vibe, keywords, conditions, vibeCustom, meetingLocation, budget, customOccasion, locations]);
 
-  // 결과 화면 상태가 확정될 때마다 스냅샷 저장 (setState 커밋 이후라 stale closure 없음)
-  // + 같은 스냅샷을 localStorage 히스토리에도 적재 — 랜딩 "지난 추천"에서 그대로 복원
+  // 결과 화면 상태가 확정될 때마다 스냅샷 저장. 추천 ID와 화면 상태만 — 가게 정보·좌표·모델 문구·출발지 이름은 넣지 않는다.
+  // 저장되지 않은 추천(record 없음)은 되살릴 수 없으므로 스냅샷을 남기지 않는다.
   useEffect(() => {
     if (view !== 'result' || !result || result.length === 0) return;
-    const snapshot = {
-      result, resultThird, resultThirdLabel, resultSecondMissing, purpose, midpointData, treasurer, meetingLocation, resultTravelTimes, resultWeather, vibe, keywords, conditions,
+    const rec = result[0].record;
+    if (!rec) {
+      // 저장에 실패한 추천 — 예전 추천 스냅샷이 남아 있으면 나중에 그게 되살아나므로 지운다
+      clearResultSnapshot();
+      forgetResult();
+      return;
+    }
+    rememberResult({
+      recommendationId: rec.recommendationId, result, resultThird, resultThirdLabel, resultSecondMissing,
+      midpointData, treasurer, meetingLocation, resultTravelTimes, resultWeather,
+    });
+    saveResultSnapshot({
+      v: 2,
+      recommendationId: rec.recommendationId,
+      ...(rec.claimToken ? { claimToken: rec.claimToken } : {}),
+      resultSecondMissing,
+      purpose: purpose ?? undefined,
+      vibe,
+      keywords,
+      conditions,
+      meetingLocation: stripMeetingLocation(meetingLocation),
+      areaName: midpointData?.areaName ?? '',
+      nearestAreas: midpointData?.nearestAreas ?? [],
+      resultWeather,
       sessionId, // 이 결과가 '어느 그룹 세션의 것인지' — 재진입 시 대기 화면과 결과 화면 중 무엇을 열지 가른다
-    };
-    saveResultSnapshot(snapshot);
-    const hasSecondCourse = resultHasSecond(purpose, resultSecondMissing);
-    saveHistory({
-      savedAt: Date.now(),
-      placeName: result[0].placeName,
-      secondPlaceName: hasSecondCourse ? result[1]?.placeName ?? null : null,
-      areaName: midpointData?.areaName ?? null,
-      purposeFirst: purpose?.first ?? null,
-      snapshot,
     });
   }, [view, result, resultThird, resultThirdLabel, resultSecondMissing, purpose, midpointData, treasurer, meetingLocation, resultTravelTimes, resultWeather, vibe, keywords, conditions, sessionId]);
 
-  // 그룹 호스트가 추천을 받으면 결과 요약을 세션에 저장 → 게스트 done 화면이 폴링으로 수신(협업 루프 완결).
-  // enrich·재추천으로 결과가 바뀌면 자동 재저장. 실패는 무해(게스트가 못 볼 뿐, 카톡 공유로도 전달 가능).
+  // 그룹 호스트가 추천을 받으면 추천 ID를 세션에 전달(010) → 게스트 화면이 폴링으로 받아 재검색으로 복원.
+  // 가게 정보는 보내지 않는다. 재추천으로 추천이 바뀌면 새 ID를 다시 보낸다. 실패는 무해(카톡 공유로도 전달 가능).
   useEffect(() => {
     if (view !== 'result' || !isGroup || !sessionId || !result || result.length === 0) return;
-    const hasSecondCourse = resultHasSecond(purpose, resultSecondMissing);
-    // v:2 — 게스트 화면을 호스트와 동등하게 만들기 위해 신뢰 요소(사진·적합도·영업·해시태그·혼잡도)를 함께 실어 보낸다.
-    // 이미지 URL이 길어 페이로드가 커지므로 /api/session 결과 저장 상한(24KB)에 맞춰 vibeTags는 3개로 제한.
-    const slim = (p: PlaceRecommendation) => ({
-      placeName: p.placeName, category: p.category, description: p.description,
-      priceRange: p.priceRange, address: p.address, area: p.area,
-      lat: p.lat ?? null, lng: p.lng ?? null, kakaoPlaceUrl: p.kakaoPlaceUrl ?? null,
-      imageUrl: p.imageUrl ?? null,
-      vibeTags: Array.isArray(p.vibeTags) ? p.vibeTags.slice(0, 3) : [],
-      fitScore: p.fitScore ?? null,
-      openingHours: p.openingHours ?? null,
-      walkingToNext: p.walkingToNext ?? null,
-      congestionLevel: p.congestionLevel ?? null,
-    });
-    const summary = {
-      v: 2,
-      first: slim(result[0]),
-      second: hasSecondCourse && result[1] ? slim(result[1]) : null,
-      third: resultThird ? slim(resultThird) : null,
-      thirdLabel: resultThird ? (resultThirdLabel ?? '이어서') : null,
-      purposeFirst: purpose?.first ?? null,
-      purposeSecond: hasSecondCourse ? purpose?.second ?? null : null,
-      areaName: midpointData?.areaName ?? null,
-      // 총무 발표·날씨 — 호스트 결과에 있는 '재미/맥락' 요소를 게스트도 그대로 받는다(작은 필드).
-      treasurer: treasurer ?? null,
-      weather: resultWeather
-        ? { description: resultWeather.description, temp: resultWeather.temp, isRainy: resultWeather.isRainy }
-        : null,
-    };
-    // 서버 상한(24KB) 초과 시 이미지 URL부터 버리고 재직렬화 — 리치 화면 일부를 잃더라도
-    // 결과 전송 자체가 실패(게스트가 아무것도 못 봄)하는 최악을 막는다. 이미지 없이도 v:2 나머지는 유지.
-    let payload = summary;
-    let raw = JSON.stringify(summary);
-    if (raw.length > 23_000) {
-      const drop = (p: typeof summary.first | null) => (p ? { ...p, imageUrl: null } : p);
-      payload = { ...summary, first: drop(summary.first)!, second: drop(summary.second), third: drop(summary.third) };
-      raw = JSON.stringify(payload);
+    const rec = result[0].record;
+    if (!rec) {
+      // 추천 저장이 실패해 친구들에게 보낼 추천 ID가 없다 — 조용히 넘기면 게스트는 영원히 기다린다
+      const failKey = `${sessionId}:none:${result[0].kakaoPlaceId ?? result[0].placeName}`;
+      if (lastSessionResultRef.current === failKey) return;
+      lastSessionResultRef.current = failKey;
+      window.alert('친구들에게 결과를 전달하지 못했어요. 카카오톡 공유로 결과를 보내주세요.');
+      return;
     }
-    if (lastSessionResultRef.current === raw) return;
-    lastSessionResultRef.current = raw;
-    fetch('/api/session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'result', id: sessionId, result: payload }),
-    }).catch(() => { /* 실패 무해 */ });
-  }, [view, isGroup, sessionId, result, resultThird, resultThirdLabel, resultSecondMissing, purpose, midpointData, treasurer, resultWeather]);
+    const key = `${sessionId}:${rec.recommendationId}`;
+    if (lastSessionResultRef.current === key) return;
+    lastSessionResultRef.current = key;
+    void (async () => {
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
+      fetch('/api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ action: 'result', id: sessionId, recommendationId: rec.recommendationId, ...(rec.claimToken ? { claimToken: rec.claimToken } : {}) }),
+      }).catch(() => { /* 실패 무해 */ });
+    })();
+  }, [view, isGroup, sessionId, result]);
 
   useEffect(() => {
     if (view === 'result') {
@@ -249,4 +276,18 @@ export function useHomePersistence({ flow, input, group, result: resultState }: 
       }
     }
   }, [view]);
+}
+
+// 살아 있는(6시간 안) 그룹 세션이 이 스냅샷과 다른 세션인가
+function otherGroupSessionAlive(snapSessionId: string | null | undefined): boolean {
+  try {
+    const raw = localStorage.getItem(GROUP_SESSION_KEY);
+    if (!raw) return false;
+    const g = JSON.parse(raw) as { savedAt?: number; sessionId?: string };
+    if (!g.sessionId) return false;
+    if (typeof g.savedAt === 'number' && Date.now() - g.savedAt > GROUP_SESSION_TTL_MS) return false;
+    return g.sessionId !== snapSessionId;
+  } catch {
+    return false;
+  }
 }

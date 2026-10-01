@@ -8,6 +8,7 @@ import pilotFeedback from './_routes/pilot-feedback.js';
 import reserve from './_routes/reserve.js';
 import session from './_routes/session.js';
 import shareVote from './_routes/share-vote.js';
+import restore from './_routes/restore.js';
 
 // /api/* 전부를 받는 유저 함수. Hobby 플랜은 함수 12개가 상한이라 엔드포인트별 파일 대신 하나로 모은다.
 // 핸들러 본문은 api/_routes/, 어드민은 api/admin/[...path].ts.
@@ -25,6 +26,7 @@ const ROUTES: Record<string, Handler> = {
   reserve,
   session,
   'share-vote': shareVote,
+  restore,
   // vercel.json rewrite를 타는 옛 경로
   'session-create': session,
   'session-join': session,

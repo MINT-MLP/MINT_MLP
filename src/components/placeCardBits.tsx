@@ -6,6 +6,7 @@ import { cn } from '@/utils/cn';
 import { safeKakaoPlaceUrl } from '@/utils/sharePayload';
 import type { PlaceRecommendation } from '@/types';
 import { trackEvent } from '@/services/analytics';
+import { recordSlotAction } from '@/services/slotAction';
 import { findCertifications } from '@/constants/certifications';
 import { Icon } from '@/components/icons';
 
@@ -85,7 +86,8 @@ export function kakaoUrl(place: { placeName: string; lat?: number | null; lng?: 
 export type PlaceClickEvent = 'place_click_rank1' | 'place_click_second' | 'place_click_candidate' | 'place_click_third';
 export function openPlace(url: string, type: PlaceClickEvent, place?: PlaceRecommendation) {
   // payload: 어떤 장소를 실제 선택했나. session_key로 recommendation_log의 노출 순위와 대비하면 랭킹 정답 레이블.
-  trackEvent(type, place ? { placeName: place.placeName, address: place.address, priceRange: place.priceRange, fitScore: place.fitScore } : undefined);
+  trackEvent(type, place ? { place_id: place.kakaoPlaceId ?? null, slot_id: place.record?.slotId ?? null } : undefined);
+  recordSlotAction(place?.record?.slotId, 'map_open');
   window.open(url, '_blank');
 }
 

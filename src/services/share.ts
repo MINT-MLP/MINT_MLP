@@ -1,5 +1,6 @@
 // 결과 공유 — 스냅샷 저장(짧은 링크) + 카카오톡 공유 시트 + 폴백(네이티브 공유/클립보드)
 import { trackEvent } from '@/services/analytics';
+import { supabase } from '@/services/supabase';
 
 // 공유 투표용 ID (세션 아님 — 공유 클릭마다 새로 발급)
 const SHARE_ID_CHARS = 'abcdefghijkmnpqrstuvwxyz23456789';
@@ -9,21 +10,22 @@ export function newShareId(): string {
   return s;
 }
 
-// 공유 결과 스냅샷을 서버에 저장 — 1.5초 안에 ok:true여야 짧은 링크(/shared?id=)를 쓴다.
-// 실패·타임아웃·오프라인·테이블 미생성(disabled)이면 false → 호출부가 레거시 ?data= URL로 폴백.
-export async function saveShareSnapshot(shareId: string, payload: object): Promise<boolean> {
+// 공유 링크 저장(010) — 가게 정보 대신 저장된 추천 ID만 서버에 남긴다. 4초 안에 ok:true여야 짧은 링크를 쓴다.
+// 내 추천인지 서버가 확인한다(회원 토큰 또는 비회원 일회용 토큰). 실패하면 호출부가 레거시 ?data= URL로 폴백.
+export async function saveShareLink(shareId: string, recommendationId: number, claimToken?: string): Promise<boolean> {
   if (navigator.onLine === false) return false;
   try {
+    const token = (await supabase.auth.getSession()).data.session?.access_token;
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 1500);
+    // 서버가 레이트리밋·회원 확인·소유 확인을 거쳐 1.5초로는 빠듯하다(콜드 스타트 포함). 넘기면 1차만 담긴 옛 링크로 폴백
+    const t = setTimeout(() => ctrl.abort(), 4000);
     const res = await fetch('/api/share-vote', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'snapshot', shareId, payload }),
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ type: 'link', shareId, recommendationId, ...(claimToken ? { claimToken } : {}) }),
       signal: ctrl.signal,
     });
-    // clearTimeout은 본문 파싱까지 끝난 뒤에 — 느린 망에서 바디 읽기가 1.5초를 넘기면 abort되어
-    // json이 실패(→null→false→레거시 링크 폴백)하도록. 먼저 해제하면 바디 읽기가 무제한 대기됨.
+    // clearTimeout은 본문 파싱까지 끝난 뒤에 — 느린 망에서 바디 읽기가 늘어지면 abort되어 폴백하도록.
     if (!res.ok) { clearTimeout(t); return false; }
     const d = await res.json().catch(() => null);
     clearTimeout(t);

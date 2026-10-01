@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { memberIdFromRequest } from '../_lib/recordRecommendation.js';
+import { ownsRecommendation } from '../_lib/recAccess.js';
 import { clientIp, checkRateLimit } from '../_lib/guard.js';
 
 // ── 그룹 세션 단일 엔드포인트 ────────────────────────────────────────────────
@@ -50,7 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   //    세 바디의 판별 키는 실측상 상호 배타적이다.
   //    result 판별에 id를 쓰지 않는 이유: id는 너무 흔해 오판 위험이 크다.
   if (body.session_id !== undefined) return handleJoin(req, res, supabase);
-  if (body.result !== undefined) return handleResult(req, res, supabase);
+  if (body.recommendationId !== undefined) return handleResult(req, res, supabase);
   if (body.expected_count !== undefined) return handleCreate(req, res, supabase);
 
   // 옛 create는 빈 바디도 기본값 2로 만들어줬지만, 여기선 400이다.
@@ -339,38 +341,31 @@ async function handleJoin(req: VercelRequest, res: VercelResponse, supabase: Sup
 // ── result: 호스트가 그룹 추천 결과 요약을 세션에 저장(게스트 폴링이 수신) ──
 // 구 api/session-get.ts의 POST 분기 — 별도 함수가 아니었다.
 async function handleResult(req: VercelRequest, res: VercelResponse, supabase: SupabaseClient) {
-  const body = (req.body ?? {}) as { id?: string; result?: unknown };
+  // 호스트 추천 결과 전달 — 가게 정보 대신 추천 ID(010). 게스트는 /api/restore로 재검색 복원한다.
+  // 호스트 본인 추천인지(회원 토큰 또는 일회용 토큰) 확인해 남의 결과로 덮어쓰지 못하게 한다.
+  const body = (req.body ?? {}) as { id?: string; recommendationId?: unknown; claimToken?: unknown };
   const sid = String(body.id ?? '');
-  if (!/^[a-z0-9]{4,32}$/.test(sid)) return res.status(400).json({ error: '잘못된 요청이에요.' });
-  const result = body.result;
-  if (!result || typeof result !== 'object' || Array.isArray(result)) {
+  const recId = Number(body.recommendationId);
+  if (!/^[a-z0-9]{4,32}$/.test(sid) || !Number.isInteger(recId) || recId <= 0) {
     return res.status(400).json({ error: '잘못된 요청이에요.' });
   }
-  let raw = '';
-  try { raw = JSON.stringify(result); } catch { /* noop */ }
-  // 24KB — v:2 요약은 3개 장소 × (긴 네이버 썸네일 URL + 해시태그)가 실려 10KB를 넘을 수 있다.
-  if (!raw || raw.length > 24_000) return res.status(400).json({ error: '결과 데이터가 너무 커요.' });
 
-  // 일일 상한을 IP 단위로 잰다. 이 엔드포인트는 호스트 1회 추천당 약 2번 불리고 비용이 0인데,
-  // 엔드포인트 전체 합계로 재면 하루 약 1000팀이면 상한에 닿아 그 뒤 모든 호스트의
-  // 결과 전달이 조용히 429가 된다 — 게스트는 이유도 모른 채 영원히 대기 화면을 본다.
+  // 일일 상한을 IP 단위로 잰다 — 엔드포인트 합계로 재면 팀이 몰린 날 모든 호스트의 결과 전달이 막힌다.
   const gate = await checkRateLimit(supabase, 'session-result', clientIp(req), 10, 2000, 'ip');
   if (!gate.allowed) return res.status(429).json({ error: '잠시 후 다시 시도해주세요.' });
 
-  // .select('id')로 "실제 몇 행이 갱신됐는지"를 받는다. update는 0행이어도 에러가 아니라서
-  // 예전엔 존재하지도 않는 세션 id에 저장해도 {ok:true}가 나갔다 — 호스트는 성공했다고 믿는다.
-  // 한계: 이 검사는 "세션이 있는가"만 본다. 호스트 토큰 인증이 아직 없어
-  //       링크(=세션 id)를 가진 사람은 여전히 남의 결과를 덮어쓸 수 있다.
-  let upd = await supabase.from('mint_sessions')
-    .update({ result_json: result, result_at: new Date().toISOString() })
+  const memberId = await memberIdFromRequest(supabase, req.headers.authorization);
+  if (!(await ownsRecommendation(supabase, recId, memberId, body.claimToken))) {
+    return res.status(403).json({ error: '전달할 수 없는 추천이에요.' });
+  }
+
+  const upd = await supabase.from('mint_sessions')
+    .update({ recommendation_id: recId, result_at: new Date().toISOString() })
     .eq('id', sid)
     .select('id');
-  if (upd.error?.code === '42703') {
-    upd = await supabase.from('mint_sessions').update({ result_json: result }).eq('id', sid).select('id');
-  }
   if (upd.error) {
-    if (upd.error.code !== '42703') console.error('[session-get] result save failed', upd.error);
-    return res.status(200).json({ ok: false, disabled: true }); // 컬럼 미생성 등 — 조용히 off
+    console.error('[session] result save failed', upd.error);
+    return res.status(200).json({ ok: false, disabled: true });
   }
   if (!upd.data || upd.data.length === 0) {
     return res.status(404).json({ error: '세션을 찾을 수 없어요.' });
@@ -480,7 +475,11 @@ async function handleGet(req: VercelRequest, res: VercelResponse, supabase: Supa
         : [],
     }));
 
+    // 010 이후 결과는 추천 ID로 전달된다(옛 세션은 result_json)
+    const { data: recRow } = await supabase.from('mint_sessions').select('recommendation_id').eq('id', id).maybeSingle();
+
     return res.status(200).json({
+      recommendation_id: (recRow as { recommendation_id: number | null } | null)?.recommendation_id ?? null,
       expected_count: session.expected_count,
       has_second: (session as Record<string, unknown>).has_second ?? false,
       result_json: (session as Record<string, unknown>).result_json ?? null,

@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
 import { getDeviceId } from '@/storage/device';
 import { getBalance, getLedger } from '@/storage/points';
-import { loadHistory, openHistoryEntry } from '@/storage/history';
 import { signInWithKakao, signOut, syncProfile, deleteAccount } from '@/services/auth';
 import { clearMemberCache } from '@/services/memberData';
 import { useUserStore } from '@/stores/userStore';
 import { Icon, IconUserCircle, IconGift, PointsBadge } from '@/components';
 import { MemberHistoryList, MemberWishList } from '@/components/MemberPlaces';
-import type { HistoryEntry } from '@/types';
 
 // 문의는 메일 대신 카카오톡 오픈채팅으로 받는다(답장 속도·피드백 수집).
 const CONTACT_URL = 'https://open.kakao.com/o/skLK6YGi';
@@ -22,7 +20,6 @@ export default function Profile({ onChromeChange }: Props) {
   const [balance] = useState(() => getBalance());
   const [ledger] = useState(() => getLedger());
   const [deviceId] = useState(() => getDeviceId());
-  const [history] = useState<HistoryEntry[]>(() => loadHistory());
   const [pushOn, setPushOn] = useState(true);
   const [marketingOn, setMarketingOn] = useState(false);
   const ready = useUserStore((s) => s.ready);
@@ -119,30 +116,6 @@ export default function Profile({ onChromeChange }: Props) {
           <MemberHistoryList key={`h-${userId}`} onSheetChange={(open) => onChromeChange?.(!open)} />
           <p className="mt-6 px-1 mb-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">찜한 곳</p>
           <MemberWishList key={`w-${userId}`} />
-        </>
-      )}
-
-      {/* 비회원: 이 기기의 지난 추천(저장 정리 작업 때 걷어낸다) */}
-      {ready && !user && history.length > 0 && (
-        <>
-          <p className="mt-6 px-1 mb-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">지난 추천</p>
-          <div className="flex flex-col gap-2">
-            {history.slice(0, 3).map((h) => (
-              <button
-                key={h.savedAt}
-                onClick={() => openHistoryEntry(h)}
-                className="w-full text-left rounded-2xl border border-gray-100 bg-white px-4 py-3 active:scale-[0.99] transition-transform"
-              >
-                <p className="text-sm font-black text-gray-800 truncate">
-                  {h.placeName}{h.secondPlaceName ? ` → ${h.secondPlaceName}` : ''}
-                </p>
-                <p className="mt-0.5 text-xs text-gray-400 truncate">
-                  {h.areaName ? `${h.areaName} · ` : ''}
-                  {new Date(h.savedAt).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
-                </p>
-              </button>
-            ))}
-          </div>
         </>
       )}
 

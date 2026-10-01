@@ -1,3 +1,5 @@
+import type { SlotRef } from '@/types/share';
+
 // 그룹 약속 — 세션 참여자와 호스트→게스트 결과 전달 계약
 
 // mint_session_members 행 (서버 응답 모양)
@@ -20,6 +22,7 @@ export interface GroupResultPlace {
   address?: string; area?: string; lat?: number | null; lng?: number | null; kakaoPlaceUrl?: string | null;
   imageUrl?: string | null; vibeTags?: string[]; fitScore?: number | null;
   openingHours?: string | null; walkingToNext?: number | null; congestionLevel?: string | null;
+  kakaoPlaceId?: string; shareSlot?: SlotRef;
 }
 
 export interface GroupResult {

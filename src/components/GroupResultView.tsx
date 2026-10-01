@@ -226,7 +226,7 @@ export default function GroupResultView({
             href={directionsUrl}
             target="_blank"
             rel="noreferrer"
-            onClick={() => trackEvent('guest_directions_click', { device_id: getDeviceId(), place_key: `${f.placeName}|${f.address ?? ''}` })}
+            onClick={() => trackEvent('guest_directions_click', { device_id: getDeviceId(), place_id: f.kakaoPlaceId ?? null })}
             className="flex-1 py-2.5 rounded-2xl bg-white border border-gray-200 text-gray-600 font-bold text-sm flex items-center justify-center gap-1.5 hover:border-mint-500 hover:text-mint-600 transition-all active:scale-95"
           >
             <Icon name="compass" className="text-base" /><span>길찾기</span>
@@ -241,7 +241,7 @@ export default function GroupResultView({
 
         {/* 방문 인증 → 500P (추천→실제 방문 전환 씨앗) — 실제 방문자의 다수는 게스트다 */}
         <button
-          onClick={() => { trackEvent('visit_cert_open', { device_id: getDeviceId(), place_key: `${f.placeName}|${f.address ?? ''}`, source: 'shared' }); setVisitPlace(f); }}
+          onClick={() => { trackEvent('visit_cert_open', { device_id: getDeviceId(), place_id: f.kakaoPlaceId ?? null, source: 'shared' }); setVisitPlace(f); }}
           className="w-full py-3 rounded-2xl bg-mint-100 border-2 border-mint-500/40 text-mint-600 font-black text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
         >
           <Icon name="pin" className="text-lg" />

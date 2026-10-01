@@ -8,6 +8,8 @@ export function useRecommendInput() {
   const [etcRelOpen, setEtcRelOpen] = useState(false); // '기타 콕!' 자유입력 모드
   const [occasionChip, setOccasionChip] = useState<string | null>(null); // 스텝2 2층에서 고른 '특별한 날' 칩 key(선택 표시용)
   const [locations, setLocations] = useState<LocationEntry[]>([]);
+  // 출발지 입력 칸은 처음 그릴 때만 값을 읽는다 — 저장본 복원(재검색)이 끝나면 이 값을 올려 칸을 다시 그린다
+  const [locationsVersion, setLocationsVersion] = useState(0);
   // 그룹 전용: locations와 같은 순서의 '사람 이름' 목록. locations[].name은 지명(프롬프트·총무용)이라
   // 이동시간 표에 쓸 label을 여기 따로 들고 있는다. 혼자 모드에서는 항상 null(= locations[].name 사용).
   const [groupTravelLabels, setGroupTravelLabels] = useState<string[] | null>(null);
@@ -38,7 +40,7 @@ export function useRecommendInput() {
 
   return {
     groupSize, setGroupSize, customOccasion, setCustomOccasion, etcRelOpen, setEtcRelOpen,
-    occasionChip, setOccasionChip, locations, setLocations, groupTravelLabels, setGroupTravelLabels,
+    occasionChip, setOccasionChip, locations, setLocations, locationsVersion, setLocationsVersion, groupTravelLabels, setGroupTravelLabels,
     purpose, setPurpose, vibe, setVibe, budget, setBudget, meetingLocation, setMeetingLocation,
     keywords, setKeywords, conditions, setConditions, vibeCustom, setVibeCustom,
     reset,

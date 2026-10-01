@@ -10,6 +10,8 @@
 --   2026-09-30  004 회원 데이터(1-1), 004-15 보완, 005 안 쓰는 테이블 정리(단계별), 006 익명 로그인 제거,
 --               007 004 보완(비회원 슬롯 행동 판정, 정리 경합), 008 추천 자동 저장(save_recommendation),
 --               009 비회원 추천을 로그인 뒤 계정으로(claim_recommendation)
+--   2026-10-01  010 공유·그룹 결과를 추천 ID로, 공유·그룹 화면 회원 찜(wish_from_slot), 만료 정리(cleanup_expired)
+--               011 010 보완(찜 복사 최소화, 투표 직접 조회 권한, 투표 가게명 삭제는 배포 후)
 -- ═══════════════════════════════════════════════════════════════════════════
 
 
@@ -632,6 +634,7 @@ $fn$;
 revoke all on function public.prune_recommendations(int, int) from public, anon, authenticated;
 
 -- 매일 실행. Database → Extensions에서 pg_cron을 켠 뒤:
+-- (실행하지 말 것 — 010-5 cleanup-expired 예약이 prune까지 함께 돌린다)
 -- select cron.schedule('prune-recommendations', '10 4 * * *', 'select public.prune_recommendations()');
 
 
@@ -1036,3 +1039,214 @@ $fn$;
 
 revoke all on function public.claim_recommendation(bigint, text) from public, anon;
 grant execute on function public.claim_recommendation(bigint, text) to authenticated;
+
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- 010. 공유·그룹 결과를 추천 기록 ID로 (4번 저장 정리 1단계, 10-01)
+-- 공유 링크·그룹 결과가 가게 정보 덩어리(JSON) 대신 추천 기록(008)을 가리킨다. 여는 쪽은 재검색으로 복원한다.
+-- 옛 mint_share_snapshots·mint_sessions.result_json은 더 쓰지 않는다(옛 링크는 7일 안에 정리).
+-- ───────────────────────────────────────────────────────────────────────────
+
+-- 010-1. 공유 링크
+create table if not exists public.share_link (
+  id                 varchar(40) primary key,
+  recommendation_id  bigint not null references public.recommendation (id) on delete cascade,
+  created_at         timestamptz not null default now(),
+  expires_at         timestamptz not null default now() + interval '7 days'
+);
+
+comment on table  public.share_link                   is '공유 링크';
+comment on column public.share_link.id                is '공유 ID(링크의 ?id=)';
+comment on column public.share_link.recommendation_id is '공유한 추천';
+comment on column public.share_link.created_at        is '생성일시';
+comment on column public.share_link.expires_at        is '만료일시. 지나면 정리 작업이 지운다';
+
+create index if not exists share_link_rec_idx on public.share_link (recommendation_id);
+create index if not exists share_link_expires_idx on public.share_link (expires_at);
+
+-- 서버(API)만 읽고 쓴다
+alter table public.share_link enable row level security;
+
+
+-- 010-2. 그룹 결과는 추천 ID로
+alter table public.mint_sessions add column if not exists recommendation_id bigint references public.recommendation (id) on delete set null;
+comment on column public.mint_sessions.recommendation_id is '호스트가 받은 추천. 게스트는 이것으로 재검색 복원(result_json 대체)';
+
+
+-- 010-3. 투표에서 가게 이름을 뺀다 → 011-3으로 옮김(배포 뒤에 실행해야 옛 코드의 투표가 실패하지 않는다)
+
+
+-- 010-4. 공유·그룹 화면에서 회원 찜. 남의 추천이면 검색 조건을 내 것으로 복사한다(출발지는 복사하지 않는다 — 남의 준식별 정보).
+-- 그 공유 링크(만료 전)나 그룹 세션이 실제로 이 추천을 가리킬 때만 허용한다.
+create or replace function public.wish_from_slot(p_slot bigint, p_share text default null, p_session text default null)
+returns bigint
+language plpgsql
+security definer
+set search_path = ''
+as $fn$
+declare
+  v_uid uuid := auth.uid();
+  v_rec bigint;
+  v_owner uuid;
+  v_cond bigint;
+  s record;
+begin
+  if v_uid is null then
+    return null;
+  end if;
+
+  select sl.*, r.user_id as owner, r.condition_id as rec_cond into s
+  from public.recommendation_slot sl
+  join public.recommendation r on r.id = sl.recommendation_id
+  where sl.id = p_slot;
+  if not found then
+    return null;
+  end if;
+  v_rec := s.recommendation_id;
+  v_owner := s.owner;
+
+  if not (
+    (p_share is not null and exists (
+      select 1 from public.share_link l where l.id = p_share and l.recommendation_id = v_rec and l.expires_at > now()))
+    or (p_session is not null and exists (
+      select 1 from public.mint_sessions m where m.id = p_session and m.recommendation_id = v_rec))
+  ) then
+    return null;
+  end if;
+
+  if v_owner = v_uid then
+    v_cond := s.rec_cond;
+  else
+    insert into public.search_condition (
+      user_id, mode, group_size, first_purpose, first_category_path, second_purpose, second_category_path,
+      relation, occasion, budget, area_type, area_label, area_query, region_level
+    )
+    select v_uid, c.mode, c.group_size, c.first_purpose, c.first_category_path, c.second_purpose, c.second_category_path,
+           c.relation, c.occasion, c.budget, c.area_type, c.area_label, c.area_query, c.region_level
+    from public.search_condition c where c.id = s.rec_cond
+    returning id into v_cond;
+  end if;
+
+  insert into public.wishlist (user_id, kakao_place_id, condition_id, course, search_kind, search_query, search_page, search_radius)
+  values (v_uid, s.kakao_place_id, v_cond, s.course, s.search_kind, s.search_query, s.search_page, s.search_radius)
+  on conflict (user_id, kakao_place_id) do nothing;
+
+  return v_cond;
+end;
+$fn$;
+
+revoke all on function public.wish_from_slot(bigint, text, text) from public, anon;
+grant execute on function public.wish_from_slot(bigint, text, text) to authenticated;
+
+
+-- 010-5. 만료 정리(매일). 공유·그룹 7일, 옛 스냅샷 7일, api_hits 2일(레이트리밋은 오늘 것만 본다),
+-- client_errors 30일, 지난 추천 90일·20건 익명화(004 prune).
+create or replace function public.cleanup_expired()
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $fn$
+declare
+  n_share int; n_votes int; n_snap int; n_sess int; n_hits int; n_err int; n_rec int;
+begin
+  delete from public.share_link where expires_at < now();
+  get diagnostics n_share = row_count;
+  delete from public.mint_share_votes where created_at < now() - interval '7 days';
+  get diagnostics n_votes = row_count;
+  delete from public.mint_share_snapshots where created_at < now() - interval '7 days';
+  get diagnostics n_snap = row_count;
+  delete from public.mint_sessions where created_at < now() - interval '7 days';
+  get diagnostics n_sess = row_count;
+  delete from public.api_hits where ts < now() - interval '2 days';
+  get diagnostics n_hits = row_count;
+  delete from public.client_errors where created_at < now() - interval '30 days';
+  get diagnostics n_err = row_count;
+  n_rec := public.prune_recommendations();
+  return jsonb_build_object('share_link', n_share, 'votes', n_votes, 'snapshots', n_snap, 'sessions', n_sess,
+                            'api_hits', n_hits, 'client_errors', n_err, 'recommendations_anonymized', n_rec);
+end;
+$fn$;
+
+revoke all on function public.cleanup_expired() from public, anon, authenticated;
+
+-- 매일 실행. Database → Extensions에서 pg_cron을 켠 뒤(004-14의 prune 예약은 이것으로 대체):
+-- pg_cron은 UTC 기준 — '10 19 * * *' = 한국 시간 새벽 4시 10분. 010·011 실행 뒤에 등록한다.
+-- select cron.schedule('cleanup-expired', '10 19 * * *', 'select public.cleanup_expired()');
+-- 확인: select * from cron.job;  결과 기록: select * from cron.job_run_details order by start_time desc limit 5;
+
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- 011. 010 보완 (10-01 코드리뷰)
+-- ───────────────────────────────────────────────────────────────────────────
+
+-- 011-1. 공유·그룹 화면 찜: 남의 조건은 복원에 필요한 칸만 복사한다(관계·특별한 날 직접 입력·예산·종류 경로는 남의 입력이라 복사 안 함).
+-- 이미 찜한 가게면 복사 없이 끝낸다(켰다 껐다 반복해도 조건 행이 쌓이지 않게).
+create or replace function public.wish_from_slot(p_slot bigint, p_share text default null, p_session text default null)
+returns bigint
+language plpgsql
+security definer
+set search_path = ''
+as $fn$
+declare
+  v_uid uuid := auth.uid();
+  v_cond bigint;
+  s record;
+begin
+  if v_uid is null then
+    return null;
+  end if;
+
+  select sl.*, r.user_id as owner, r.condition_id as rec_cond into s
+  from public.recommendation_slot sl
+  join public.recommendation r on r.id = sl.recommendation_id
+  where sl.id = p_slot;
+  if not found then
+    return null;
+  end if;
+
+  if not (
+    (p_share is not null and exists (
+      select 1 from public.share_link l where l.id = p_share and l.recommendation_id = s.recommendation_id and l.expires_at > now()))
+    or (p_session is not null and exists (
+      select 1 from public.mint_sessions m where m.id = p_session and m.recommendation_id = s.recommendation_id))
+  ) then
+    return null;
+  end if;
+
+  select w.condition_id into v_cond from public.wishlist w where w.user_id = v_uid and w.kakao_place_id = s.kakao_place_id;
+  if v_cond is not null then
+    return v_cond;
+  end if;
+
+  if s.owner = v_uid then
+    v_cond := s.rec_cond;
+  else
+    insert into public.search_condition (user_id, mode, group_size, first_purpose, second_purpose, area_type, area_label, area_query, region_level)
+    select v_uid, c.mode, c.group_size, c.first_purpose, c.second_purpose, c.area_type, c.area_label, c.area_query, c.region_level
+    from public.search_condition c where c.id = s.rec_cond
+    returning id into v_cond;
+  end if;
+
+  insert into public.wishlist (user_id, kakao_place_id, condition_id, course, search_kind, search_query, search_page, search_radius)
+  values (v_uid, s.kakao_place_id, v_cond, s.course, s.search_kind, s.search_query, s.search_page, s.search_radius)
+  on conflict (user_id, kakao_place_id) do nothing;
+
+  return v_cond;
+end;
+$fn$;
+
+revoke all on function public.wish_from_slot(bigint, text, text) from public, anon;
+grant execute on function public.wish_from_slot(bigint, text, text) to authenticated;
+
+
+-- 011-2. 투표 집계를 브라우저가 Supabase에서 직접 읽는다(Vercel 함수 호출 없이). 공유 ID와 선택 번호만 — 투표자 ID는 못 읽는다.
+revoke select on public.mint_share_votes from anon, authenticated;
+grant select (share_id, choice) on public.mint_share_votes to anon, authenticated;
+drop policy if exists mint_share_votes_read on public.mint_share_votes;
+create policy mint_share_votes_read on public.mint_share_votes
+  for select to anon, authenticated using (true);
+
+
+-- 011-3. (배포 뒤에 실행) 투표에서 가게 이름 칸을 지운다. 배포 전에 지우면 그 사이 옛 코드의 투표 저장이 실패한다.
+-- alter table public.mint_share_votes drop column if exists place_name;

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { MOCK_MEETINGS, type MockMeeting } from '@/pages/mock/data/meetings';
+import type { MockMeeting } from '@/pages/mock/data/meetings';
+import { loadMeetings } from '@/pages/mock/data/sources';
 import { getPlanFrame, isPreregistered, planPriceLabel } from '@/storage/treasurerPlan';
 import { getDeviceId } from '@/storage/device';
 import { trackEvent } from '@/services/analytics';
@@ -42,8 +43,9 @@ export default function MyMeetings({ onGoHome, onChromeChange }: Props) {
     onChromeChange?.(!showPlanSheet);
   }, [showPlanSheet, onChromeChange]);
 
-  const upcoming = MOCK_MEETINGS.filter((m) => m.status !== 'past');
-  const past = MOCK_MEETINGS.filter((m) => m.status === 'past');
+  const [meetings] = useState(loadMeetings);
+  const upcoming = meetings.filter((m) => m.status !== 'past');
+  const past = meetings.filter((m) => m.status === 'past');
 
   return (
     <div className="max-w-md mx-auto px-5 pt-[max(1.5rem,env(safe-area-inset-top))]">

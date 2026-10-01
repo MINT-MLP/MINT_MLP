@@ -3,7 +3,7 @@ import { getWishlist, removeWish, wishMapLink, buildMapLink, isWished } from '@/
 import { getDeviceId } from '@/storage/device';
 import { placeKey } from '@/storage/points';
 import { trackEvent } from '@/services/analytics';
-import { MOCK_GEMS } from '@/pages/mock/data/gems';
+import { loadGems } from '@/pages/mock/data/sources';
 import { WishlistButton, IconCompass, IconMapPin, IconCheck, IconChevronDown, IconCup, IconUtensils } from '@/components';
 import type { WishItem } from '@/types';
 
@@ -164,6 +164,7 @@ function CategoryThumb({ category, size = 'md' }: { category?: string | null; si
 
 // 발굴 탭 — 내가 찜한 곳 + 오늘의 원석. 찜은 결과 화면과 같은 localStorage를 공유한다.
 export default function Discover() {
+  const [gems] = useState(loadGems);
   const [items, setItems] = useState<WishItem[]>(() => getWishlist());
   const [showAllWishes, setShowAllWishes] = useState(false);
   const [showAllGems, setShowAllGems] = useState(false);
@@ -178,8 +179,8 @@ export default function Discover() {
   }
 
   const shownWishes = showAllWishes ? items : items.slice(0, WISH_PREVIEW);
-  const shownGems = showAllGems ? MOCK_GEMS : MOCK_GEMS.slice(0, GEM_PREVIEW);
-  const restGems = MOCK_GEMS.length - GEM_PREVIEW;
+  const shownGems = showAllGems ? gems : gems.slice(0, GEM_PREVIEW);
+  const restGems = Math.max(0, gems.length - GEM_PREVIEW);
 
   return (
     <div className="max-w-md mx-auto px-5 pt-[max(1.5rem,env(safe-area-inset-top))]">

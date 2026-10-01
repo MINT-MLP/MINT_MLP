@@ -1,16 +1,17 @@
 import { supabase } from '@/services/supabase';
+import { recordSlotAction } from '@/services/slotAction';
 import { useUserStore } from '@/stores/userStore';
 import {
   resolveCenter, findById, defaultRestoreDeps, type StoredCondition, type RestoredPlace,
 } from '@/services/restore';
-import type { PlaceRecord, SearchSource } from '@/types';
+import type { PlaceRecord, SearchSource, SlotRef } from '@/types';
 
 // 회원 데이터(v2-schema 004): 지난 추천·찜. 권한은 DB(RLS)가 본인 것만 보여준다.
 // 화면에 쓰는 가게 이름·주소는 매번 카카오 재검색으로 복원하고 저장하지 않는다.
 
 export const HISTORY_LIMIT = 20;
 
-interface ConditionRow extends StoredCondition {
+export interface ConditionRow extends StoredCondition {
   id: number;
   first_purpose: string;
   second_purpose: string | null;
@@ -142,6 +143,7 @@ export async function addWish(placeId: string, rec: PlaceRecord): Promise<boolea
   if (error && error.code !== '23505') return false;
   listCache.delete(`${uid}:wishlist`);
   (await wishedIds().catch(() => null))?.add(placeId);
+  recordSlotAction(rec.slotId, 'wish');
   return true;
 }
 
@@ -152,6 +154,19 @@ export async function removeWish(placeId: string): Promise<boolean> {
   if (error) return false;
   listCache.delete(`${uid}:wishlist`);
   (await wishedIds().catch(() => null))?.delete(placeId);
+  return true;
+}
+
+// 공유·그룹 화면의 가게를 내 찜으로(010 wish_from_slot). 남의 추천이면 서버가 검색 조건을 내 것으로 복사한다.
+export async function wishFromSlot(placeId: string, ref: SlotRef): Promise<boolean> {
+  const uid = userId();
+  if (!uid) return false;
+  const { data, error } = await supabase.rpc('wish_from_slot', {
+    p_slot: ref.slotId, p_share: ref.shareId ?? null, p_session: ref.sessionId ?? null,
+  });
+  if (error || data === null) return false;
+  listCache.delete(`${uid}:wishlist`);
+  (await wishedIds().catch(() => null))?.add(placeId);
   return true;
 }
 
@@ -189,8 +204,9 @@ const RESTORE_CONCURRENCY = 3;
 const restoredCache = new Map<string, RestoredPlace | null>();
 const centerCache = new Map<number, Promise<{ lat: number; lng: number } | null>>();
 
+// center: 서버가 계산해 준 검색 중심(공유·그룹의 자동 중간지점). 있으면 조건으로 다시 계산하지 않는다.
 export async function restorePlaces(
-  items: { key: string; placeId: string; condition: ConditionRow; source: SearchSource }[],
+  items: { key: string; placeId: string; condition: ConditionRow; source: SearchSource; center?: { lat: number; lng: number } | null }[],
 ): Promise<Map<string, RestoredPlace | null>> {
   const deps = await defaultRestoreDeps();
   const out = new Map<string, RestoredPlace | null>();
@@ -203,7 +219,9 @@ export async function restorePlaces(
   const worker = async () => {
     while (next < todo.length) {
       const it = todo[next++];
-      if (!centerCache.has(it.condition.id)) centerCache.set(it.condition.id, resolveCenter(toCondition(it.condition), deps));
+      if (!centerCache.has(it.condition.id)) {
+        centerCache.set(it.condition.id, it.center ? Promise.resolve(it.center) : resolveCenter(toCondition(it.condition), deps));
+      }
       const center = await centerCache.get(it.condition.id)!;
       if (!center) centerCache.delete(it.condition.id);   // 중심 실패는 다음에 다시 시도
       // 호출 오류(undefined)는 기억하지 않고, 검색은 됐는데 없던 것(null)만 기억한다

@@ -60,6 +60,7 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
         placeName={result[0].placeName}
         address={result[0].address || result[0].area}
         openingHours={result[0].openingHours ?? ''}
+        slotId={result[0].record?.slotId}
         onBack={() => setView('result')}
       />
     );

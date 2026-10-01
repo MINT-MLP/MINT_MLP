@@ -357,7 +357,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
               {/* 중간지점(자동) 모드: 출발지 입력 */}
               {meetingLocation?.type === 'auto' && (
                 <div className="animate-fade-in-up border-t border-gray-100 pt-2 px-5">
-                  <LocationInput locations={locations} onChange={setLocations} />
+                  <LocationInput key={input.locationsVersion} locations={locations} onChange={setLocations} />
                 </div>
               )}
             </div>

@@ -19,6 +19,15 @@ export interface SlimPlace {
   lng?: number | null;
   imageUrl?: string | null;
   kakaoPlaceUrl?: string | null;
+  kakaoPlaceId?: string;
+  shareSlot?: SlotRef;       // 공유·그룹 화면에서 회원 찜(wish_from_slot)에 쓴다
+}
+
+// 남의 추천 슬롯을 내 찜으로 — 그 슬롯을 보여준 공유 링크나 그룹 세션이 근거
+export interface SlotRef {
+  slotId: number;
+  shareId?: string;
+  sessionId?: string;
 }
 
 export interface SnapshotPayload {

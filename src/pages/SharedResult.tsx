@@ -3,10 +3,13 @@ import { congestionDotClass } from '@/services/seoulData';
 import { MiniMap, WishlistButton, VisitCertModal, Icon } from '@/components';
 import { trackEvent } from '@/services/analytics';
 import { getDeviceId } from '@/storage/device';
-import type { VoteCandidate, SlimPlace, SnapshotPayload } from '@/types';
+import type { VoteCandidate, SlimPlace, SnapshotPayload, MapPin } from '@/types';
 import { COURSE_TONE, type CourseTone } from '@/constants/colors';
 import { cn } from '@/utils/cn';
 import { sanitizeSnapshot } from '@/utils/sharePayload';
+import { supabase } from '@/services/supabase';
+import { fetchRecPayload, restoreRecPayload, orderedSlots, RecRestoreError } from '@/services/recRestore';
+import { kakaoPlaceLink } from '@/services/restore';
 
 // 공유 URL에 실려오는 투표 후보 (슬림 포맷: n=이름, c=카테고리, s=적합도)
 
@@ -28,6 +31,49 @@ function getVoterId(): string {
   }
 }
 
+const VOTE_POLL_MS = 4000;
+const VOTE_POLL_MAX_MS = 10 * 60 * 1000;
+
+// 새 공유(010): 추천 ID → 슬롯 → 카카오 재검색으로 가게를 찾아 화면 모양으로 만든다.
+// 투표 후보는 1차 슬롯 순서(대표, 대안1, 대안2) — 공유한 사람의 후보 순서와 같다.
+async function loadSharedRec(id: string): Promise<SnapshotPayload> {
+  const p = await fetchRecPayload({ kind: 'share', id });
+  const restored = await restoreRecPayload(p);
+  const toSlim = (slotId: number, placeId: string): SlimPlace => {
+    const r = restored.get(slotId);
+    return {
+      placeName: r?.name ?? '가게 정보를 다시 찾지 못했어요',
+      category: r?.category,
+      address: r?.address,
+      area: p.condition.area_label,
+      lat: r?.lat ?? null,
+      lng: r?.lng ?? null,
+      kakaoPlaceUrl: r?.url ?? kakaoPlaceLink(placeId),
+      kakaoPlaceId: placeId,
+      shareSlot: { slotId, shareId: id },
+    };
+  };
+  const slots = orderedSlots(p.slots);
+  const firstSlots = slots.filter((s) => s.course === 'first');
+  const secondMain = slots.find((s) => s.course === 'second' && s.role === 'main');
+  if (!firstSlots[0]) throw new Error('no slots');
+  const first = toSlim(firstSlots[0].id, firstSlots[0].kakao_place_id);
+  const candidates: VoteCandidate[] = firstSlots.slice(0, 3).map((s) => {
+    const r = restored.get(s.id);
+    return { n: r?.name ?? '이름을 찾지 못한 가게', c: r?.category };
+  });
+  return {
+    first,
+    second: secondMain ? toSlim(secondMain.id, secondMain.kakao_place_id) : null,
+    third: null,
+    purposeFirst: p.condition.first_purpose,
+    purposeSecond: p.condition.second_purpose,
+    areaName: p.condition.area_label,
+    shareId: id,
+    candidates: candidates.length >= 2 ? candidates : undefined,
+  };
+}
+
 function VoteSection({ shareId, candidates }: { shareId: string; candidates: VoteCandidate[] }) {
   const [counts, setCounts] = useState<Record<number, number>>({});
   // 이 기기에서 이미 투표했으면 복원 (기기당 1표)
@@ -41,14 +87,38 @@ function VoteSection({ shareId, candidates }: { shareId: string; candidates: Vot
   });
   const [disabled, setDisabled] = useState(false);
 
+  // 집계는 화면이 보이는 동안 몇 초마다 다시 불러온다(친구들 표가 바로 올라오게). 브라우저가 Supabase를 직접 읽는다 —
+  // Vercel 함수를 거치지 않아 호출 한도에 영향이 없다(011-2: 공유 ID·선택 번호만 읽기 허용).
+  // 첫 조회가 실패하면(표 기능 미설정) 칸을 숨기고, 이후의 일시 실패는 무시한다. 탭이 숨으면 멈추고 10분 뒤엔 완전히 그만둔다.
   useEffect(() => {
-    fetch(`/api/share-vote?id=${encodeURIComponent(shareId)}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.disabled) setDisabled(true);
-        else if (d.counts) setCounts(d.counts);
-      })
-      .catch(() => setDisabled(true));
+    let alive = true;
+    let loadedOnce = false;
+    const startedAt = Date.now();
+    const load = async () => {
+      if (!alive || document.visibilityState !== 'visible') return;
+      const { data, error } = await supabase.from('mint_share_votes').select('choice').eq('share_id', shareId).limit(500);
+      if (!alive) return;
+      if (error) {
+        if (!loadedOnce) setDisabled(true);
+        return;
+      }
+      loadedOnce = true;
+      const next: Record<number, number> = {};
+      for (const row of (data ?? []) as { choice: number }[]) next[row.choice] = (next[row.choice] ?? 0) + 1;
+      setCounts(next);
+    };
+    const stop = () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+    const onVisible = () => { void load(); };
+    const timer = setInterval(() => {
+      if (Date.now() - startedAt > VOTE_POLL_MAX_MS) { stop(); return; }
+      void load();
+    }, VOTE_POLL_MS);
+    document.addEventListener('visibilitychange', onVisible);
+    void load();
+    return () => { alive = false; stop(); };
   }, [shareId]);
 
   function vote(choice: number) {
@@ -66,7 +136,7 @@ function VoteSection({ shareId, candidates }: { shareId: string; candidates: Vot
     fetch('/api/share-vote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ shareId, voterId: getVoterId(), choice, placeName: candidates[choice]?.n }),
+      body: JSON.stringify({ shareId, voterId: getVoterId(), choice }),
     }).catch(() => {});
   }
 
@@ -127,22 +197,27 @@ function VoteSection({ shareId, candidates }: { shareId: string; candidates: Vot
 
 export default function SharedResult() {
   const [result, setResult] = useState<SnapshotPayload | null>(null);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<false | 'invalid' | 'expired'>(false);
   const [showCert, setShowCert] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id');
-    // 신버전: /shared?id=<shareId> → 서버 스냅샷 조회(1·2·3차 풀코스)
+    // /shared?id=<shareId> → 새 공유(추천 ID, 재검색 복원). 없으면 10-01 이전 서버 스냅샷(7일 뒤 정리)
     if (id && /^[a-z0-9_-]{6,40}$/i.test(id)) {
-      fetch(`/api/share-vote?id=${encodeURIComponent(id)}&type=snapshot`)
-        .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
-        .then(({ ok, d }) => {
-          const p = ok && !d?.disabled ? sanitizeSnapshot(d?.payload) : null;
-          if (!p) throw new Error('bad snapshot');
-          setResult(p);
-        })
-        .catch(() => setError(true));
+      loadSharedRec(id)
+        .then(setResult)
+        .catch((e) => {
+          if (e instanceof RecRestoreError && e.status !== 404) { setError('invalid'); return; }
+          fetch(`/api/share-vote?id=${encodeURIComponent(id)}&type=snapshot`)
+            .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
+            .then(({ ok, d }) => {
+              const p = ok && !d?.disabled ? sanitizeSnapshot(d?.payload) : null;
+              if (!p) throw new Error('bad snapshot');
+              setResult(p);
+            })
+            .catch(() => setError(e instanceof RecRestoreError && e.expired ? 'expired' : 'invalid'));
+        });
       return;
     }
     // 레거시: /shared?data=<json> → 1차만. 스냅샷 형태로 승격해 렌더 경로를 하나로.
@@ -155,7 +230,7 @@ export default function SharedResult() {
       if (!p) throw new Error('malformed payload');
       setResult(p);
     } catch {
-      setError(true);
+      setError('invalid');
     }
   }, []);
 
@@ -163,7 +238,7 @@ export default function SharedResult() {
     return (
       <div className="min-h-screen bg-mint-50 flex flex-col items-center justify-center p-8 text-center">
         <Icon name="sad" className="text-4xl mb-4 text-gray-400" />
-        <p className="text-gray-600 mb-6">링크가 올바르지 않아요.</p>
+        <p className="text-gray-600 mb-6">{error === 'expired' ? '공유한 지 7일이 지나 링크가 만료됐어요.' : '링크가 올바르지 않아요.'}</p>
         <a href="/" className="px-6 py-3 bg-mint-500 text-white rounded-2xl font-bold">
           MINT로 직접 정하기
         </a>
@@ -267,13 +342,13 @@ export default function SharedResult() {
 
         {f.lat && f.lng && (
           <div className="mb-4 animate-fade-in-up">
-            <MiniMap lat={f.lat} lng={f.lng} placeName={f.placeName} />
+            <MiniMap lat={f.lat} lng={f.lng} placeName={f.placeName} pins={coursePins(result)} />
           </div>
         )}
 
         {/* 방문 인증 → 포인트 (공유받은 게스트도 방문자) */}
         <button
-          onClick={() => { trackEvent('visit_cert_open', { device_id: getDeviceId(), place_key: `${f.placeName}|${f.address ?? ''}`, source: 'shared' }); setShowCert(true); }}
+          onClick={() => { trackEvent('visit_cert_open', { device_id: getDeviceId(), place_id: f.kakaoPlaceId ?? null, source: 'shared' }); setShowCert(true); }}
           className="w-full mb-3 py-3.5 rounded-2xl bg-mint-100 border-2 border-mint-500/40 text-mint-600 font-black text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
         >
           <Icon name="pin" className="text-lg" />
@@ -331,4 +406,16 @@ function CourseCard({ place, label, tone, mapLink }: { place: SlimPlace; label: 
       </div>
     </a>
   );
+}
+
+// 지도에 1·2·3차를 모두 찍는다(좌표를 찾은 곳만)
+function coursePins(r: SnapshotPayload): MapPin[] {
+  const pins: MapPin[] = [];
+  const add = (p: SlimPlace | null | undefined, kind: MapPin['kind']) => {
+    if (p?.lat && p.lng) pins.push({ lat: p.lat, lng: p.lng, name: p.placeName, kind });
+  };
+  add(r.first, 'first');
+  add(r.second, 'second');
+  add(r.third, 'third');
+  return pins;
 }

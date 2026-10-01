@@ -13,9 +13,7 @@ interface Props {
 }
 
 export default function ResumeRecommendSheet({ summary, onResume, onDiscard }: Props) {
-  const course = summary.secondPlaceName
-    ? `${summary.placeName} → ${summary.secondPlaceName}`
-    : summary.placeName;
+  const course = summary.title;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40" role="presentation">
@@ -35,9 +33,7 @@ export default function ResumeRecommendSheet({ summary, onResume, onDiscard }: P
 
         <div className="mt-4 rounded-2xl border border-gray-100 bg-mint-50 p-4">
           <p className="text-[15px] font-bold text-gray-900">{course}</p>
-          {summary.areaName && (
-            <p className="mt-0.5 text-[13px] text-gray-500">{summary.areaName}</p>
-          )}
+          <p className="mt-0.5 text-[13px] text-gray-500">가게 정보는 열 때 다시 불러와요</p>
         </div>
 
         <div className="mt-5 flex gap-2">

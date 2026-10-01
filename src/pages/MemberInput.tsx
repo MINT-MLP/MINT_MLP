@@ -9,6 +9,7 @@ import { SECOND_VIBE_PREFIX } from '@/utils/groupAggregate';
 import { decodeHostContext } from '@/utils/groupLink';
 import type { HostContext } from '@/utils/groupLink';
 import { trackEvent } from '@/services/analytics';
+import { loadGroupResult } from '@/services/recRestore';
 import { getDeviceId } from '@/storage/device';
 
 type Phase = 'step0' | 'step1' | 'step2' | 'done';
@@ -113,7 +114,8 @@ export default function MemberInput() {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const locInputRef = useRef<HTMLInputElement | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const prevResultNameRef = useRef<string | null>(null); // 폴링 중 1차 상호 변경 감지용
+  const prevResultNameRef = useRef<string | null>(null); // 폴링 중 1차 상호 변경 감지용(옛 세션)
+  const prevRecIdRef = useRef<number | null>(null);      // 호스트 재추천 감지용(010)
 
   // 이미 제출했으면 done으로. 제출 시 저장한 게스트 컨텍스트도 복원(새로고침 대비).
   // '제출했음' 플래그는 반드시 localStorage — 카톡 인앱브라우저를 닫으면 sessionStorage는 통째로 사라져서
@@ -149,9 +151,28 @@ export default function MemberInput() {
         if (data.status === 'cancelled') { setCancelled(true); return; }
         setExpectedCount(data.expected_count ?? null);
         setMembers(Array.isArray(data.members) ? data.members : []);
-        // 호스트가 추천을 완료하면 결과가 실려온다 — 게스트 화면을 결과 뷰로 전환(협업 루프 완결)
+        // 호스트가 추천을 완료하면 추천 ID가 실려온다(010) — 재검색으로 복원해 결과 뷰로 전환
+        const recId = typeof data.recommendation_id === 'number' ? data.recommendation_id : null;
+        if (recId && recId !== prevRecIdRef.current) {
+          const prevId = prevRecIdRef.current;
+          const changed = prevId !== null;
+          prevRecIdRef.current = recId;
+          try {
+            const g = await loadGroupResult(sessionId!);
+            if (!active) return;
+            if (changed) {
+              setPlaceChangedToast(true);
+              setTimeout(() => setPlaceChangedToast(false), 5000);
+            }
+            setGroupResult(g.result);
+          } catch {
+            prevRecIdRef.current = prevId;   // 다음 폴링에서 다시 시도
+          }
+          return;
+        }
+        // 10-01 이전 세션: 가게 정보 덩어리(result_json). 7일 뒤 세션과 함께 정리된다
         const incoming = data.result_json?.first?.placeName as string | undefined;
-        if (incoming) {
+        if (incoming && !recId) {
           // 이미 결과를 보던 중 호스트가 재추천으로 장소를 바꾸면 조용한 교체 대신 알림 토스트
           if (prevResultNameRef.current && prevResultNameRef.current !== incoming) {
             setPlaceChangedToast(true);
