@@ -7,7 +7,6 @@ import MintShop from '@/pages/mock/MintShop';
 import Profile from '@/pages/Profile';
 import { clearRecommendSession, loadResultSummary } from '@/storage/history';
 import { trackEvent } from '@/services/analytics';
-import { initUserStore } from '@/stores/userStore';
 import { bindOutboxExitFlush, flushOutbox } from '@/storage/feedback';
 import type { TabKey, ResultSummary } from '@/types';
 
@@ -30,7 +29,6 @@ export default function AppShell() {
   // 나갈 때(pagehide·백그라운드 전환)도 한 번 더 시도한다 — 광고로 들어온 사람은 대개 앱을
   // 다시 켜지 않아서, 재전송 기회가 "앱 켜기"뿐이면 밀린 피드백이 영영 못 나간다.
   useEffect(() => {
-    initUserStore();
     flushOutbox();
     bindOutboxExitFlush();
   }, []);

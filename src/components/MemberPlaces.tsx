@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   fetchWishlist, fetchHistory, removeWish, restorePlaces, slotSource,
   type WishRow, type HistoryItem, type SlotRow,
@@ -107,9 +108,11 @@ function purposeLabel(h: HistoryItem): string {
   return c.second_purpose ? `${c.first_purpose} → ${c.second_purpose}` : c.first_purpose;
 }
 
-export function MemberHistoryList() {
+// onSheetChange: 상세 시트가 열리고 닫힐 때 알린다 — 프로필이 하단 탭바를 내리고 올린다
+export function MemberHistoryList({ onSheetChange }: { onSheetChange?: (open: boolean) => void }) {
   const [state, setState] = useState<Load<HistoryItem[]>>({ status: 'loading' });
-  const [open, setOpen] = useState<HistoryItem | null>(null);
+  const [open, setOpenState] = useState<HistoryItem | null>(null);
+  const setOpen = (h: HistoryItem | null) => { setOpenState(h); onSheetChange?.(!!h); };
 
   useEffect(() => {
     let alive = true;
@@ -165,10 +168,11 @@ function HistorySheet({ item, onClose }: { item: HistoryItem; onClose: () => voi
     return () => { alive = false; };
   }, [item]);
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/40" onClick={onClose}>
+  // body에 그린다 — 프로필 안에서 그리면 화면 전환 애니메이션의 쌓임 맥락에 갇혀 탭바 아래로 깔린다
+  return createPortal(
+    <div className="fixed inset-0 z-[60] bg-black/40" onClick={onClose}>
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 mx-auto flex max-h-[80vh] max-w-md flex-col rounded-t-3xl bg-white px-5 pt-5 pb-[max(2rem,calc(env(safe-area-inset-bottom)+0.75rem))] animate-fade-in-up"
+        className="fixed bottom-0 left-0 right-0 z-[60] mx-auto flex max-h-[80vh] max-w-md flex-col rounded-t-3xl bg-white px-5 pt-5 pb-[max(2rem,calc(env(safe-area-inset-bottom)+0.75rem))] animate-fade-in-up"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-1 flex items-center justify-between">
@@ -196,6 +200,7 @@ function HistorySheet({ item, onClose }: { item: HistoryItem; onClose: () => voi
           })}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

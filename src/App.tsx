@@ -1,6 +1,7 @@
 import { Component, lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { requestAppFullscreen } from '@/utils/fullscreen';
 import { Icon } from '@/components/icons';
+import { initUserStore } from '@/stores/userStore';
 
 // 페이지별 코드 스플리팅 — 랜딩만 보는 방문자가 Home/Admin 번들까지 받지 않도록
 const AppShell = lazy(() => import('@/pages/AppShell'));
@@ -73,6 +74,8 @@ function Router() {
 }
 
 export default function App() {
+  // 로그인 상태는 모든 화면(앱·공유 링크·그룹 참여)이 같이 본다. 익명 계정을 만들지 않으니 어디서 시작해도 된다.
+  useEffect(() => { initUserStore(); }, []);
   return (
     <ErrorBoundary>
       <Suspense fallback={<PageLoading />}>

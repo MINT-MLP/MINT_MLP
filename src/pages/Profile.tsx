@@ -116,7 +116,7 @@ export default function Profile({ onChromeChange }: Props) {
       {user && (
         <>
           <p className="mt-6 px-1 mb-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">지난 추천</p>
-          <MemberHistoryList key={`h-${userId}`} />
+          <MemberHistoryList key={`h-${userId}`} onSheetChange={(open) => onChromeChange?.(!open)} />
           <p className="mt-6 px-1 mb-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">찜한 곳</p>
           <MemberWishList key={`w-${userId}`} />
         </>
