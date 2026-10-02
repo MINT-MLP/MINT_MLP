@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { Icon } from '@/components/icons';
 import type { IconName } from '@/components/icons';
-import { HistorySheet } from '@/components/MemberPlaces';
+import { dateLabel, openPastResult, purposeLabel } from '@/utils/memberFormat';
 import { trackEvent } from '@/services/analytics';
 import { signInWithKakao } from '@/services/auth';
 import { fetchHistory, fetchWishlist, restorePlaces, slotSource, type HistoryItem, type WishRow } from '@/services/memberData';
@@ -11,7 +11,7 @@ import { useUserStore } from '@/stores/userStore';
 import { navigateApp } from '@/utils/appRoute';
 
 // 앱 홈(/app) — 10-02 시안 비교에서 고른 '카드' 안. 큰 인사 + 추천 시작하기, 이어서 하기 띠,
-// 회원은 찜·지난 추천을 옆으로 넘기는 카드로 2개씩(더 있으면 '더 보기'), 비회원은 로그인 안내.
+// 찜·지난 추천은 옆으로 넘기는 카드로 2개씩(더 있으면 '더 보기' → 프로필의 각 화면). 비회원은 같은 자리에 로그인 안내.
 const PREVIEW = 2;
 const stagger = (i: number) => ({ ['--i' as string]: i }) as CSSProperties;
 
@@ -66,16 +66,10 @@ export default function HomeHub() {
       {isMember && userId ? (
         <MemberShelves key={userId} />
       ) : ready ? (
-        <div className="home-enter mx-5 mt-7 rounded-2xl border border-gray-100 bg-white p-4" style={stagger(2)}>
-          <p className="text-sm font-black text-gray-900">찜한 곳과 지난 추천을 모아보세요</p>
-          <p className="mt-0.5 text-xs text-gray-500">카카오로 로그인하면 어느 기기에서든 다시 볼 수 있어요.</p>
-          <button
-            onClick={() => void signInWithKakao()}
-            className="home-press mt-3 w-full rounded-2xl bg-kakao py-3 text-sm font-black text-[#191919]"
-          >
-            카카오로 로그인
-          </button>
-        </div>
+        <>
+          <GuestShelf title="찜한 곳" style={stagger(2)} message="로그인하면 찜한 곳을 모아볼 수 있어요." />
+          <GuestShelf title="지난 추천" style={stagger(3)} message="로그인하면 받은 추천이 여기에 쌓여요." />
+        </>
       ) : null}
       <div className="h-6" />
     </div>
@@ -104,7 +98,6 @@ function MemberShelves() {
   const [history, setHistory] = useState<Load<HistoryItem[]>>({ status: 'loading' });
   const [places, setPlaces] = useState<Map<string, RestoredPlace | null>>(new Map());
   const [placesPending, setPlacesPending] = useState(true);
-  const [openHistory, setOpenHistory] = useState<HistoryItem | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -130,7 +123,7 @@ function MemberShelves() {
 
   return (
     <>
-      <Shelf title="찜한 곳" style={stagger(2)} state={wishes} empty="아직 찜한 곳이 없어요. 추천 결과에서 하트를 눌러 저장해보세요.">
+      <Shelf title="찜한 곳" path="/app/profile/wishlist" style={stagger(2)} state={wishes} empty="아직 찜한 곳이 없어요. 추천 결과에서 하트를 눌러 저장해보세요.">
         {(rows) => rows.slice(0, PREVIEW).map((row) => {
           const p = places.get(`w${row.id}`);
           return (
@@ -157,20 +150,20 @@ function MemberShelves() {
         })}
       </Shelf>
 
-      <Shelf title="지난 추천" style={stagger(3)} state={history} empty="아직 받은 추천이 없어요. 로그인한 뒤 받은 추천이 여기에 쌓여요.">
+      <Shelf title="지난 추천" path="/app/profile/history" style={stagger(3)} state={history} empty="아직 받은 추천이 없어요. 추천을 받으면 여기에 쌓여요.">
         {(rows) => rows.slice(0, PREVIEW).map((it) => {
           const c = it.condition;
           const top = places.get(`h${it.id}`);
           return (
             <button
               key={it.id}
-              onClick={() => setOpenHistory(it)}
+              onClick={() => openPastResult(it.id)}
               className="home-press w-52 shrink-0 rounded-2xl border border-gray-100 bg-white p-4 text-left"
             >
               <span className="block text-[11px] font-bold text-gray-400">{dateLabel(it.created_at)}</span>
               <span className="mt-1 block truncate text-base font-black text-gray-900">{c.area_label}</span>
               <span className="mt-0.5 inline-block rounded-full bg-mint-100 px-2 py-0.5 text-[11px] font-bold text-mint-600">
-                {c.second_purpose ? `${c.first_purpose} → ${c.second_purpose}` : c.first_purpose}
+                {purposeLabel(c)}
               </span>
               {placesPending ? (
                 <span className="mt-2 block h-3.5 w-32 animate-pulse rounded bg-gray-100" />
@@ -184,13 +177,12 @@ function MemberShelves() {
         })}
       </Shelf>
 
-      {openHistory && <HistorySheet item={openHistory} onClose={() => setOpenHistory(null)} />}
     </>
   );
 }
 
-function Shelf<T>({ title, style, state, empty, children }: {
-  title: string; style: CSSProperties; state: Load<T[]>; empty: string; children: (rows: T[]) => ReactNode;
+function Shelf<T>({ title, path, style, state, empty, children }: {
+  title: string; path: string; style: CSSProperties; state: Load<T[]>; empty: string; children: (rows: T[]) => ReactNode;
 }) {
   const more = state.status === 'ready' && state.data.length > PREVIEW;
   return (
@@ -198,7 +190,7 @@ function Shelf<T>({ title, style, state, empty, children }: {
       <div className="mb-2 flex items-center justify-between px-5">
         <p className="text-base font-black text-gray-900">{title}</p>
         {state.status === 'ready' && state.data.length > 0 && (
-          <button onClick={() => navigateApp('/app/profile')} className="text-xs font-bold text-gray-400">전체 보기</button>
+          <button onClick={() => navigateApp(path)} className="text-xs font-bold text-gray-400">전체 보기</button>
         )}
       </div>
       {state.status === 'loading' && (
@@ -215,7 +207,7 @@ function Shelf<T>({ title, style, state, empty, children }: {
           {children(state.data)}
           {more && (
             <button
-              onClick={() => navigateApp('/app/profile')}
+              onClick={() => navigateApp(path)}
               className="home-press flex w-20 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-gray-200 text-xs font-bold text-gray-400"
             >
               <span aria-hidden className="text-lg">›</span>더 보기
@@ -223,6 +215,24 @@ function Shelf<T>({ title, style, state, empty, children }: {
           )}
         </div>
       )}
+    </section>
+  );
+}
+
+// 비회원 — 찜·지난 추천 자리를 비워두지 않고 무엇이 쌓이는 곳인지 보여준다(로그인 뒤 홈으로)
+function GuestShelf({ title, style, message }: { title: string; style: CSSProperties; message: string }) {
+  return (
+    <section className="home-enter mt-7" style={style}>
+      <p className="mb-2 px-5 text-base font-black text-gray-900">{title}</p>
+      <div className="mx-5 flex items-center gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-4">
+        <p className="min-w-0 flex-1 text-xs leading-relaxed text-gray-500">{message}</p>
+        <button
+          onClick={() => void signInWithKakao()}
+          className="home-press shrink-0 rounded-full bg-kakao px-3.5 py-2 text-xs font-black text-[#191919]"
+        >
+          로그인
+        </button>
+      </div>
     </section>
   );
 }
@@ -237,6 +247,3 @@ function iconFor(category: string | undefined, course: 'first' | 'second'): Icon
   return course === 'second' ? 'wine' : 'meal';
 }
 
-function dateLabel(iso: string): string {
-  return new Date(iso).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
-}

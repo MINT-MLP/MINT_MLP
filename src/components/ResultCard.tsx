@@ -32,6 +32,8 @@ interface Props {
   onReserve: () => void;
   onReject?: (reason: 'expensive' | 'far' | 'vibe') => void;
   onPointsChange?: (balance: number) => void;
+  // 지난 추천 보기 — 재추천 영역을 이 버튼 하나로 바꾸고, 그날의 약속용(방문 인증·오늘의 총무)은 숨긴다
+  onRestartPast?: () => void;
 }
 
 export default function ResultCard({
@@ -51,7 +53,9 @@ export default function ResultCard({
   onReserve,
   onReject,
   onPointsChange,
+  onRestartPast,
 }: Props) {
+  const pastMode = !!onRestartPast;
   const [showTreasurerPopup, setShowTreasurerPopup] = useState(false);
   const [treasurerRule, setTreasurerRule] = useState(() => rollTreasurerRule());
   const [showVisitCert, setShowVisitCert] = useState(false);
@@ -360,7 +364,18 @@ export default function ResultCard({
         </>
       )}
 
+      {pastMode && (
+        <button
+          onClick={onRestartPast}
+          className="mt-1 w-full py-3.5 rounded-2xl bg-mint-500 text-white font-black text-sm flex items-center justify-center gap-1.5 shadow-lg shadow-mint-500/30 active:scale-95 transition-all"
+        >
+          <Icon name="refresh" className="text-base" />
+          <span>이 조건으로 다시 추천받기</span>
+        </button>
+      )}
+
       {/* ── 재추천 영역: 3역할 명확 분리 ── */}
+      {!pastMode && (
       <div className="bg-white border border-gray-100 rounded-2xl p-3.5 flex flex-col gap-3 mt-1">
         {/* ① 이유 기반 — "왜 별로였는지" */}
         {onReject && (
@@ -406,8 +421,10 @@ export default function ResultCard({
           )}
         </div>
       </div>
+      )}
 
       {/* ── 방문 인증 → 포인트 (추천→실제 방문 전환율 씨앗) ── */}
+      {!pastMode && (
       <button
         onClick={() => { trackEvent('visit_cert_open', { device_id: getDeviceId(), place_id: result.kakaoPlaceId ?? null, source: 'result' }); setShowVisitCert(true); }}
         className="w-full py-3 rounded-2xl bg-mint-100 border-2 border-mint-500/40 text-mint-600 font-black text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
@@ -415,9 +432,11 @@ export default function ResultCard({
         <Icon name="pin" className="text-lg" />
         <span>여기 방문 인증하고 500P 받기</span>
       </button>
+      )}
 
       {/* ── 보조: 총무 + 예약(연동 준비 중) ── */}
       <div className="flex gap-2">
+        {!pastMode && (
         <button
           onClick={() => {
             // treasurer가 null(출발지 미입력)이어도 팝업은 뜬다 — 예전엔 여기서 조용히 무시돼
@@ -431,6 +450,7 @@ export default function ResultCard({
           <Icon name="wallet" className="text-lg" />
           <span className="text-sm font-black text-amber-700">오늘의 총무</span>
         </button>
+        )}
         <button
           onClick={onReserve}
           className="flex-1 py-2.5 rounded-2xl border border-gray-200 bg-white text-gray-500 font-bold text-sm flex items-center justify-center gap-2 hover:border-mint-500 hover:text-mint-600 transition-all active:scale-95"

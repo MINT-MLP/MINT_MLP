@@ -25,6 +25,9 @@ export function useResultState() {
   const [compromiseMessage, setCompromiseMessage] = useState<string | null>(null);
   const [showCompromiseToast, setShowCompromiseToast] = useState(false);
   const [showResultScrollHint, setShowResultScrollHint] = useState(false);
+  // 지난 추천을 열어 보는 중 — 그날의 약속용 버튼(거절·총무·이동시간·방문 인증)을 숨기고 "이 조건으로 다시 추천받기"만 둔다.
+  // 새로 추천을 받으면 null로 돌아가 버튼이 원래대로 나온다.
+  const [past, setPast] = useState<{ date: string; areaLabel: string } | null>(null);
 
   function reset() {
     setResult(null);
@@ -36,6 +39,7 @@ export function useResultState() {
     setTreasurer(null);
     setResultWeather(null);
     setChangeNote(null);
+    setPast(null);
   }
 
   return {
@@ -43,7 +47,7 @@ export function useResultState() {
     resultTravelTimes, setResultTravelTimes, treasurer, setTreasurer, pointsBalance, setPointsBalance,
     showWishlist, setShowWishlist, resultWeather, setResultWeather, resultThird, setResultThird,
     resultThirdLabel, setResultThirdLabel, resultSecondMissing, setResultSecondMissing, changeNote, setChangeNote, compromiseMessage, setCompromiseMessage,
-    showCompromiseToast, setShowCompromiseToast, showResultScrollHint, setShowResultScrollHint, reset,
+    showCompromiseToast, setShowCompromiseToast, showResultScrollHint, setShowResultScrollHint, past, setPast, reset,
   };
 }
 export type ResultState = ReturnType<typeof useResultState>;

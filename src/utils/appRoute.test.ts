@@ -19,6 +19,13 @@ describe('parseAppRoute', () => {
     expect(parseAppRoute('/app/unknown', '')).toMatchObject({ tab: 'home', home: 'hub' });
   });
 
+  it('프로필 하위 화면과 지난 추천 결과', () => {
+    expect(parseAppRoute('/app/profile/history', '')).toMatchObject({ tab: 'profile', profileSub: 'history' });
+    expect(parseAppRoute('/app/profile/wishlist', '')).toMatchObject({ tab: 'profile', profileSub: 'wishlist' });
+    expect(parseAppRoute('/app/result', '?id=12&from=history')).toMatchObject({ home: 'result', resultId: 12, fromHistory: true });
+    expect(parseAppRoute('/app/result', '?from=history')).toMatchObject({ fromHistory: false });
+  });
+
   it('탭 주소', () => {
     expect(tabPath('home')).toBe('/app');
     expect(tabPath('shop')).toBe('/app/shop');

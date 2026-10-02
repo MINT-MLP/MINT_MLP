@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { LocationEntry, MeetingLocation, PlaceRecommendation, PurposeValue, ResultSnapshotV2, Step } from '@/types';
 import { OCCASION_BY_RELATION } from '@/constants/occasion';
 import { saveResultSnapshot, loadResultSnapshot, clearResultSnapshot, INPUT_DRAFT_KEY, GROUP_SESSION_KEY, INPUT_DRAFT_TTL_MS, GROUP_SESSION_TTL_MS } from '@/storage/history';
-import { restoreResultSnapshot, stripMeetingLocation, resolveMeetingLocation, resolveOrigins, stripOrigins } from '@/services/resultRestore';
+import { restoreResultSnapshot, restorePastResult, stripMeetingLocation, resolveMeetingLocation, resolveOrigins, stripOrigins } from '@/services/resultRestore';
 import { RecRestoreError } from '@/services/recRestore';
 import { rememberResult, recallResult, forgetResult } from '@/stores/resultMemory';
 import { computeTravelTimes, NO_TRAVEL_TIMES } from '@/services/travelTime';
@@ -12,7 +12,7 @@ import { migrateVibeState } from '@/utils/vibeMigrate';
 import type { RecommendFlow } from '@/hooks/useRecommendFlow';
 import type { RecommendInput } from '@/hooks/useRecommendInput';
 import type { GroupSession } from '@/hooks/useGroupSession';
-import type { Fresh } from '@/utils/appRoute';
+import { navigateApp, type Fresh } from '@/utils/appRoute';
 import type { ResultState } from '@/hooks/useResultState';
 import type { RequestState } from '@/hooks/useRequestState';
 
@@ -20,9 +20,10 @@ import type { RequestState } from '@/hooks/useRequestState';
 // (그룹세션 복원이 결과 복원의 view/step을 덮어써야 한다) 한 훅 안에 원래 순서대로 둔다.
 // entry: 이 화면을 어느 주소로 열었나(/app/recommend·/app/result). 결과 복원은 결과 주소로 열었을 때만,
 // 입력 초안·그룹 세션 복원은 추천 주소로 열었을 때만 한다. fresh: 새로 시작(초안·그룹 복원 없이 — 'start'는 1단계에서 모드를 고른다).
-export function useHomePersistence({ flow, input, group, result: resultState, request, entry, fresh }: {
+// pastId: 지난 추천을 결과 화면으로 열었을 때(/app/result?id=&from=history) 그 추천 ID — 스냅샷 대신 서버에서 연다.
+export function useHomePersistence({ flow, input, group, result: resultState, request, entry, fresh, pastId }: {
   flow: RecommendFlow; input: RecommendInput; group: GroupSession; result: ResultState; request: RequestState;
-  entry: 'recommend' | 'result'; fresh: Fresh;
+  entry: 'recommend' | 'result'; fresh: Fresh; pastId: number | null;
 }) {
   const { view, setView, step, setStep, appMode, setAppMode, isGroup } = flow;
   const {
@@ -36,7 +37,7 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
     result, setResult, resultSecondMissing, setResultSecondMissing,
     midpointData, setMidpointData, resultWeather, setResultWeather,
     resultThird, setResultThird, resultThirdLabel, setResultThirdLabel, treasurer, setTreasurer,
-    resultTravelTimes, setResultTravelTimes,
+    resultTravelTimes, setResultTravelTimes, past, setPast,
   } = resultState;
   const { setLoading, setLoadingProgress, loadingStartRef } = request;
   const lastSessionResultRef = useRef<string | null>(null); // 그룹 결과 세션 저장 중복 억제
@@ -54,6 +55,44 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
   //  - 새로고침·재진입: 폰엔 추천 ID와 화면 상태만 있어, 서버 슬롯 → 카카오 재검색으로 채운다(그동안 로딩 화면)
   useLayoutEffect(() => {
     if (entry !== 'result') return;
+    if (pastId != null) {
+      // 지난 추천 — 서버에서 결과와 그때의 입력을 되살린다. 보던 추천(스냅샷)은 건드리지 않는다.
+      setAppMode('solo');
+      setView('result');
+      loadingStartRef.current = Date.now();
+      setLoadingProgress(60);
+      setLoading(true);
+      let alive = true;
+      restorePastResult(pastId)
+        .then(({ restored: r, inputs, createdAt, areaLabel }) => {
+          if (!alive) return;
+          setPurpose(inputs.purpose);
+          setVibe(migrateVibeState(inputs.vibe));
+          setConditions(inputs.conditions);
+          setKeywords(inputs.keywords);
+          setBudget(inputs.budget);
+          setGroupSize(inputs.groupSize);
+          setMeetingLocation(inputs.meetingLocation);
+          setResult(r.places);
+          setResultSecondMissing(r.secondMissing);
+          setMidpointData(r.midpointData);
+          setPast({ date: createdAt, areaLabel });
+          if (inputs.origins.length > 0) {
+            void resolveOrigins(inputs.origins).then((list) => {
+              if (!alive || list.length === 0) return;
+              setLocations(list);
+              setLocationsVersion((v) => v + 1);
+            });
+          }
+        })
+        .catch(() => {
+          if (!alive) return;
+          setView('steps');
+          navigateApp('/app/profile/history', { replace: true });
+        })
+        .finally(() => { if (alive) setLoading(false); });
+      return () => { alive = false; };
+    }
     const snap = loadResultSnapshot();
     if (!snap) return;
     // 살아 있는 그룹 세션이 다른 세션이면 그 대기 화면이 우선이다(그룹 세션 복원이 이어서 연다). 결과 복원은 하지 않는다.
@@ -125,7 +164,7 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
       })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [entry, setAppMode, setView, setResult, setResultThird, setResultThirdLabel, setResultSecondMissing, setPurpose, setMidpointData, setTreasurer, setMeetingLocation, setResultTravelTimes, setResultWeather, setVibe, setKeywords, setConditions, setGroupSize, setBudget, setVibeCustom, setCustomOccasion, setLocations, setLocationsVersion, setGroupTravelLabels, setLoading, setLoadingProgress, loadingStartRef]);
+  }, [entry, pastId, setPast, setAppMode, setView, setResult, setResultThird, setResultThirdLabel, setResultSecondMissing, setPurpose, setMidpointData, setTreasurer, setMeetingLocation, setResultTravelTimes, setResultWeather, setVibe, setKeywords, setConditions, setGroupSize, setBudget, setVibeCustom, setCustomOccasion, setLocations, setLocationsVersion, setGroupTravelLabels, setLoading, setLoadingProgress, loadingStartRef]);
 
   // 입력 초안 복원 — 추천 주소로 열었을 때만. 그룹도 링크 생성 전에는 서버 세션이 없으므로 로컬 초안에서 복원한다.
   // 새로 시작이면 초안을 지우고 1단계부터(모드가 정해져 왔으면 그 모드로).
@@ -251,6 +290,7 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
   // 저장되지 않은 추천(record 없음)은 되살릴 수 없으므로 스냅샷을 남기지 않는다.
   useEffect(() => {
     if (view !== 'result' || !result || result.length === 0) return;
+    if (past) return;   // 지난 추천 보기 — 보던 추천(스냅샷)을 바꾸지 않는다
     const rec = result[0].record;
     if (!rec) {
       // 저장에 실패한 추천 — 예전 추천 스냅샷이 남아 있으면 나중에 그게 되살아나므로 지운다
@@ -284,7 +324,7 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
       resultWeather,
       sessionId, // 이 결과가 '어느 그룹 세션의 것인지' — 재진입 시 대기 화면과 결과 화면 중 무엇을 열지 가른다
     });
-  }, [view, result, resultThird, resultThirdLabel, resultSecondMissing, purpose, midpointData, treasurer, meetingLocation, resultTravelTimes, resultWeather, vibe, keywords, conditions, sessionId, locations, groupTravelLabels, groupSize, budget, vibeCustom, customOccasion]);
+  }, [view, past, result, resultThird, resultThirdLabel, resultSecondMissing, purpose, midpointData, treasurer, meetingLocation, resultTravelTimes, resultWeather, vibe, keywords, conditions, sessionId, locations, groupTravelLabels, groupSize, budget, vibeCustom, customOccasion]);
 
   // 그룹 호스트가 추천을 받으면 추천 ID를 세션에 전달(010) → 게스트 화면이 폴링으로 받아 재검색으로 복원.
   // 가게 정보는 보내지 않는다. 재추천으로 추천이 바뀌면 새 ID를 다시 보낸다. 실패는 무해(카톡 공유로도 전달 가능).

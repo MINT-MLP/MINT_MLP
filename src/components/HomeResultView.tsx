@@ -8,6 +8,7 @@ import type { PlaceRecommendation } from '@/types';
 import { VIBE_KEY_TO_LABEL } from '@/constants/vibeOptions';
 import type { RecommendFlow, RecommendInput, ResultState, RecommendActions, StepNavigation } from '@/hooks';
 import { resultHasSecond } from '@/hooks/useResultState';
+import { goBackOr } from '@/utils/appRoute';
 
 // 추천 결과 화면. Home이 훅 결과 객체를 그대로 넘기고, 여기서 같은 이름으로 풀어 쓴다 — JSX는 분리 전 Home과 동일.
 export default function HomeResultView({ result, flow, input, resultState, actions, nav, onShare, onFullReset }: {
@@ -20,9 +21,9 @@ export default function HomeResultView({ result, flow, input, resultState, actio
   const {
     showRetryModal, setShowRetryModal, midpointData, resultTravelTimes, treasurer, pointsBalance, setPointsBalance,
     showWishlist, setShowWishlist, resultWeather, resultThird, resultThirdLabel, resultSecondMissing, changeNote, setChangeNote,
-    compromiseMessage, showCompromiseToast, showResultScrollHint,
+    compromiseMessage, showCompromiseToast, showResultScrollHint, past,
   } = resultState;
-  const { handleRetry, handleAdjust, handleReject, handleRetryWithWeights } = actions;
+  const { handleRetry, handleAdjust, handleReject, handleRetryWithWeights, restartFromPast } = actions;
   const { handleStepJump, canJumpTo } = nav;
   const handleShare = onShare;
   const handleFullReset = onFullReset;
@@ -49,6 +50,15 @@ export default function HomeResultView({ result, flow, input, resultState, actio
               입력 단계 헤더와 동일 문법: 높이 h-10, 좌우는 같은 소형 텍스트 버튼, 로고는 절대 중앙 정렬.
               -mx-2로 버튼 내부 px-2를 상쇄해 글자 시작선을 콘텐츠 px-5에 맞춘다. */}
           <div className="relative -mx-2 flex h-10 items-center justify-between mb-1">
+            {past ? (
+              // 지난 추천 보기 — 조건 수정·처음부터 대신 목록으로 돌아가기만
+              <button
+                onClick={() => goBackOr('/app/profile/history')}
+                className="flex min-h-10 items-center gap-1 rounded-lg px-2 text-xs font-bold text-gray-500 transition-colors hover:text-mint-600"
+              >
+                ← 지난 추천
+              </button>
+            ) : (
             <button
               onClick={() => {
                 // 결과에서 조건 수정 = 바로 이전 입력 화면(마지막 스텝)으로. 입력값은 그대로 유지해 바로 수정·재추천 가능.
@@ -60,6 +70,7 @@ export default function HomeResultView({ result, flow, input, resultState, actio
             >
               ← 조건 수정
             </button>
+            )}
             {/* 로고 = 랜딩페이지로 탈출. 좌우 버튼 폭과 무관하게 절대 중앙 정렬. */}
             <button
               onClick={() => { window.location.href = '/'; }}
@@ -68,6 +79,7 @@ export default function HomeResultView({ result, flow, input, resultState, actio
             >
               MINT
             </button>
+            {!past && (
             <button
               onClick={handleFullReset}
               className="flex min-h-10 items-center gap-1 rounded-lg px-2 text-xs font-bold text-gray-500 transition-colors hover:text-mint-600"
@@ -75,6 +87,7 @@ export default function HomeResultView({ result, flow, input, resultState, actio
             >
               ↺ 처음부터
             </button>
+            )}
           </div>
 
           {/* 포인트·찜 바 — 방문 인증 적립 잔액 + 내 찜 목록 진입 */}
@@ -89,7 +102,16 @@ export default function HomeResultView({ result, flow, input, resultState, actio
             <PointsBadge balance={pointsBalance} />
           </div>
 
-          {/* 상단 단계바 — 결과 화면에서도 특정 단계를 눌러 바로 수정하러 갈 수 있게(값 유지). */}
+          {/* 상단 단계바 — 결과 화면에서도 특정 단계를 눌러 바로 수정하러 갈 수 있게(값 유지). 지난 추천은 날짜 띠로 바꾼다 */}
+          {past ? (
+            <div className="mb-3 flex items-center gap-2 rounded-2xl bg-white border border-gray-100 px-4 py-2.5">
+              <Icon name="clock" className="text-base text-mint-600" />
+              <p className="text-xs font-bold text-gray-600">
+                {past.date ? `${new Date(past.date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })} · ` : ''}{past.areaLabel} 추천
+              </p>
+              <span className="ml-auto text-[11px] text-gray-400">지난 추천</span>
+            </div>
+          ) : (
           <StepProgress
             current={4}
             total={4}
@@ -97,6 +119,7 @@ export default function HomeResultView({ result, flow, input, resultState, actio
             onStepClick={handleStepJump}
             isStepClickable={canJumpTo}
           />
+          )}
 
           {/* 날씨 반영 배너 — "모든 변수 반영"을 유저가 체감하게 */}
           {resultWeather && (resultWeather.isRainy || resultWeather.isHot || resultWeather.isCold) && (
@@ -139,7 +162,7 @@ export default function HomeResultView({ result, flow, input, resultState, actio
             thirdResult={resultThird}
             thirdLabel={resultThirdLabel}
             travelTimes={resultTravelTimes}
-            showTravelTime={canShowTravel}
+            showTravelTime={canShowTravel && !past}
             midpointAreaName={midpointData?.areaName}
             purpose={purpose?.first ? { first: purpose.first, second: hasSecond ? purpose.second ?? null : null } : undefined}
             vibeLabels={[...Object.values(vibe).flatMap((g) => [...g.first, ...g.second]), ...conditions].map((k) => VIBE_KEY_TO_LABEL[k] ?? k)}
@@ -147,10 +170,11 @@ export default function HomeResultView({ result, flow, input, resultState, actio
             genreLabels={[purpose?.firstGenre, purpose?.secondGenre].filter((g): g is string => !!g)}
             treasurer={treasurer}
             onRetry={handleRetry}
-            onAdjust={handleAdjust}
+            onAdjust={past ? undefined : handleAdjust}
             onReserve={() => setView('reserve')}
-            onReject={handleReject}
+            onReject={past ? undefined : handleReject}
             onPointsChange={setPointsBalance}
+            onRestartPast={past ? restartFromPast : undefined}
           />
 
           {/* 하단 sticky 카톡 공유 바 — 유일한 공유 CTA. 결과 어디서든 한 탭(핵심 유입). 탭바 바로 위에 선다.

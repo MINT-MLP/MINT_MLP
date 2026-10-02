@@ -51,7 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // 공유·그룹은 서버가 재검색까지 한다(검색 중심 = 출발지 무게중심이라 내보내면 역산된다)
-  const payload = await loadRecPayload(supabase, recId, { sessionId, restoreOnServer: body.kind !== 'own' });
+  const payload = await loadRecPayload(supabase, recId, { sessionId, restoreOnServer: body.kind !== 'own', withDetail: body.kind === 'own' });
   if (!payload) return res.status(404).json({ error: '추천을 찾을 수 없어요.' });
   return res.status(200).json(payload);
 }

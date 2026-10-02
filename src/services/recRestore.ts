@@ -19,6 +19,17 @@ export interface RecPayload {
   center: { lat: number; lng: number } | null;
   // 공유·그룹: 서버가 재검색해 준 가게(슬롯 ID → 가게). 있으면 앱은 카카오를 다시 부르지 않는다.
   places?: Record<string, { name: string; category: string; address: string; lat: number; lng: number; url: string } | null>;
+  // 본인 추천만 — 지난 추천에서 "이 조건으로 다시 추천받기"에 쓰는 나머지 입력
+  detail?: RecDetail;
+}
+
+export interface RecDetail {
+  createdAt: string;
+  relation: string | null; occasion: string | null; budget: string | null;
+  firstCategoryPath: string | null; secondCategoryPath: string | null; regionLevel: string | null;
+  menus: { course: 'first' | 'second'; ord: number; menu: string }[];
+  choices: { course: 'first' | 'second' | 'all'; code: string | null; kind: string | null; label: string }[];
+  origins: { query: string; kakaoPlaceId: string }[];
 }
 
 export type RecRequest =

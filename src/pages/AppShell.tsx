@@ -6,6 +6,8 @@ import MyMeetings from '@/pages/mock/MyMeetings';
 import Discover from '@/pages/mock/Discover';
 import MintShop from '@/pages/mock/MintShop';
 import Profile from '@/pages/Profile';
+import HistoryPage from '@/pages/HistoryPage';
+import WishlistPage from '@/pages/WishlistPage';
 import { clearRecommendSession, loadResultSnapshot, loadResultSummary } from '@/storage/history';
 import { navigateApp, parseAppRoute, tabPath } from '@/utils/appRoute';
 import { trackEvent } from '@/services/analytics';
@@ -52,7 +54,8 @@ export default function AppShell({ path, search }: { path: string; search: strin
 
   // 결과 주소인데 되살릴 결과가 없으면(스냅샷 없음·다른 추천) 홈을 그리고 주소도 홈으로 바꾼다.
   // 그리기 전에 판정한다 — 추천 화면을 띄운 뒤 바꾸면 그 화면의 주소 맞추기와 엇갈린다.
-  const resultMissing = route.home === 'result' && (() => {
+  // 지난 추천에서 연 결과(&from=history)는 스냅샷이 아니라 서버에서 연다 — 여기서 거르지 않는다.
+  const resultMissing = route.home === 'result' && !route.fromHistory && (() => {
     const snap = loadResultSnapshot();
     return !snap || (route.resultId != null && snap.recommendationId !== route.resultId);
   })();
@@ -61,7 +64,9 @@ export default function AppShell({ path, search }: { path: string; search: strin
   }, [resultMissing]);
 
   // 화면을 옮길 때는 항상 탭바를 되살린다 — 이전 화면에서 시트가 열려 있던 상태가 새면 탭바가 영영 사라진다.
-  const screenKey = route.tab === 'home' ? (route.home === 'hub' || resultMissing ? 'hub' : 'flow') : route.tab;
+  const screenKey = route.tab === 'home'
+    ? (route.home === 'hub' || resultMissing ? 'hub' : 'flow')
+    : route.profileSub ? `profile-${route.profileSub}` : route.tab;
   const [prevKey, setPrevKey] = useState(screenKey);
   if (prevKey !== screenKey) {
     setPrevKey(screenKey);
@@ -82,7 +87,12 @@ export default function AppShell({ path, search }: { path: string; search: strin
           Home의 하단 고정 바·토스트는 그대로 동작한다. */}
       <div key={screenKey} className="animate-fade-in" style={{ animationDuration: '150ms' }}>
         {screenKey === 'flow' ? (
-          <Home screen={route.home === 'result' ? 'result' : 'recommend'} fresh={route.fresh} onChromeChange={setShowTabBar} />
+          <Home
+            screen={route.home === 'result' ? 'result' : 'recommend'}
+            fresh={route.fresh}
+            pastId={route.fromHistory ? route.resultId : null}
+            onChromeChange={setShowTabBar}
+          />
         ) : (
           <div className="pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
             {screenKey === 'hub' && <HomeHub />}
@@ -91,7 +101,9 @@ export default function AppShell({ path, search }: { path: string; search: strin
             )}
             {activeTab === 'discover' && <Discover />}
             {activeTab === 'shop' && <MintShop onChromeChange={setShowTabBar} />}
-            {activeTab === 'profile' && <Profile onChromeChange={setShowTabBar} />}
+            {screenKey === 'profile' && <Profile onChromeChange={setShowTabBar} />}
+            {screenKey === 'profile-history' && <HistoryPage />}
+            {screenKey === 'profile-wishlist' && <WishlistPage />}
           </div>
         )}
       </div>

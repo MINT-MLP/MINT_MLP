@@ -31,7 +31,7 @@ export function useRecommendActions({ flow, input, group, result: resultState, r
   const {
     result, setResult, setShowRetryModal, midpointData, setMidpointData, setResultTravelTimes,
     setTreasurer, setResultWeather, resultThird, setResultThird, setResultThirdLabel, setResultSecondMissing, setChangeNote,
-    compromiseMessage, setCompromiseMessage, setShowCompromiseToast,
+    compromiseMessage, setCompromiseMessage, setShowCompromiseToast, setPast,
   } = resultState;
   const {
     setLoading, setLoadingMsg, setLoadingProgress, setError,
@@ -173,6 +173,7 @@ export function useRecommendActions({ flow, input, group, result: resultState, r
     // 재추천이면 이전 1순위를 기억해뒀다가 "뭐가 달라졌는지" 한 줄에 사용
     const prevFirst = changeReason ? result?.[0] ?? null : null;
     setChangeNote(null);
+    setPast(null);   // 새로 받는 추천은 지난 추천 보기가 아니다 — 결과 화면 버튼이 원래대로 나온다
     // 초기 추천에서 새 세션키 발급, 재시도/거절/조정(changeReason 있음)은 같은 키 유지 → 한 에피소드로 조인
     if (!changeReason || !sessionKeyRef.current) sessionKeyRef.current = newSessionKey();
     setSessionKey(sessionKeyRef.current); // 이후 발생하는 이벤트(클릭·거절·예약)에 자동으로 세션키 태깅
@@ -375,6 +376,19 @@ export function useRecommendActions({ flow, input, group, result: resultState, r
     handleRecommend(midpointData.midpoint, midpointData.nearestAreas, validLocs, undefined, exclude, 'retry', midpointData.scope ?? null);
   }
 
+  // 지난 추천의 "이 조건으로 다시 추천받기" — 열 때 되살린 입력(목적·지역·출발지·취향)과 검색 중심으로 새로 추천.
+  // 이전 가게를 빼지 않고, 이전 추천에 잇지도 않는다(새 추천 한 건).
+  function restartFromPast() {
+    if (!midpointData) return;
+    trackEvent('past_restart');
+    areaMetaRef.current = null;
+    lastRecIdRef.current = null;
+    const validLocs = locations.filter((l) => l.lat != null && l.lng != null);
+    setTreasurer(null);
+    setResultTravelTimes(null);
+    handleRecommend(midpointData.midpoint, midpointData.nearestAreas, validLocs, undefined, [], undefined, midpointData.scope ?? null);
+  }
+
   // 🎚️ 취향 직접 조절 = 슬라이더 모달 진입
   function handleAdjust() {
     setShowRetryModal(true);
@@ -440,7 +454,7 @@ export function useRecommendActions({ flow, input, group, result: resultState, r
     handleRecommend(midpointData.midpoint, midpointData.nearestAreas, validLocs, rejectWeights, exclude, reason, midpointData.scope ?? null);
   }
 
-  return { handleConfirmMeetingLocation, handleMidpointSelect, handleRecommend, handleRetry, handleAdjust, handleRetryWithWeights, handleReject, applyCompromiseMessage };
+  return { handleConfirmMeetingLocation, handleMidpointSelect, handleRecommend, handleRetry, handleAdjust, handleRetryWithWeights, handleReject, restartFromPast, applyCompromiseMessage };
 }
 export type RecommendActions = ReturnType<typeof useRecommendActions>;
 

@@ -21,6 +21,17 @@ export interface RecPayload {
   center: Coordinates | null;   // 본인 추천(own)만. null이면 앱이 지역 검색어로 직접 찾는다(직접 입력 지역)
   // 공유·그룹: 서버가 재검색한 결과(슬롯 ID → 가게). 중심은 출발지 무게중심이라 역산되므로 밖으로 내보내지 않는다.
   places?: Record<number, RestoredPlace | null>;
+  // 본인 추천(own)만 — 지난 추천에서 "이 조건으로 다시 추천받기"에 쓰는 나머지 입력. 공유·그룹에는 넣지 않는다(남의 직접 입력).
+  detail?: RecDetail;
+}
+
+export interface RecDetail {
+  createdAt: string;
+  relation: string | null; occasion: string | null; budget: string | null;
+  firstCategoryPath: string | null; secondCategoryPath: string | null; regionLevel: string | null;
+  menus: { course: 'first' | 'second'; ord: number; menu: string }[];
+  choices: { course: 'first' | 'second' | 'all'; code: string | null; kind: string | null; label: string }[];
+  origins: { query: string; kakaoPlaceId: string }[];
 }
 
 export interface RestoredPlace {
@@ -109,23 +120,37 @@ async function findByIdServer(
 
 // opts.restoreOnServer: 공유·그룹. 중심이 있으면 서버가 가게를 찾아 places로 주고 center는 비운다.
 export async function loadRecPayload(
-  supabase: SupabaseClient, recId: number, opts: { sessionId?: string; restoreOnServer?: boolean } = {},
+  supabase: SupabaseClient, recId: number, opts: { sessionId?: string; restoreOnServer?: boolean; withDetail?: boolean } = {},
 ): Promise<RecPayload | null> {
   const { data, error } = await supabase
     .from('recommendation')
-    .select(`id, user_id, condition:search_condition(id, mode, group_size, first_purpose, second_purpose, area_type, area_label, area_query,
-      search_origin(ord, query, kakao_place_id)),
+    .select(`id, user_id, created_at, condition:search_condition(id, mode, group_size, first_purpose, second_purpose, area_type, area_label, area_query,
+      relation, occasion, budget, first_category_path, second_category_path, region_level,
+      search_origin(ord, query, kakao_place_id), search_menu(course, ord, menu),
+      search_choice(course, custom_text, option:choice_option(code, kind, label))),
       slots:recommendation_slot(id, course, role, rank, kakao_place_id, search_kind, search_query, search_page, search_radius)`)
     .eq('id', recId)
     .maybeSingle();
   if (error || !data) return null;
+  type Extra = {
+    relation: string | null; occasion: string | null; budget: string | null;
+    first_category_path: string | null; second_category_path: string | null; region_level: string | null;
+    search_origin: { ord: number; query: string; kakao_place_id: string }[];
+    search_menu: { course: 'first' | 'second'; ord: number; menu: string }[];
+    search_choice: { course: 'first' | 'second' | 'all'; custom_text: string | null; option: { code: string; kind: string; label: string } | null }[];
+  };
   const row = data as unknown as {
     id: number;
     user_id: string | null;
-    condition: RecPayload['condition'] & { search_origin: { ord: number; query: string; kakao_place_id: string }[] };
+    created_at: string;
+    condition: RecPayload['condition'] & Extra;
     slots: RecPayload['slots'];
   };
-  const { search_origin: origins, ...condition } = row.condition;
+  const {
+    search_origin: origins, search_menu: menus, search_choice: choices,
+    relation, occasion, budget, first_category_path, second_category_path, region_level,
+    ...condition
+  } = row.condition;
 
   let center: Coordinates | null = null;
   if (condition.area_type === 'preset') {
@@ -154,7 +179,17 @@ export async function loadRecPayload(
   }
 
   const slots = row.slots ?? [];
-  const base = { recommendationId: row.id, ownerIsMember: !!row.user_id, condition, slots };
+  const detail: RecDetail | undefined = opts.withDetail ? {
+    createdAt: row.created_at,
+    relation, occasion, budget,
+    firstCategoryPath: first_category_path, secondCategoryPath: second_category_path, regionLevel: region_level,
+    menus: [...(menus ?? [])].sort((a, b) => a.ord - b.ord),
+    choices: (choices ?? [])
+      .map((c) => ({ course: c.course, code: c.option?.code ?? null, kind: c.option?.kind ?? null, label: c.option?.label ?? c.custom_text ?? '' }))
+      .filter((c) => c.label),
+    origins: [...(origins ?? [])].sort((a, b) => a.ord - b.ord).map((o) => ({ query: o.query, kakaoPlaceId: o.kakao_place_id })),
+  } : undefined;
+  const base = { recommendationId: row.id, ownerIsMember: !!row.user_id, condition, slots, ...(detail ? { detail } : {}) };
   const key = process.env.VITE_KAKAO_REST_API_KEY;
   if (opts.restoreOnServer && center && key) {
     const found = await Promise.all(slots.map(async (sl) => [sl.id, await findByIdServer(key, sl, center!)] as const));

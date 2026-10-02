@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { getDeviceId } from '@/storage/device';
 import { getBalance, getLedger } from '@/storage/points';
 import { signInWithKakao, signOut, syncProfile, deleteAccount } from '@/services/auth';
-import { clearMemberCache } from '@/services/memberData';
+import { clearMemberCache, fetchHistory, fetchWishlist } from '@/services/memberData';
 import { useUserStore } from '@/stores/userStore';
 import { Icon, IconUserCircle, IconGift, PointsBadge } from '@/components';
-import { MemberHistoryList, MemberWishList } from '@/components/MemberPlaces';
+import { navigateApp } from '@/utils/appRoute';
 
 // 문의는 메일 대신 카카오톡 오픈채팅으로 받는다(답장 속도·피드백 수집).
 const CONTACT_URL = 'https://open.kakao.com/o/skLK6YGi';
@@ -109,15 +109,8 @@ export default function Profile({ onChromeChange }: Props) {
         </div>
       )}
 
-      {/* 회원: 계정에 저장된 지난 추천·찜(카카오 재검색으로 이름 복원) */}
-      {user && (
-        <>
-          <p className="mt-6 px-1 mb-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">지난 추천</p>
-          <MemberHistoryList key={`h-${userId}`} onSheetChange={(open) => onChromeChange?.(!open)} />
-          <p className="mt-6 px-1 mb-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">찜한 곳</p>
-          <MemberWishList key={`w-${userId}`} />
-        </>
-      )}
+      {/* 지난 추천·찜한 곳 — 목록은 따로 화면(/app/profile/history·wishlist). 비회원도 들어가면 로그인 안내를 본다 */}
+      <MyRecordsMenu key={userId ?? 'guest'} member={!!user} />
 
       {/* 적립 이력 */}
       <p className="mt-6 px-1 mb-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">적립 내역</p>
@@ -213,5 +206,42 @@ function LinkRow({ label, onClick }: { label: string; onClick: () => void }) {
       <span className="text-sm font-bold text-gray-700">{label}</span>
       <span className="text-xs text-gray-300">›</span>
     </button>
+  );
+}
+
+function MyRecordsMenu({ member }: { member: boolean }) {
+  const [counts, setCounts] = useState<{ history: number | null; wish: number | null }>({ history: null, wish: null });
+  useEffect(() => {
+    if (!member) return;
+    let alive = true;
+    void Promise.allSettled([fetchHistory(), fetchWishlist()]).then(([h, w]) => {
+      if (!alive) return;
+      setCounts({
+        history: h.status === 'fulfilled' ? h.value.length : null,
+        wish: w.status === 'fulfilled' ? w.value.length : null,
+      });
+    });
+    return () => { alive = false; };
+  }, [member]);
+
+  const rows = [
+    { label: '지난 추천', icon: 'clock' as const, count: counts.history, path: '/app/profile/history' },
+    { label: '찜한 곳', icon: 'heart' as const, count: counts.wish, path: '/app/profile/wishlist' },
+  ];
+  return (
+    <div className="mt-3 overflow-hidden rounded-2xl border border-gray-100 bg-white divide-y divide-gray-100">
+      {rows.map((r) => (
+        <button
+          key={r.path}
+          onClick={() => navigateApp(r.path)}
+          className="flex w-full items-center gap-3 px-4 py-3.5 text-left active:bg-mint-50"
+        >
+          <Icon name={r.icon} className="text-lg text-mint-600" />
+          <span className="flex-1 text-sm font-bold text-gray-800">{r.label}</span>
+          {member && r.count != null && <span className="text-sm font-bold text-gray-400">{r.count}</span>}
+          <span aria-hidden className="text-gray-300">›</span>
+        </button>
+      ))}
+    </div>
   );
 }

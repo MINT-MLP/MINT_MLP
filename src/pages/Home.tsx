@@ -12,13 +12,15 @@ import {
 
 // 추천 플로우 — 상태 훅(1층) → 동작 훅(2층) → 화면 선택. 화면 자체는 HomeStepsView·HomeResultView.
 // 주소(/app/recommend·/app/result)와 화면(view)을 맞춘다. 처음 연 주소(entry)로 무엇을 복원할지 정한다.
-export default function Home({ screen, fresh, onChromeChange }: {
+export default function Home({ screen, fresh, pastId, onChromeChange }: {
   screen: 'recommend' | 'result';
   fresh: Fresh;
+  pastId: number | null;   // 지난 추천을 결과 화면으로 연 경우 그 추천 ID
   onChromeChange?: (showTabBar: boolean) => void;
 }) {
   const [entry] = useState(screen);
   const [entryFresh] = useState(fresh);
+  const [entryPastId] = useState(pastId);
   // 1층 — 상태
   const flow = useRecommendFlow();
   const input = useRecommendInput();
@@ -26,7 +28,7 @@ export default function Home({ screen, fresh, onChromeChange }: {
   const resultState = useResultState();
   const request = useRequestState();
   // 2층 — 동작 (복원 effect 순서가 있어 persistence를 먼저)
-  useHomePersistence({ flow, input, group, result: resultState, request, entry, fresh: entryFresh });
+  useHomePersistence({ flow, input, group, result: resultState, request, entry, fresh: entryFresh, pastId: entryPastId });
   const groupActions = useGroupActions({ flow, input, group });
   const actions = useRecommendActions({ flow, input, group, result: resultState, request });
   const nav = useStepNavigation({ flow, input, group, result: resultState, groupActions });
@@ -34,7 +36,7 @@ export default function Home({ screen, fresh, onChromeChange }: {
 
   const { view, setView } = flow;
   const { sessionId } = group;
-  const { result, midpointData } = resultState;
+  const { result, midpointData, past } = resultState;
   const { loading, loadingMsg, loadingProgress, loadingStartRef } = request;
   const recId = result?.[0]?.record?.recommendationId ?? null;
 
@@ -69,9 +71,9 @@ export default function Home({ screen, fresh, onChromeChange }: {
       return;
     }
     if (recId == null) return;   // 복원 중 — 추천 ID를 알 때 맞춘다
-    const want = `/app/result?id=${recId}`;
+    const want = `/app/result?id=${recId}${past ? '&from=history' : ''}`;
     if (`${pathname}${search}` !== want) navigateApp(want, { replace: pathname !== '/app/recommend' });
-  }, [view, recId, loading, hasResult]);
+  }, [view, recId, loading, hasResult, past]);
 
   // 처음부터 다시 — 결과·입력 취향을 전부 지우고 첫 화면으로. 파괴적이라 반드시 확인 1회.
   function handleFullReset() {
