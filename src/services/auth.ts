@@ -7,8 +7,8 @@ import { supabase } from '@/services/supabase';
 // supabase-js v2는 detectSessionInUrl/persistSession이 기본 true라 OAuth 콜백 파싱·세션 저장은 자동이다.
 
 const KAKAO_SCOPES = 'profile_nickname profile_image account_email';
-// 로그인 후 프로필 탭으로 복귀 (커스텀 라우터는 pathname만 보므로 ?tab=profile은 /app으로 매칭된다)
-const kakaoRedirectTo = () => `${window.location.origin}/app?tab=profile`;
+// 로그인 후 기본 복귀는 앱 홈(10-02). 결과 화면·공유·그룹 화면은 returnPath로 그 화면에 돌아온다.
+const kakaoRedirectTo = () => `${window.location.origin}/app`;
 
 export async function getSession(): Promise<Session | null> {
   const { data } = await supabase.auth.getSession();
@@ -21,7 +21,7 @@ export function isMember(user: User | null | undefined): user is User {
 }
 
 // 카카오 로그인은 일반 로그인(signInWithOAuth)이다 — 기존 회원이면 그 계정으로, 아니면 새 계정.
-// returnPath: 로그인 뒤 돌아올 경로(공유 화면 등). 없으면 앱 프로필 탭.
+// returnPath: 로그인 뒤 돌아올 경로(결과·공유 화면 등). 없으면 앱 홈.
 // Supabase Authentication → URL Configuration의 Redirect URLs에 그 주소가 허용돼 있어야 한다(아니면 Site URL로 간다).
 export async function signInWithKakao(returnPath?: string): Promise<void> {
   // 비즈앱 전환으로 account_email 권한이 열려 KOE205가 해소됐다. 그래도 scope는 계속 명시한다 —

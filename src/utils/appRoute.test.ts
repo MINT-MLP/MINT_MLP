@@ -7,6 +7,7 @@ describe('parseAppRoute', () => {
     expect(parseAppRoute('/app/recommend', '')).toMatchObject({ tab: 'home', home: 'recommend', fresh: null });
     expect(parseAppRoute('/app/recommend', '?new=group')).toMatchObject({ home: 'recommend', fresh: 'group' });
     expect(parseAppRoute('/app/recommend', '?new=x')).toMatchObject({ fresh: null });
+    expect(parseAppRoute('/app/recommend', '?new=1')).toMatchObject({ fresh: 'start' });
     expect(parseAppRoute('/app/result', '?id=12')).toMatchObject({ home: 'result', resultId: 12 });
     expect(parseAppRoute('/app/result', '?id=abc')).toMatchObject({ home: 'result', resultId: null });
   });

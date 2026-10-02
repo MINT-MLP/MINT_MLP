@@ -4,7 +4,7 @@ import Reserve from '@/pages/Reserve';
 import { cancelGroupSessionOnServer } from '@/services/session';
 import { clearResultSnapshot, INPUT_DRAFT_KEY, GROUP_SESSION_KEY } from '@/storage/history';
 import { getLoadingMessages, LOADING_SLOW_MS, LOADING_SLOW_MESSAGE } from '@/utils/loadingCopy';
-import { navigateApp } from '@/utils/appRoute';
+import { navigateApp, type Fresh } from '@/utils/appRoute';
 import {
   useRecommendFlow, useRecommendInput, useGroupSession, useResultState, useRequestState,
   useHomePersistence, useGroupActions, useRecommendActions, useStepNavigation, useShareResult,
@@ -14,7 +14,7 @@ import {
 // 주소(/app/recommend·/app/result)와 화면(view)을 맞춘다. 처음 연 주소(entry)로 무엇을 복원할지 정한다.
 export default function Home({ screen, fresh, onChromeChange }: {
   screen: 'recommend' | 'result';
-  fresh: 'solo' | 'group' | null;
+  fresh: Fresh;
   onChromeChange?: (showTabBar: boolean) => void;
 }) {
   const [entry] = useState(screen);

@@ -15,7 +15,7 @@ import type { TabKey, ResultSummary } from '@/types';
 // /app 셸 — 주소가 화면을 정한다(utils/appRoute). 홈 탭은 홈(허브)·추천 단계·결과, 나머지 탭은 탭마다 한 화면.
 // 탭바는 기본으로 보이고, 각 화면이 onChromeChange(false)로 내린다 — 바텀시트가 열렸을 때, 추천 입력 단계·추천을 기다리는 동안.
 
-// 카카오 로그인 복귀 표식 — redirectTo가 /app?tab=profile인 곳은 auth.ts뿐이다.
+// 옛 카카오 로그인 복귀 표식(/app?tab=profile) — 10-02부터 기본 복귀는 /app. 그 전에 시작한 로그인이 돌아올 때만 쓰인다.
 const isKakaoReturn = () =>
   new URLSearchParams(window.location.search).get('tab') === 'profile';
 

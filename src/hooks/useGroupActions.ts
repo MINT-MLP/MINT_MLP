@@ -3,7 +3,7 @@ import type { GroupMember, LocationEntry } from '@/types';
 import { trackEvent } from '@/services/analytics';
 import { encodeHostContext } from '@/utils/groupLink';
 import { aggregateVibe, aggregateBudget, splitMemberKeywords } from '@/utils/groupAggregate';
-import { GROUP_SESSION_KEY } from '@/storage/history';
+import { GROUP_SESSION_KEY, loadGroupSessionSummary } from '@/storage/history';
 import { cancelGroupSessionOnServer } from '@/services/session';
 import { shareViaKakaoOrFallback } from '@/services/share';
 import { resolveOriginCached } from '@/services/resultRestore';
@@ -92,6 +92,12 @@ export function useGroupActions({ flow, input, group }: {
   }, [isGroup, sessionId, step, groupMembers.length]);
 
   async function handleCreateSession() {
+    // 새로 시작으로 들어와 이전 초대 링크가 아직 살아 있으면, 새 링크가 그 자리를 덮는다 — 묻고 이전 링크를 서버에서 취소한다
+    const prev = loadGroupSessionSummary();
+    if (prev && prev.sessionId !== sessionId) {
+      if (!window.confirm('진행 중인 다른 초대 링크가 있어요.\n새로 만들면 그 링크는 취소돼요. 새로 만들까요?')) return;
+      cancelGroupSessionOnServer(prev.sessionId, prev.hostToken);
+    }
     setCreatingSession(true);
     setGroupError(null);
     try {

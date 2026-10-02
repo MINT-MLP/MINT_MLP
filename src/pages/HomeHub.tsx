@@ -1,146 +1,242 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { Icon } from '@/components/icons';
+import type { IconName } from '@/components/icons';
+import { HistorySheet } from '@/components/MemberPlaces';
 import { trackEvent } from '@/services/analytics';
 import { signInWithKakao } from '@/services/auth';
-import { cancelGroupSessionOnServer } from '@/services/session';
-import { GROUP_SESSION_KEY, loadDraftSummary, loadGroupSessionSummary, loadResultSummary } from '@/storage/history';
+import { fetchHistory, fetchWishlist, restorePlaces, slotSource, type HistoryItem, type WishRow } from '@/services/memberData';
+import { kakaoPlaceLink, type RestoredPlace } from '@/services/restore';
+import { loadDraftSummary, loadGroupSessionSummary, loadResultSummary } from '@/storage/history';
 import { useUserStore } from '@/stores/userStore';
 import { navigateApp } from '@/utils/appRoute';
 
-// 앱 홈(/app) — 임시 화면. 디자이너 시안이 나오면 이 화면만 바꾼다(주소·이동 규칙은 그대로).
-// 이미 있는 기능으로만 채운다: 새로 시작, 이어서 하기(보던 결과·진행 중 그룹 링크·입력하던 초안), 내 기록.
+// 앱 홈(/app) — 10-02 시안 비교에서 고른 '카드' 안. 큰 인사 + 추천 시작하기, 이어서 하기 띠,
+// 회원은 찜·지난 추천을 옆으로 넘기는 카드로 2개씩(더 있으면 '더 보기'), 비회원은 로그인 안내.
+const PREVIEW = 2;
+const stagger = (i: number) => ({ ['--i' as string]: i }) as CSSProperties;
+
+type Load<T> = { status: 'loading' } | { status: 'error' } | { status: 'ready'; data: T };
+
 export default function HomeHub() {
   const ready = useUserStore((s) => s.ready);
   const isMember = useUserStore((s) => s.isMember);
   const nickname = useUserStore((s) => s.nickname);
-  const [result] = useState(loadResultSummary);
-  const [groupLink] = useState(loadGroupSessionSummary);
-  const [draft] = useState(() => {
-    const d = loadDraftSummary();
-    return d?.purposeFirst ? d : null;
-  });
+  const userId = useUserStore((s) => s.user?.id ?? null);
+  const [resume] = useState(loadResumeItems);
 
   useEffect(() => { trackEvent('home_hub_view'); }, []);
 
-  function start(mode: 'solo' | 'group') {
-    if (mode === 'group' && groupLink) {
-      const ok = window.confirm('친구들에게 보낸 초대 링크가 아직 진행 중이에요.\n새로 만들면 그 링크는 취소돼요. 새로 만들까요?');
-      if (!ok) return;
-      cancelGroupSessionOnServer(groupLink.sessionId, groupLink.hostToken);
-      try { localStorage.removeItem(GROUP_SESSION_KEY); } catch { /* ignore */ }
-    }
-    trackEvent('home_start', { mode });
-    navigateApp(`/app/recommend?new=${mode}`);
+  function start() {
+    trackEvent('home_start');
+    navigateApp('/app/recommend?new=1');
   }
-
-  function resume(kind: 'result' | 'group' | 'draft') {
-    trackEvent('home_resume', { kind });
-    navigateApp(kind === 'result' ? '/app/result' : '/app/recommend');
-  }
-
-  const hasResume = !!(result || groupLink || draft);
 
   return (
-    <div className="max-w-md mx-auto px-5 pt-[max(1.5rem,env(safe-area-inset-top))]">
-      <h1 className="text-[22px] font-black text-mint-500 tracking-tight">MINT</h1>
-      <p className="mt-3 text-[20px] font-black leading-snug text-gray-900">
-        {isMember && nickname ? `${nickname}님, ` : ''}오늘은 어디서 만날까요?
-      </p>
-      <p className="mt-1 text-sm text-gray-500">조건만 고르면 딱 맞는 곳을 골라드려요.</p>
-
-      <div className="mt-5 grid grid-cols-2 gap-3">
+    <div className="max-w-md mx-auto pt-[max(1.5rem,env(safe-area-inset-top))]">
+      <div className="home-enter px-5" style={stagger(0)}>
+        <p className="text-sm font-bold text-mint-600">{isMember && nickname ? `안녕하세요 ${nickname}님` : '안녕하세요'}</p>
+        <p className="mt-1 text-[28px] font-black leading-[1.2] tracking-tight text-gray-900">약속은 잡았는데<br />어디서 만나지?</p>
         <button
-          onClick={() => start('solo')}
-          className="flex flex-col items-start gap-1 rounded-2xl bg-mint-500 p-4 text-left text-white shadow-lg shadow-mint-500/30 active:scale-[0.98] transition-transform"
+          onClick={start}
+          className="home-press mt-5 inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3.5 text-sm font-black text-white"
         >
-          <Icon name="user" className="text-xl" />
-          <span className="mt-1 text-base font-black">혼자 정하기</span>
-          <span className="text-xs text-white/80">내가 조건을 다 고를게요</span>
-        </button>
-        <button
-          onClick={() => start('group')}
-          className="flex flex-col items-start gap-1 rounded-2xl border border-mint-500/40 bg-white p-4 text-left active:scale-[0.98] transition-transform"
-        >
-          <Icon name="users" className="text-xl text-mint-600" />
-          <span className="mt-1 text-base font-black text-gray-900">다같이 정하기</span>
-          <span className="text-xs text-gray-500">링크로 친구 취향 모으기</span>
+          <Icon name="sparkle" className="text-mint-500" />추천 시작하기
         </button>
       </div>
 
-      {hasResume && (
-        <>
-          <p className="mt-7 px-1 mb-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">이어서 하기</p>
-          <div className="flex flex-col gap-2">
-            {result && (
-              <ResumeRow icon="pin" title="보던 추천 이어보기" sub={result.title} onClick={() => resume('result')} />
-            )}
-            {groupLink && (
-              <ResumeRow
-                icon="users"
-                title="친구들 입력 기다리는 중"
-                sub={groupLink.purposeFirst ? `${groupLink.purposeFirst} 모임 · 입력 현황 보기` : '입력 현황 보기'}
-                onClick={() => resume('group')}
-              />
-            )}
-            {draft && !groupLink && (
-              <ResumeRow
-                icon="clipboard"
-                title="입력하던 추천 이어서"
-                sub={`${draft.appMode === 'group' ? '다같이' : '혼자'} · ${draft.purposeFirst}`}
-                onClick={() => resume('draft')}
-              />
-            )}
-          </div>
-        </>
+      {resume.length > 0 && (
+        <div className="home-enter home-scroll mt-7 flex gap-2 overflow-x-auto px-5" style={stagger(1)}>
+          {resume.map((r) => (
+            <button
+              key={r.kind}
+              onClick={() => { trackEvent('home_resume', { kind: r.kind }); navigateApp(r.kind === 'result' ? '/app/result' : '/app/recommend'); }}
+              className={`home-press flex shrink-0 items-center gap-3 rounded-2xl bg-mint-800 p-4 text-left text-white ${resume.length > 1 ? 'w-[85%]' : 'w-full'}`}
+            >
+              <Icon name={r.icon} className="text-xl text-mint-200" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-black">{r.title}</span>
+                <span className="block truncate text-xs text-white/75">{r.sub}</span>
+              </span>
+              <span aria-hidden className="text-white/60">›</span>
+            </button>
+          ))}
+        </div>
       )}
 
-      <p className="mt-7 px-1 mb-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">내 기록</p>
-      {isMember ? (
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={() => navigateApp('/app/profile')}
-            className="flex items-center gap-2 rounded-2xl border border-gray-100 bg-white p-4 text-sm font-bold text-gray-800 active:scale-[0.98] transition-transform"
-          >
-            <Icon name="clock" className="text-mint-600" />지난 추천
-          </button>
-          <button
-            onClick={() => navigateApp('/app/profile')}
-            className="flex items-center gap-2 rounded-2xl border border-gray-100 bg-white p-4 text-sm font-bold text-gray-800 active:scale-[0.98] transition-transform"
-          >
-            <Icon name="heart" className="text-mint-600" />찜한 곳
-          </button>
-        </div>
+      {isMember && userId ? (
+        <MemberShelves key={userId} />
       ) : ready ? (
-        <div className="rounded-2xl border border-gray-100 bg-white p-4">
-          <p className="text-sm font-bold text-gray-800">로그인하면 찜과 지난 추천을 모아볼 수 있어요</p>
+        <div className="home-enter mx-5 mt-7 rounded-2xl border border-gray-100 bg-white p-4" style={stagger(2)}>
+          <p className="text-sm font-black text-gray-900">찜한 곳과 지난 추천을 모아보세요</p>
+          <p className="mt-0.5 text-xs text-gray-500">카카오로 로그인하면 어느 기기에서든 다시 볼 수 있어요.</p>
           <button
             onClick={() => void signInWithKakao()}
-            className="mt-3 w-full rounded-2xl bg-kakao py-3 text-sm font-black text-[#191919] active:scale-[0.99] transition-transform"
+            className="home-press mt-3 w-full rounded-2xl bg-kakao py-3 text-sm font-black text-[#191919]"
           >
             카카오로 로그인
           </button>
         </div>
       ) : null}
+      <div className="h-6" />
     </div>
   );
 }
 
-function ResumeRow({ icon, title, sub, onClick }: {
-  icon: 'pin' | 'users' | 'clipboard'; title: string; sub: string; onClick: () => void;
-}) {
+// ── 이어서 하기 ── 보던 결과, 진행 중인 그룹 초대 링크(호스트), 입력하던 초안(그룹 링크가 없을 때만)
+type ResumeItem = { kind: 'result' | 'group' | 'draft'; icon: IconName; title: string; sub: string };
+
+function loadResumeItems(): ResumeItem[] {
+  const items: ResumeItem[] = [];
+  const result = loadResultSummary();
+  if (result) items.push({ kind: 'result', icon: 'pin', title: '보던 추천 이어보기', sub: result.title });
+  const group = loadGroupSessionSummary();
+  if (group) items.push({ kind: 'group', icon: 'users', title: '친구들 입력 기다리는 중', sub: group.purposeFirst ? `${group.purposeFirst} 모임 · 입력 현황 보기` : '입력 현황 보기' });
+  const draft = loadDraftSummary();
+  if (draft?.purposeFirst && !group) {
+    items.push({ kind: 'draft', icon: 'clipboard', title: '입력하던 추천 이어서', sub: `${draft.appMode === 'group' ? '다같이' : '혼자'} · ${draft.purposeFirst}` });
+  }
+  return items;
+}
+
+// ── 회원: 찜·지난 추천 ── 이름은 저장하지 않아 카카오 재검색으로 채운다(앞의 2개만)
+function MemberShelves() {
+  const [wishes, setWishes] = useState<Load<WishRow[]>>({ status: 'loading' });
+  const [history, setHistory] = useState<Load<HistoryItem[]>>({ status: 'loading' });
+  const [places, setPlaces] = useState<Map<string, RestoredPlace | null>>(new Map());
+  const [placesPending, setPlacesPending] = useState(true);
+  const [openHistory, setOpenHistory] = useState<HistoryItem | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const [w, h] = await Promise.allSettled([fetchWishlist(), fetchHistory()]);
+      if (!alive) return;
+      const wishRows = w.status === 'fulfilled' ? w.value : null;
+      const historyRows = h.status === 'fulfilled' ? h.value : null;
+      setWishes(wishRows ? { status: 'ready', data: wishRows } : { status: 'error' });
+      setHistory(historyRows ? { status: 'ready', data: historyRows } : { status: 'error' });
+      const items = [
+        ...(wishRows ?? []).slice(0, PREVIEW).map((r) => ({ key: `w${r.id}`, placeId: r.kakao_place_id, condition: r.condition, source: slotSource(r) })),
+        ...(historyRows ?? []).slice(0, PREVIEW).flatMap((it) => {
+          const top = firstMain(it);
+          return top ? [{ key: `h${it.id}`, placeId: top.kakao_place_id, condition: it.condition, source: slotSource(top) }] : [];
+        }),
+      ];
+      const map = await restorePlaces(items).catch(() => new Map<string, RestoredPlace | null>());
+      if (alive) { setPlaces(map); setPlacesPending(false); }
+    })();
+    return () => { alive = false; };
+  }, []);
+
   return (
-    <button
-      onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 text-left active:scale-[0.99] transition-transform"
-    >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mint-100 text-mint-600">
-        <Icon name={icon} className="text-lg" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-black text-gray-900">{title}</span>
-        <span className="block truncate text-xs text-gray-500">{sub}</span>
-      </span>
-      <span className="text-gray-300" aria-hidden>›</span>
-    </button>
+    <>
+      <Shelf title="찜한 곳" style={stagger(2)} state={wishes} empty="아직 찜한 곳이 없어요. 추천 결과에서 하트를 눌러 저장해보세요.">
+        {(rows) => rows.slice(0, PREVIEW).map((row) => {
+          const p = places.get(`w${row.id}`);
+          return (
+            <a
+              key={row.id}
+              href={p?.url ?? kakaoPlaceLink(row.kakao_place_id)}
+              target="_blank"
+              rel="noreferrer"
+              className="home-press w-44 shrink-0 overflow-hidden rounded-2xl border border-gray-100 bg-white text-left"
+            >
+              <span className="flex h-20 items-center justify-center bg-mint-100">
+                <Icon name={iconFor(p?.category, row.course)} className="text-3xl text-mint-600" />
+              </span>
+              <span className="block p-3">
+                {placesPending ? (
+                  <span className="block h-4 w-28 animate-pulse rounded bg-gray-100" />
+                ) : (
+                  <span className="block truncate text-sm font-black text-gray-900">{p?.name ?? '카카오맵에서 보기'}</span>
+                )}
+                <span className="block truncate text-xs text-gray-500">{p?.category ? `${p.category} · ` : ''}{row.condition.area_label}</span>
+              </span>
+            </a>
+          );
+        })}
+      </Shelf>
+
+      <Shelf title="지난 추천" style={stagger(3)} state={history} empty="아직 받은 추천이 없어요. 로그인한 뒤 받은 추천이 여기에 쌓여요.">
+        {(rows) => rows.slice(0, PREVIEW).map((it) => {
+          const c = it.condition;
+          const top = places.get(`h${it.id}`);
+          return (
+            <button
+              key={it.id}
+              onClick={() => setOpenHistory(it)}
+              className="home-press w-52 shrink-0 rounded-2xl border border-gray-100 bg-white p-4 text-left"
+            >
+              <span className="block text-[11px] font-bold text-gray-400">{dateLabel(it.created_at)}</span>
+              <span className="mt-1 block truncate text-base font-black text-gray-900">{c.area_label}</span>
+              <span className="mt-0.5 inline-block rounded-full bg-mint-100 px-2 py-0.5 text-[11px] font-bold text-mint-600">
+                {c.second_purpose ? `${c.first_purpose} → ${c.second_purpose}` : c.first_purpose}
+              </span>
+              {placesPending ? (
+                <span className="mt-2 block h-3.5 w-32 animate-pulse rounded bg-gray-100" />
+              ) : (
+                <span className="mt-2 block truncate text-xs text-gray-500">
+                  {top ? `${top.name}${it.slots.length > 1 ? ` 외 ${it.slots.length - 1}곳` : ''}` : `추천 ${it.slots.length}곳`}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </Shelf>
+
+      {openHistory && <HistorySheet item={openHistory} onClose={() => setOpenHistory(null)} />}
+    </>
   );
+}
+
+function Shelf<T>({ title, style, state, empty, children }: {
+  title: string; style: CSSProperties; state: Load<T[]>; empty: string; children: (rows: T[]) => ReactNode;
+}) {
+  const more = state.status === 'ready' && state.data.length > PREVIEW;
+  return (
+    <section className="home-enter mt-7" style={style}>
+      <div className="mb-2 flex items-center justify-between px-5">
+        <p className="text-base font-black text-gray-900">{title}</p>
+        {state.status === 'ready' && state.data.length > 0 && (
+          <button onClick={() => navigateApp('/app/profile')} className="text-xs font-bold text-gray-400">전체 보기</button>
+        )}
+      </div>
+      {state.status === 'loading' && (
+        <div className="flex gap-2 px-5">
+          {[0, 1].map((i) => <span key={i} className="h-32 w-44 shrink-0 animate-pulse rounded-2xl bg-white" />)}
+        </div>
+      )}
+      {state.status === 'error' && <p className="px-5 text-xs text-gray-400">불러오지 못했어요. 잠시 후 다시 열어주세요.</p>}
+      {state.status === 'ready' && state.data.length === 0 && (
+        <p className="mx-5 rounded-2xl border border-gray-100 bg-white px-4 py-5 text-center text-xs leading-relaxed text-gray-500">{empty}</p>
+      )}
+      {state.status === 'ready' && state.data.length > 0 && (
+        <div className="home-scroll flex gap-2 overflow-x-auto px-5 pb-1">
+          {children(state.data)}
+          {more && (
+            <button
+              onClick={() => navigateApp('/app/profile')}
+              className="home-press flex w-20 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-gray-200 text-xs font-bold text-gray-400"
+            >
+              <span aria-hidden className="text-lg">›</span>더 보기
+            </button>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function firstMain(it: HistoryItem) {
+  return it.slots.find((s) => s.course === 'first' && s.role === 'main') ?? it.slots[0];
+}
+
+function iconFor(category: string | undefined, course: 'first' | 'second'): IconName {
+  if (category && /카페|디저트|베이커리|제과/.test(category)) return 'cafe';
+  if (category && /술|주점|호프|바|포차|와인|이자카야|맥주/.test(category)) return 'wine';
+  return course === 'second' ? 'wine' : 'meal';
+}
+
+function dateLabel(iso: string): string {
+  return new Date(iso).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
 }

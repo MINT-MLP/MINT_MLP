@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import StepProgress from '@/components/StepProgress';
 import { navigateApp } from '@/utils/appRoute';
 import LocationInput from '@/components/LocationInput';
@@ -11,7 +12,8 @@ import type { IconName } from '@/components/icons';
 import { VIBE_KEY_TO_LABEL } from '@/constants/vibeOptions';
 import { OCCASION_BY_RELATION, OCCASION_PREVIEW } from '@/constants/occasion';
 import { cancelGroupSessionOnServer } from '@/services/session';
-import { GROUP_SESSION_KEY } from '@/storage/history';
+import { GROUP_SESSION_KEY, INPUT_DRAFT_KEY } from '@/storage/history';
+import HomeExitSheet from '@/components/HomeExitSheet';
 import type { RecommendFlow, RecommendInput, GroupSession, RequestState, GroupActions, RecommendActions, StepNavigation } from '@/hooks';
 
 // 입력 플로우(스텝 0~3) 화면. Home이 훅 결과 객체를 그대로 넘기고, 여기서 같은 이름으로 풀어 쓴다 — JSX는 분리 전 Home과 동일.
@@ -31,6 +33,22 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
   const { handleConfirmMeetingLocation } = actions;
   const { canNext, canJumpTo, handleStepJump, handleNext, handleBack } = nav;
 
+  // 홈으로 나가기 — 고른 게 있으면 저장할지 묻는다. 그룹 초대 링크를 만든 뒤에는 묻지 않고 늘 남긴다
+  // (호스트가 대기 화면에 붙어 있을 필요가 없게 — 홈의 '친구들 입력 기다리는 중'으로 돌아온다).
+  const [exitOpen, setExitOpen] = useState(false);
+  function handleHome() {
+    const hasProgress = step > 0 || !!purpose?.first;
+    if ((isGroup && sessionId) || !hasProgress) {
+      navigateApp('/app');
+      return;
+    }
+    setExitOpen(true);
+  }
+  function exitWithoutSaving() {
+    try { localStorage.removeItem(INPUT_DRAFT_KEY); } catch { /* ignore */ }
+    navigateApp('/app');
+  }
+
   return (
     <div
       className="bg-mint-50 overflow-hidden"
@@ -44,19 +62,17 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
 
         {/* 헤더 — 노치/상단 안전영역 반영(인앱·일반 세로모드에선 16px 그대로).
             결과 화면 헤더와 같은 문법: 높이 h-10, 소형 텍스트 버튼, 로고 절대 중앙 정렬.
-            좌측 버튼은 step에 따라 역할이 다르다 — step 0(모드 선택)에서만 "← 홈"으로 앱 홈(/app)에 나가고,
-            step 1~3에서는 "← 뒤로"로 이전 단계로만 간다(하단 "← 이전 단계"와 같은 handleBack).
-            중간 단계에서 홈을 누르면 랜딩으로 튕겨 입력 흐름이 끊기던 문제를 막는다.
-            중앙 로고는 어느 step에서든 step 0으로 되감기(step 0에선 no-op) — 좌측은 한 단계, 로고는 끝까지. */}
+            좌측은 어느 단계에서든 "홈"(앱 홈 /app으로, 고른 게 있으면 저장 여부를 묻는다). 이전 단계는 하단 "이전" 하나만.
+            중앙 로고는 어느 step에서든 step 0으로 되감기(step 0에선 no-op). */}
         <div className="flex-shrink-0 px-5 pt-[max(1rem,env(safe-area-inset-top))]">
           <div className="relative -mx-2 flex h-10 items-center justify-center">
             <button
-              onClick={step === 0 ? () => navigateApp('/app') : handleBack}
+              onClick={handleHome}
               className="absolute left-0 top-1/2 -translate-y-1/2 flex min-h-10 items-center gap-1 rounded-lg px-2 text-xs font-bold text-gray-500 transition-colors hover:text-mint-600"
-              aria-label={step === 0 ? '홈으로 가기' : '뒤로 가기'}
+              aria-label="홈으로 가기"
             >
-              <span aria-hidden>←</span>
-              <span>{step === 0 ? '홈' : '뒤로'}</span>
+              <Icon name="home" className="text-base" />
+              <span>홈</span>
             </button>
             <h1
               className="text-2xl font-black text-mint-600 tracking-tight cursor-pointer select-none"
@@ -495,9 +511,9 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                 {step > 0 && (
                   <button
                     onClick={handleBack}
-                    className="w-[92px] py-4 rounded-2xl border border-gray-200 bg-white text-gray-500 font-bold text-sm hover:border-gray-300 transition-all active:scale-95"
+                    className="shrink-0 px-4 py-4 rounded-2xl text-gray-500 font-bold text-sm hover:text-gray-700 transition-colors active:scale-95"
                   >
-                    ← 이전 단계
+                    이전
                   </button>
                 )}
                 <button
@@ -533,9 +549,9 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
               <div className="flex gap-3">
                 <button
                   onClick={handleBack}
-                  className="w-[92px] py-4 rounded-2xl border border-gray-200 bg-white text-gray-500 font-bold text-sm hover:border-gray-300 transition-all active:scale-95"
+                  className="shrink-0 px-4 py-4 rounded-2xl text-gray-500 font-bold text-sm hover:text-gray-700 transition-colors active:scale-95"
                 >
-                  ← 이전 단계
+                  이전
                 </button>
                 <button
                   onClick={() => {
@@ -551,6 +567,13 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
         </div>
 
       </div>
+      {exitOpen && (
+        <HomeExitSheet
+          onSave={() => navigateApp('/app')}
+          onDiscard={exitWithoutSaving}
+          onClose={() => setExitOpen(false)}
+        />
+      )}
     </div>
   );
 }

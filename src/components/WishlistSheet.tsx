@@ -45,7 +45,7 @@ function LoginPromptSheet({ onClose }: { onClose: () => void }) {
         </div>
         <p className="py-6 text-center text-sm leading-relaxed text-gray-500">찜은 카카오 로그인 후 쓸 수 있어요.<br />로그인하면 어느 기기에서든 찜한 곳을 볼 수 있어요.</p>
         <button
-          onClick={() => void signInWithKakao()}
+          onClick={() => void signInWithKakao(window.location.pathname === '/app/result' ? `${window.location.pathname}${window.location.search}` : undefined)}
           className="w-full rounded-2xl bg-kakao py-3 text-sm font-black text-[#191919] active:scale-[0.99] transition-transform"
         >
           카카오로 로그인

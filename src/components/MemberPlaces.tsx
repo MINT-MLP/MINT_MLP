@@ -155,7 +155,7 @@ export function MemberHistoryList({ onSheetChange }: { onSheetChange?: (open: bo
 
 const ROLE_ORDER = (s: SlotRow) => (s.course === 'first' ? 0 : 10) + (s.role === 'main' ? 0 : 1) + s.rank / 100;
 
-function HistorySheet({ item, onClose }: { item: HistoryItem; onClose: () => void }) {
+export function HistorySheet({ item, onClose }: { item: HistoryItem; onClose: () => void }) {
   const slots = [...item.slots].sort((a, b) => ROLE_ORDER(a) - ROLE_ORDER(b));
   const [restored, setRestored] = useState<Map<string, RestoredPlace | null>>(new Map());
   const [pending, setPending] = useState(true);

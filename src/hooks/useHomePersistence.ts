@@ -12,16 +12,17 @@ import { migrateVibeState } from '@/utils/vibeMigrate';
 import type { RecommendFlow } from '@/hooks/useRecommendFlow';
 import type { RecommendInput } from '@/hooks/useRecommendInput';
 import type { GroupSession } from '@/hooks/useGroupSession';
+import type { Fresh } from '@/utils/appRoute';
 import type { ResultState } from '@/hooks/useResultState';
 import type { RequestState } from '@/hooks/useRequestState';
 
 // localStorage 복원·저장. 복원 layout effect 3개의 선언 순서(결과→입력초안→그룹세션)는 동작에 영향을 주므로
 // (그룹세션 복원이 결과 복원의 view/step을 덮어써야 한다) 한 훅 안에 원래 순서대로 둔다.
 // entry: 이 화면을 어느 주소로 열었나(/app/recommend·/app/result). 결과 복원은 결과 주소로 열었을 때만,
-// 입력 초안·그룹 세션 복원은 추천 주소로 열었을 때만 한다. fresh: 홈에서 "새로 시작"(초안·그룹 복원 없이 그 모드로).
+// 입력 초안·그룹 세션 복원은 추천 주소로 열었을 때만 한다. fresh: 새로 시작(초안·그룹 복원 없이 — 'start'는 1단계에서 모드를 고른다).
 export function useHomePersistence({ flow, input, group, result: resultState, request, entry, fresh }: {
   flow: RecommendFlow; input: RecommendInput; group: GroupSession; result: ResultState; request: RequestState;
-  entry: 'recommend' | 'result'; fresh: 'solo' | 'group' | null;
+  entry: 'recommend' | 'result'; fresh: Fresh;
 }) {
   const { view, setView, step, setStep, appMode, setAppMode, isGroup } = flow;
   const {
@@ -127,13 +128,13 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
   }, [entry, setAppMode, setView, setResult, setResultThird, setResultThirdLabel, setResultSecondMissing, setPurpose, setMidpointData, setTreasurer, setMeetingLocation, setResultTravelTimes, setResultWeather, setVibe, setKeywords, setConditions, setGroupSize, setBudget, setVibeCustom, setCustomOccasion, setLocations, setLocationsVersion, setGroupTravelLabels, setLoading, setLoadingProgress, loadingStartRef]);
 
   // 입력 초안 복원 — 추천 주소로 열었을 때만. 그룹도 링크 생성 전에는 서버 세션이 없으므로 로컬 초안에서 복원한다.
-  // 홈에서 "새로 시작"이면 초안을 지우고 고른 모드로 시작한다.
+  // 새로 시작이면 초안을 지우고 1단계부터(모드가 정해져 왔으면 그 모드로).
   useLayoutEffect(() => {
     try {
       if (entry !== 'recommend') return;
       if (fresh) {
         localStorage.removeItem(INPUT_DRAFT_KEY);
-        setAppMode(fresh);
+        if (fresh !== 'start') setAppMode(fresh);
         return;
       }
       // 구버전(sessionStorage) 초안도 한 번은 읽어줌 — 배포 시점에 입력 중이던 세션 보호

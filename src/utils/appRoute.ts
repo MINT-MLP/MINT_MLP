@@ -2,16 +2,18 @@ import type { TabKey } from '@/types';
 
 // /app 안의 화면 주소. 홈 탭은 홈(허브)·추천 단계·결과 세 화면이고, 나머지 탭은 탭마다 하나.
 //   /app                 홈
-//   /app/recommend       추천 입력 단계(?new=solo|group 새로 시작, ?grp= 그룹 호스트 복귀)
+//   /app/recommend       추천 입력 단계(?new=1 새로 시작 — 1단계에서 혼자/다같이 고름, ?new=solo|group 그 모드로 새로 시작, ?grp= 그룹 호스트 복귀)
 //   /app/result?id=추천ID 추천 결과
 //   /app/meetings · /app/discover · /app/shop · /app/profile
 // 옛 주소 /app?tab=profile(카카오 로그인 복귀)·/app?grp=(그룹 호스트 복귀)도 받아준다.
 export type HomeScreen = 'hub' | 'recommend' | 'result';
 
+export type Fresh = 'start' | 'solo' | 'group' | null;
+
 export interface AppRoute {
   tab: TabKey;
   home: HomeScreen;
-  fresh: 'solo' | 'group' | null;   // 홈에서 "새로 시작"으로 들어왔는가
+  fresh: Fresh;   // 새로 시작으로 들어왔는가
   resultId: number | null;
 }
 
@@ -33,7 +35,7 @@ export function parseAppRoute(path: string, search: string): AppRoute {
   if (tab) return { ...base, tab };
   if (path === '/app/recommend') {
     const fresh = q.get('new');
-    return { ...base, home: 'recommend', fresh: fresh === 'solo' || fresh === 'group' ? fresh : null };
+    return { ...base, home: 'recommend', fresh: fresh === 'solo' || fresh === 'group' ? fresh : fresh === '1' ? 'start' : null };
   }
   if (path === '/app/result') {
     const id = Number(q.get('id'));
