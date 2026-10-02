@@ -9,7 +9,7 @@ import { Icon } from '@/components/icons';
 async function goToApp() {
   trackEvent('cta_click');
   await requestAppFullscreen();
-  navigateInApp('/app');
+  navigateInApp('/app/recommend');
 }
 
 export default function Landing() {

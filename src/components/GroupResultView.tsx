@@ -250,7 +250,7 @@ export default function GroupResultView({
 
         {/* 신규 유입 CTA — 결과로 신뢰를 준 뒤 마지막에. "다음엔 내가 모임 만들기" 프레이밍 */}
         <a
-          href="/app?ref=grp"
+          href="/app/recommend?new=group&ref=grp"
           className="block w-full mt-2 py-4 rounded-2xl bg-mint-500 text-white font-black text-base text-center shadow-lg shadow-mint-500/30 active:scale-95 transition-transform"
         >
           <Icon name="leaf" className="mr-1" />다음엔 내가 모임 만들어보기 →

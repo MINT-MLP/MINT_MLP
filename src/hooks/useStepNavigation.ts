@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect } from 'react';
+import { useEffect } from 'react';
 import type { Step } from '@/types';
 import { trackEvent } from '@/services/analytics';
 import type { RecommendFlow } from '@/hooks/useRecommendFlow';
@@ -7,22 +7,15 @@ import type { GroupSession } from '@/hooks/useGroupSession';
 import type { ResultState } from '@/hooks/useResultState';
 import type { GroupActions } from '@/hooks/useGroupActions';
 
-// 스텝 진행 게이트(canNext)·점프·뒤로 + 화면 부수 효과(AppShell 탭바 보고, 스크롤 힌트).
-export function useStepNavigation({ flow, input, group, result: resultState, groupActions, onChromeChange }: {
+// 스텝 진행 게이트(canNext)·점프·뒤로 + 화면 부수 효과(스크롤 힌트).
+export function useStepNavigation({ flow, input, group, result: resultState, groupActions }: {
   flow: RecommendFlow; input: RecommendInput; group: GroupSession; result: ResultState; groupActions: GroupActions;
-  onChromeChange?: (showTabBar: boolean) => void;
 }) {
   const { appMode, view, setView, step, setStep, isGroup, setShowVibeScrollHint, stepScrollRef } = flow;
   const { purpose, meetingLocation, locations } = input;
   const { sessionId, groupMembers } = group;
   const { result, setChangeNote, setShowResultScrollHint } = resultState;
   const { confirmInvalidateGroupLink, requestGroupRecommend } = groupActions;
-
-  // 탭바 표시 여부를 AppShell에 보고 — 입력 플로우 1단계(step 0)에서만 탭바가 보인다.
-  // useLayoutEffect: 페인트 전에 확정해 "탭바가 잠깐 보였다 사라지는" 깜빡임을 막는다.
-  useLayoutEffect(() => {
-    onChromeChange?.(view === 'steps' && step === 0);
-  }, [view, step, onChromeChange]);
 
   // 혼자 정하기 분위기 단계에서 아래 키워드 영역이 화면 밖에 있을 때만 스크롤 힌트를 보여준다.
   // step 3을 벗어나면(view·step·isGroup 변경) cleanup에서 힌트를 해제한다.

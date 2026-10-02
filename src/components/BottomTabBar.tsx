@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import { useLayoutEffect, useRef, type ReactElement } from 'react';
 import { trackEvent } from '@/services/analytics';
 import { getDeviceId } from '@/storage/device';
 import type { TabKey } from '@/types';
@@ -80,13 +80,26 @@ const TABS: Tab[] = [
 // 하단 탭바 — 다섯 탭을 같은 무게로 둔다.
 // '발굴'을 튀어나온 FAB로 강조했더니 앱이 게임처럼 보였다. 탭바는 이동 수단이지 광고판이 아니다.
 export default function BottomTabBar({ active, onChange }: Props) {
+  // 실제 높이(안전영역 포함)를 --mint-tabbar-h로 알린다 — 추천 단계·결과 화면의 하단 버튼이 그만큼 위로 비켜선다
+  const navRef = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const update = () => root.style.setProperty('--mint-tabbar-h', `${el.offsetHeight}px`);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => { observer.disconnect(); root.style.setProperty('--mint-tabbar-h', '0px'); };
+  }, []);
+
   function go(tab: TabKey) {
     onChange(tab);
     trackEvent('tab_click', { device_id: getDeviceId(), tab });
   }
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-100 bg-white/95 backdrop-blur">
+    <nav ref={navRef} className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-100 bg-white/95 backdrop-blur">
       <div className="mx-auto max-w-md grid grid-cols-5 px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {TABS.map((t) => (
           <TabButton key={t.key} tab={t} active={active === t.key} onClick={() => go(t.key)} />

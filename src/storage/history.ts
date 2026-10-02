@@ -78,3 +78,28 @@ export const INPUT_DRAFT_TTL_MS = 6 * 60 * 60 * 1000; // 입력하다 만 초안
 // 그룹 호스트 세션 — sessionId는 서버 세션의 유일한 열쇠라 state에만 두면 새로고침 시 링크·대기현황이 통째로 증발한다
 
 export const GROUP_SESSION_TTL_MS = 6 * 60 * 60 * 1000; // 그룹 대기 세션도 6시간까지만 복원
+
+// 앱 홈의 '이어서 하기' 카드용 — 살아 있는 그룹 초대 링크(호스트)와 입력하다 만 초안
+export function loadGroupSessionSummary(): { sessionId: string; hostToken: string | null; purposeFirst: string | null } | null {
+  try {
+    const g = JSON.parse(localStorage.getItem(GROUP_SESSION_KEY) ?? 'null') as
+      { savedAt?: number; sessionId?: string; hostToken?: string; purpose?: { first?: string | null } } | null;
+    if (!g?.sessionId) return null;
+    if (typeof g.savedAt === 'number' && Date.now() - g.savedAt > GROUP_SESSION_TTL_MS) return null;
+    return { sessionId: g.sessionId, hostToken: g.hostToken ?? null, purposeFirst: g.purpose?.first ?? null };
+  } catch {
+    return null;
+  }
+}
+
+export function loadDraftSummary(): { appMode: 'solo' | 'group'; purposeFirst: string | null } | null {
+  try {
+    const d = JSON.parse(localStorage.getItem(INPUT_DRAFT_KEY) ?? 'null') as
+      { savedAt?: number; appMode?: string; purpose?: { first?: string | null } } | null;
+    if (!d || (d.appMode !== 'solo' && d.appMode !== 'group')) return null;
+    if (typeof d.savedAt === 'number' && Date.now() - d.savedAt > INPUT_DRAFT_TTL_MS) return null;
+    return { appMode: d.appMode, purposeFirst: d.purpose?.first ?? null };
+  } catch {
+    return null;
+  }
+}

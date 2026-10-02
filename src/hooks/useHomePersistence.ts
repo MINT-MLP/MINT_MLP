@@ -17,8 +17,11 @@ import type { RequestState } from '@/hooks/useRequestState';
 
 // localStorage 복원·저장. 복원 layout effect 3개의 선언 순서(결과→입력초안→그룹세션)는 동작에 영향을 주므로
 // (그룹세션 복원이 결과 복원의 view/step을 덮어써야 한다) 한 훅 안에 원래 순서대로 둔다.
-export function useHomePersistence({ flow, input, group, result: resultState, request }: {
+// entry: 이 화면을 어느 주소로 열었나(/app/recommend·/app/result). 결과 복원은 결과 주소로 열었을 때만,
+// 입력 초안·그룹 세션 복원은 추천 주소로 열었을 때만 한다. fresh: 홈에서 "새로 시작"(초안·그룹 복원 없이 그 모드로).
+export function useHomePersistence({ flow, input, group, result: resultState, request, entry, fresh }: {
   flow: RecommendFlow; input: RecommendInput; group: GroupSession; result: ResultState; request: RequestState;
+  entry: 'recommend' | 'result'; fresh: 'solo' | 'group' | null;
 }) {
   const { view, setView, step, setStep, appMode, setAppMode, isGroup } = flow;
   const {
@@ -49,6 +52,7 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
   //  - 탭 이동(같은 탭 세션): 메모리에 든 화면 상태를 그대로 되살린다 — 서버·카카오 호출 없음
   //  - 새로고침·재진입: 폰엔 추천 ID와 화면 상태만 있어, 서버 슬롯 → 카카오 재검색으로 채운다(그동안 로딩 화면)
   useLayoutEffect(() => {
+    if (entry !== 'result') return;
     const snap = loadResultSnapshot();
     if (!snap) return;
     // 살아 있는 그룹 세션이 다른 세션이면 그 대기 화면이 우선이다(그룹 세션 복원이 이어서 연다). 결과 복원은 하지 않는다.
@@ -120,12 +124,18 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
       })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [setAppMode, setView, setResult, setResultThird, setResultThirdLabel, setResultSecondMissing, setPurpose, setMidpointData, setTreasurer, setMeetingLocation, setResultTravelTimes, setResultWeather, setVibe, setKeywords, setConditions, setGroupSize, setBudget, setVibeCustom, setCustomOccasion, setLocations, setLocationsVersion, setGroupTravelLabels, setLoading, setLoadingProgress, loadingStartRef]);
+  }, [entry, setAppMode, setView, setResult, setResultThird, setResultThirdLabel, setResultSecondMissing, setPurpose, setMidpointData, setTreasurer, setMeetingLocation, setResultTravelTimes, setResultWeather, setVibe, setKeywords, setConditions, setGroupSize, setBudget, setVibeCustom, setCustomOccasion, setLocations, setLocationsVersion, setGroupTravelLabels, setLoading, setLoadingProgress, loadingStartRef]);
 
-  // 입력 초안 복원 — 결과가 없을 때만. 그룹도 링크 생성 전에는 서버 세션이 없으므로 로컬 초안에서 복원한다.
+  // 입력 초안 복원 — 추천 주소로 열었을 때만. 그룹도 링크 생성 전에는 서버 세션이 없으므로 로컬 초안에서 복원한다.
+  // 홈에서 "새로 시작"이면 초안을 지우고 고른 모드로 시작한다.
   useLayoutEffect(() => {
     try {
-      if (loadResultSnapshot()) return; // 결과 복원이 우선
+      if (entry !== 'recommend') return;
+      if (fresh) {
+        localStorage.removeItem(INPUT_DRAFT_KEY);
+        setAppMode(fresh);
+        return;
+      }
       // 구버전(sessionStorage) 초안도 한 번은 읽어줌 — 배포 시점에 입력 중이던 세션 보호
       const raw = localStorage.getItem(INPUT_DRAFT_KEY) ?? sessionStorage.getItem(INPUT_DRAFT_KEY);
       if (!raw) return;
@@ -168,7 +178,7 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
         });
       }
     } catch { /* 손상된 초안 무시 */ }
-  }, [setAppMode, setStep, setExpectedCount, setGroupSize, setPurpose, setVibe, setKeywords, setConditions, setVibeCustom, setMeetingLocation, setBudget, setCustomOccasion, setEtcRelOpen, setOccasionChip, setLocations, setLocationsVersion]);
+  }, [entry, fresh, setAppMode, setStep, setExpectedCount, setGroupSize, setPurpose, setVibe, setKeywords, setConditions, setVibeCustom, setMeetingLocation, setBudget, setCustomOccasion, setEtcRelOpen, setOccasionChip, setLocations, setLocationsVersion]);
 
   // 그룹 호스트 세션 복원 — 결과 스냅샷 유무와 무관하게 항상 복원한다.
   // 예전에는 결과가 있으면 통째로 skip했는데, 그러면 혼자 모드로 먼저 써본 유저(광고 유입은 거의 전부)가
@@ -178,6 +188,7 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
   //   그룹 컨텍스트(sessionId·정원·코스·지역)는 별도로 살린다. TTL도 결과 24h / 그룹세션 6h로 각자 유지.
   useLayoutEffect(() => {
     try {
+      if (fresh) return;   // 새로 시작 — 살아 있는 그룹 링크는 홈의 '진행 중' 카드로 다시 연다
       const raw = localStorage.getItem(GROUP_SESSION_KEY);
       if (!raw) return;
       const g = JSON.parse(raw) as {
@@ -207,7 +218,7 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
       const snap = loadResultSnapshot() as { sessionId?: string } | null;
       if (!snap || snap.sessionId !== g.sessionId) setView('steps');
     } catch { /* 손상된 그룹 세션 무시 */ }
-  }, [setSessionId, setHostToken, setExpectedCount, setPurpose, setMeetingLocation, setStep, setAppMode, setView]);
+  }, [fresh, setSessionId, setHostToken, setExpectedCount, setPurpose, setMeetingLocation, setStep, setAppMode, setView]);
 
   // 그룹 호스트 세션 저장 — sessionId가 살아있는 동안 코스·지역까지 함께 보존(새로고침 복원용)
   useEffect(() => {

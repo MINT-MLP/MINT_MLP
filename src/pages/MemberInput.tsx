@@ -405,7 +405,7 @@ export default function MemberInput() {
           <button
             onClick={() => {
               if (sessionId && members.length >= 2) {
-                window.location.href = `/app?grp=${encodeURIComponent(sessionId)}`;
+                window.location.href = `/app/recommend?grp=${encodeURIComponent(sessionId)}`;
               }
             }}
             disabled={members.length < 2}

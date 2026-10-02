@@ -2,6 +2,7 @@ import { Component, lazy, Suspense, useEffect, useState, type ReactNode } from '
 import { requestAppFullscreen } from '@/utils/fullscreen';
 import { Icon } from '@/components/icons';
 import { initUserStore } from '@/stores/userStore';
+import { isAppPath } from '@/utils/appRoute';
 
 // 페이지별 코드 스플리팅 — 랜딩만 보는 방문자가 Home/Admin 번들까지 받지 않도록
 const AppShell = lazy(() => import('@/pages/AppShell'));
@@ -53,7 +54,7 @@ function Router() {
 
   // URL로 MVP/초대 화면에 바로 들어온 경우 자동 전체화면은 브라우저가 차단하므로 첫 터치에서 전환한다.
   useEffect(() => {
-    if (path !== '/app' && path !== '/join') return;
+    if (!isAppPath(path) && path !== '/join') return;
     if (
       document.fullscreenElement ||
       window.matchMedia('(display-mode: fullscreen)').matches
@@ -69,7 +70,7 @@ function Router() {
   if (path === '/pilot') return <Pilot />;
   if (path === '/join') return <MemberInput />;
   if (path === '/shared' || locationKey.includes('data=')) return <SharedResult />;
-  if (path === '/app') return <AppShell />;
+  if (isAppPath(path)) return <AppShell path={path} search={locationKey.slice(path.length)} />;
   return <Landing />;
 }
 

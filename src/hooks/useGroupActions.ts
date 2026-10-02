@@ -84,7 +84,7 @@ export function useGroupActions({ flow, input, group }: {
     if (!isGroup || !sessionId || step !== 2) return;
     if (!new URLSearchParams(window.location.search).has('grp')) return;
     if (groupMembers.length < 2 || !meetingLocation) return;
-    try { window.history.replaceState(null, '', '/app'); } catch { /* ignore */ }
+    try { window.history.replaceState(window.history.state, '', '/app/recommend'); } catch { /* ignore */ }
     aggregateGroupMembers();
     // 집계 setState가 커밋된 다음 렌더에서 추천을 시작해야 해서 플래그로 넘긴다(직접 호출은 stale locations/vibe를 읽음)
     setPendingGroupRecommend(true);

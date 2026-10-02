@@ -12,16 +12,16 @@
 | `/pilot` | Pilot.tsx | 방문 인증 + 룰렛 |
 | `/join` | MemberInput.tsx | 그룹 게스트 입력 |
 | `/shared` 또는 URL에 `data=` 포함 | SharedResult.tsx | 공유 결과. path가 아니라 문자열 포함 검사(App.tsx:69) |
-| `/app` | AppShell.tsx | 5탭 셸 |
+| `/app`, `/app/*` | AppShell.tsx | 5탭 셸. 주소 규칙은 utils/appRoute.ts (10-02) |
 | 그 외 | Landing.tsx | |
 
 `/app`·`/join` 진입 시 첫 pointerdown에 전체화면 진입(App.tsx:53-63). ErrorBoundary는 인라인 style(App.tsx:19-25).
 
 ### AppShell (AppShell.tsx)
 - 탭: `home | meetings | discover | shop | profile`.
-- 홈 탭의 콘텐츠는 항상 Home(추천 플로우). 별도 홈 화면 없음.
-- 탭바 표시 여부는 각 탭이 `onChromeChange(boolean)`로 셸에 역보고. Home은 `view==='steps' && step===0`일 때만 true(Home.tsx:485-487).
-- 탭 상태는 URL에 없음. 탭 전환 시 뒤로가기·링크 공유 불가.
+- (10-02) 홈 탭 = `/app` 홈(HomeHub, 임시 화면) · `/app/recommend` 추천 단계 · `/app/result?id=` 결과(Home). 나머지 탭도 `/app/meetings` 등 주소가 있다.
+- (10-02) 탭바는 홈·다른 탭·결과 화면에 보인다. 추천 입력 단계와 추천을 기다리는 동안, 시트가 열렸을 때는 `onChromeChange(false)`로 숨긴다. 탭바 높이는 `--mint-tabbar-h`(BottomTabBar가 잰다).
+- (10-02) 뒤로가기: 홈 ↔ 추천 단계 ↔ 결과. 추천 단계 안의 1~4단계는 아직 주소에 없다(뒤로가기 = 홈).
 - 카카오 로그인 복귀 판정은 `?tab=profile` 존재 여부. `replaceState('/app' + hash)`로 정리하되 해시는 반드시 보존(implicit flow의 `#access_token` 파싱 전 삭제 시 로그인 붕괴).
 - 복귀 시 살아있는 스냅샷이 있으면 `ResumeRecommendSheet`로 이어볼지 질문.
 

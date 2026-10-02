@@ -50,8 +50,8 @@ function MemberWish({ placeId, record, slotRef, rank, source, tone = 'light', on
     if (busy) return;
     if (!isMember) {
       trackEvent('wishlist_login_prompt', { rank, source });
-      // 공유·그룹 화면은 그 화면으로 돌아오고, 내 결과는 앱이 복귀 후 결과를 이어서 보여준다
-      const back = slotRef ? `${window.location.pathname}${window.location.search}` : undefined;
+      // 지금 화면(공유·그룹·내 결과 /app/result)으로 돌아온다 — 결과 주소면 앱이 스냅샷으로 다시 연다
+      const back = `${window.location.pathname}${window.location.search}`;
       if (window.confirm('찜은 카카오 로그인 후 쓸 수 있어요. 로그인할까요?\n로그인 후 이 화면으로 돌아와요.')) void signInWithKakao(back);
       return;
     }

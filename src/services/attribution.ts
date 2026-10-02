@@ -1,7 +1,7 @@
 // 유입 어트리뷰션 — "이 방문자가 어느 광고로 들어왔나"를 문서 로드 시점에 한 번 확정한다.
 //
 // 왜 main.tsx에서 부르나: utm/fbclid는 최초 문서 URL에만 존재한다. Landing→앱 이동은
-// navigateInApp이 pushState('/app')를 하므로 쿼리가 자연히 사라지고, AppShell은 카카오 복귀를
+// navigateInApp이 pushState('/app/recommend')를 하므로 쿼리가 자연히 사라지고, AppShell은 카카오 복귀를
 // 판정한 뒤 search를 지운다. React 렌더보다도, 그 어떤 replaceState보다도 먼저 읽어야 유실이 없다.
 // 덕분에 /, /app, /join, /shared, /pilot 모든 진입 경로를 이 한 곳이 커버한다.
 //

@@ -1,4 +1,5 @@
 import StepProgress from '@/components/StepProgress';
+import { navigateApp } from '@/utils/appRoute';
 import LocationInput from '@/components/LocationInput';
 import PurposeSelect from '@/components/PurposeSelect';
 import VibeSelect from '@/components/VibeSelect';
@@ -34,28 +35,23 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
     <div
       className="bg-mint-50 overflow-hidden"
       style={{
-        // 높이는 스텝과 무관하게 항상 동일. step 0→1에서 탭바가 사라져도 컨테이너가
-        // 재계산되지 않아 콘텐츠가 튀지 않는다(탭바 자리는 아래 padding-bottom이 흡수).
+        // 높이는 스텝과 무관하게 항상 동일.
         height: 'var(--mint-app-height, 100dvh)',
       }}
     >
-      {/* step 0(탭바 보임)에서만 AppShell 탭바와 동일한 계산식으로 하단을 padding으로 비워둔다. */}
-      <div
-        className={`h-full max-w-md mx-auto flex flex-col ${
-          step === 0 ? 'pb-[calc(5.5rem+env(safe-area-inset-bottom))]' : ''
-        }`}
-      >
+      {/* 입력 단계에서는 탭바를 숨긴다(Home) — 하단 버튼이 화면 맨 아래에 선다 */}
+      <div className="h-full max-w-md mx-auto flex flex-col">
 
         {/* 헤더 — 노치/상단 안전영역 반영(인앱·일반 세로모드에선 16px 그대로).
             결과 화면 헤더와 같은 문법: 높이 h-10, 소형 텍스트 버튼, 로고 절대 중앙 정렬.
-            좌측 버튼은 step에 따라 역할이 다르다 — step 0(모드 선택)에서만 "← 홈"으로 랜딩페이지에 나가고,
+            좌측 버튼은 step에 따라 역할이 다르다 — step 0(모드 선택)에서만 "← 홈"으로 앱 홈(/app)에 나가고,
             step 1~3에서는 "← 뒤로"로 이전 단계로만 간다(하단 "← 이전 단계"와 같은 handleBack).
             중간 단계에서 홈을 누르면 랜딩으로 튕겨 입력 흐름이 끊기던 문제를 막는다.
             중앙 로고는 어느 step에서든 step 0으로 되감기(step 0에선 no-op) — 좌측은 한 단계, 로고는 끝까지. */}
         <div className="flex-shrink-0 px-5 pt-[max(1rem,env(safe-area-inset-top))]">
           <div className="relative -mx-2 flex h-10 items-center justify-center">
             <button
-              onClick={step === 0 ? () => { window.location.href = '/'; } : handleBack}
+              onClick={step === 0 ? () => navigateApp('/app') : handleBack}
               className="absolute left-0 top-1/2 -translate-y-1/2 flex min-h-10 items-center gap-1 rounded-lg px-2 text-xs font-bold text-gray-500 transition-colors hover:text-mint-600"
               aria-label={step === 0 ? '홈으로 가기' : '뒤로 가기'}
             >
@@ -492,7 +488,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
 
         {/* 하단 버튼 — 홈 인디케이터/네이티브 툴바와 겹치지 않게 안전영역 반영
             (카톡 인앱 env=0 → 32px 그대로, 일반 브라우저에서만 더 벌어짐) */}
-        <div className={`flex-shrink-0 px-5 pt-2 flex flex-col gap-2 ${step === 0 ? 'pb-3' : 'pb-[max(2rem,calc(env(safe-area-inset-bottom)+0.75rem))]'}`}>
+        <div className="flex-shrink-0 px-5 pt-2 pb-[max(2rem,calc(env(safe-area-inset-bottom)+0.75rem))] flex flex-col gap-2">
           {step < 3 ? (
             <>
               <div className="flex gap-3">

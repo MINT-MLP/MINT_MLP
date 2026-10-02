@@ -358,7 +358,7 @@ export default function SharedResult() {
         <div className="text-center mb-4">
           <p className="text-xs text-gray-500">AI가 이 모임에 딱 맞는 곳을 골라줬어요</p>
         </div>
-        <a href="/app" className="block w-full py-4 rounded-2xl bg-mint-500 text-white font-black text-base text-center shadow-lg shadow-mint-500/30 hover:bg-mint-600 transition-colors active:scale-95">
+        <a href="/app/recommend" className="block w-full py-4 rounded-2xl bg-mint-500 text-white font-black text-base text-center shadow-lg shadow-mint-500/30 hover:bg-mint-600 transition-colors active:scale-95">
           <Icon name="leaf" className="mr-1" />나도 30초 만에 추천받기
         </a>
 

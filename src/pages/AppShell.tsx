@@ -1,27 +1,27 @@
 import { useCallback, useEffect, useState } from 'react';
 import Home from '@/pages/Home';
+import HomeHub from '@/pages/HomeHub';
 import { BottomTabBar, ResumeRecommendSheet, FeedbackFab, FEEDBACK_OPENED_KEY, FeedbackSheet } from '@/components';
 import MyMeetings from '@/pages/mock/MyMeetings';
 import Discover from '@/pages/mock/Discover';
 import MintShop from '@/pages/mock/MintShop';
 import Profile from '@/pages/Profile';
-import { clearRecommendSession, loadResultSummary } from '@/storage/history';
+import { clearRecommendSession, loadResultSnapshot, loadResultSummary } from '@/storage/history';
+import { navigateApp, parseAppRoute, tabPath } from '@/utils/appRoute';
 import { trackEvent } from '@/services/analytics';
 import { bindOutboxExitFlush, flushOutbox } from '@/storage/feedback';
 import type { TabKey, ResultSummary } from '@/types';
 
-// /app 셸 — 홈 탭의 콘텐츠는 항상 추천 플로우(Home)다.
-// 탭바를 보여도 되는지는 각 탭이 onChromeChange로 보고한다(셸은 localStorage를 보지 않는다).
-// 홈은 입력 1단계에서만, 나머지 탭은 바텀시트가 열리면 탭바를 내린다(시트 하단 CTA 가림 방지).
-// 탭 상태는 URL에 싣지 않는다(기존 path 라우터를 건드리지 않기 위해).
+// /app 셸 — 주소가 화면을 정한다(utils/appRoute). 홈 탭은 홈(허브)·추천 단계·결과, 나머지 탭은 탭마다 한 화면.
+// 탭바는 기본으로 보이고, 각 화면이 onChromeChange(false)로 내린다 — 바텀시트가 열렸을 때, 추천 입력 단계·추천을 기다리는 동안.
 
 // 카카오 로그인 복귀 표식 — redirectTo가 /app?tab=profile인 곳은 auth.ts뿐이다.
 const isKakaoReturn = () =>
   new URLSearchParams(window.location.search).get('tab') === 'profile';
 
-export default function AppShell() {
-  // 카카오 로그인 복귀(/app?tab=profile)에서만 프로필 탭으로 연다.
-  const [activeTab, setActiveTab] = useState<TabKey>(() => (isKakaoReturn() ? 'profile' : 'home'));
+export default function AppShell({ path, search }: { path: string; search: string }) {
+  const route = parseAppRoute(path, search);
+  const activeTab: TabKey = route.tab;
   const [showTabBar, setShowTabBar] = useState(true);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
@@ -45,17 +45,31 @@ export default function AppShell() {
   );
   useEffect(() => {
     if (!isKakaoReturn()) return;
-    window.history.replaceState(null, '', `/app${window.location.hash}`);
+    navigateApp('/app/profile', { replace: true });   // 해시(#access_token)는 navigateApp이 보존한다
     if (resumeSummary) trackEvent('resume_prompt_shown');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 탭을 옮길 때는 항상 탭바를 되살린다 — 이전 탭에서 시트가 열려 있던 상태가 다음 탭으로 새면
-  // 탭바가 영영 사라진다. 새 탭이 다시 보고하기 전의 기본값은 "보임"이어야 한다.
-  // (홈으로 갈 때도 Home이 useLayoutEffect로 페인트 전에 정정하므로 깜빡임은 없다.)
-  const changeTab = useCallback((tab: TabKey) => {
+  // 결과 주소인데 되살릴 결과가 없으면(스냅샷 없음·다른 추천) 홈을 그리고 주소도 홈으로 바꾼다.
+  // 그리기 전에 판정한다 — 추천 화면을 띄운 뒤 바꾸면 그 화면의 주소 맞추기와 엇갈린다.
+  const resultMissing = route.home === 'result' && (() => {
+    const snap = loadResultSnapshot();
+    return !snap || (route.resultId != null && snap.recommendationId !== route.resultId);
+  })();
+  useEffect(() => {
+    if (resultMissing) navigateApp('/app', { replace: true });
+  }, [resultMissing]);
+
+  // 화면을 옮길 때는 항상 탭바를 되살린다 — 이전 화면에서 시트가 열려 있던 상태가 새면 탭바가 영영 사라진다.
+  const screenKey = route.tab === 'home' ? (route.home === 'hub' || resultMissing ? 'hub' : 'flow') : route.tab;
+  const [prevKey, setPrevKey] = useState(screenKey);
+  if (prevKey !== screenKey) {
+    setPrevKey(screenKey);
     setShowTabBar(true);
-    setActiveTab(tab);
+  }
+
+  const changeTab = useCallback((tab: TabKey) => {
+    navigateApp(tabPath(tab));
   }, []);
 
   return (
@@ -66,11 +80,12 @@ export default function AppShell() {
           지속시간을 못 덮는다 — 인라인으로 150ms만 지정한다.
           opacity 애니메이션은 fixed 자식의 containing block을 바꾸지 않으므로
           Home의 하단 고정 바·토스트는 그대로 동작한다. */}
-      <div key={activeTab} className="animate-fade-in" style={{ animationDuration: '150ms' }}>
-        {activeTab === 'home' ? (
-          <Home onChromeChange={setShowTabBar} />
+      <div key={screenKey} className="animate-fade-in" style={{ animationDuration: '150ms' }}>
+        {screenKey === 'flow' ? (
+          <Home screen={route.home === 'result' ? 'result' : 'recommend'} fresh={route.fresh} onChromeChange={setShowTabBar} />
         ) : (
           <div className="pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+            {screenKey === 'hub' && <HomeHub />}
             {activeTab === 'meetings' && (
               <MyMeetings onGoHome={() => changeTab('home')} onChromeChange={setShowTabBar} />
             )}
@@ -81,9 +96,9 @@ export default function AppShell() {
         )}
       </div>
       {showTabBar && <BottomTabBar active={activeTab} onChange={changeTab} />}
-      {/* 피드백 FAB는 탭바와 운명을 같이한다 — 탭이 시트를 열거나(onChromeChange(false)) 홈이
-          입력 스텝·결과 화면에 들어가면 자동으로 함께 사라져 하단 CTA와 겹칠 일이 없다. */}
-      {showTabBar && (
+      {/* 피드백 FAB는 탭바와 운명을 같이한다 — 탭이 시트를 열면(onChromeChange(false)) 함께 사라진다.
+          결과 화면에서는 공유 바와 겹치므로 띄우지 않는다. */}
+      {showTabBar && screenKey !== 'flow' && (
         <FeedbackFab
           hidden={feedbackOpen}
           onOpen={() => {
@@ -102,7 +117,7 @@ export default function AppShell() {
           onResume={() => {
             trackEvent('resume_prompt_accept');
             setResumeSummary(null);
-            changeTab('home');   // Home이 마운트되며 스냅샷을 복원해 결과 화면으로 열린다
+            navigateApp('/app/result');   // 결과 주소로 열면 Home이 스냅샷을 복원한다
           }}
           onDiscard={() => {
             trackEvent('resume_prompt_discard');

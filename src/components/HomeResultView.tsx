@@ -41,7 +41,10 @@ export default function HomeResultView({ result, flow, input, resultState, actio
             </div>
           </div>
         )}
-        <div className="max-w-md mx-auto px-5 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
+        <div
+          className="max-w-md mx-auto px-5 pt-[max(1rem,env(safe-area-inset-top))]"
+          style={{ paddingBottom: 'calc(6rem + var(--mint-tabbar-h, 0px))' }}
+        >
           {/* 헤더 3요소: 좌 '조건 수정'(값 유지), 중앙 브랜드 마크(클릭 불가), 우 '처음부터'(확인 후 전체 초기화).
               입력 단계 헤더와 동일 문법: 높이 h-10, 좌우는 같은 소형 텍스트 버튼, 로고는 절대 중앙 정렬.
               -mx-2로 버튼 내부 px-2를 상쇄해 글자 시작선을 콘텐츠 px-5에 맞춘다. */}
@@ -150,9 +153,12 @@ export default function HomeResultView({ result, flow, input, resultState, actio
             onPointsChange={setPointsBalance}
           />
 
-          {/* 하단 sticky 카톡 공유 바 — 유일한 공유 CTA. 결과 어디서든 한 탭(핵심 유입).
+          {/* 하단 sticky 카톡 공유 바 — 유일한 공유 CTA. 결과 어디서든 한 탭(핵심 유입). 탭바 바로 위에 선다.
               콘텐츠 컨테이너 pb로 마지막 버튼(총무/예약)이 이 바에 가리지 않게 여백 확보됨. */}
-          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-100 bg-white/95 px-5 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
+          <div
+            className="fixed inset-x-0 z-40 border-t border-gray-100 bg-white/95 px-5 pt-2.5 pb-3 backdrop-blur"
+            style={{ bottom: 'var(--mint-tabbar-h, 0px)' }}
+          >
             <div className="mx-auto max-w-md">
               <button
                 onClick={handleShare}
@@ -170,7 +176,8 @@ export default function HomeResultView({ result, flow, input, resultState, actio
             <button
               type="button"
               onClick={() => window.scrollBy({ top: Math.max(320, window.innerHeight * 0.55), behavior: 'smooth' })}
-              className="fixed bottom-[max(5.5rem,calc(env(safe-area-inset-bottom)+5rem))] left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border border-mint-500/35 bg-white/95 px-4 py-2.5 text-xs font-bold text-mint-600 shadow-xl shadow-mint-600/20 backdrop-blur"
+              className="fixed left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border border-mint-500/35 bg-white/95 px-4 py-2.5 text-xs font-bold text-mint-600 shadow-xl shadow-mint-600/20 backdrop-blur"
+              style={{ bottom: 'calc(5.5rem + var(--mint-tabbar-h, 0px))' }}
             >
               {hasSecond
                 ? '아래에 다른 후보와 2차 코스도 있어요'
