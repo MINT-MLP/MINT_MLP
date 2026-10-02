@@ -17,6 +17,12 @@ export interface ResultSnapshotV2 {
   keywords?: string[];
   conditions?: string[];
   meetingLocation?: MeetingLocation;   // 좌표 없이(복원 때 다시 계산)
+  // 이 결과를 만든 나머지 입력(조건 수정·다시 뽑기용). 출발지는 검색어·장소 ID만 — 복원 때 다시 찾는다
+  origins?: { query: string; kakaoPlaceId: string }[];
+  groupSize?: '2명' | '3~4명' | '5명 이상';
+  budget?: string | null;
+  vibeCustom?: Record<string, string>;
+  customOccasion?: string;
   areaName: string;
   nearestAreas: string[];
   resultWeather?: WeatherSummary | null;

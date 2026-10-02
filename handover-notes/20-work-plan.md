@@ -70,7 +70,7 @@
   - 1단계 공유·그룹: share_link(공유 ID→추천 ID, 7일), mint_sessions.recommendation_id, 투표 place_name 삭제, wish_from_slot(공유·그룹 화면 회원 찜 — 남의 추천이면 조건 복사, 출발지 미복사), cleanup_expired(매일, pg_cron 예약은 수동). /api/restore(share·session·own) — 조건 일부+슬롯+서버 계산 검색 중심(자동 중간지점은 출발지·참여자 좌표로, 좌표는 응답만). 중간지점 계산은 api/_lib/midpointCore.ts로 옮겨 앱·서버 공용(src/services/midpoint.ts는 재수출). 공유 화면: 재검색 복원, 지도 1·2차 핀, 투표 4초 폴링(10분·탭 숨김 중단), 만료 안내, 옛 스냅샷 링크 폴백. 그룹 게스트: recommendation_id 폴링 → 복원. 로그인 돌아올 경로(signInWithKakao(returnPath)).
   - 2단계 폰 저장: 결과 스냅샷 v2(mint_last_result_v2) = 추천 ID+토큰+화면 상태만, 새로고침 시 로딩 화면 → /api/restore(own) → 재검색. 모델 설명·가격대·태그·총무·이동시간은 새로고침 뒤 없음. 입력 초안·그룹 세션은 만날 장소 좌표 없이, 출발지는 검색어+ID(복원 시 재검색, LocationInput key=locationsVersion). 기기 지난 추천·기기 찜 제거(목업 발굴 페이지만 예외). 분석 이벤트 장소명 → place_id/slot_id. slot_action 기록(map_open·reserve·wish·share). 1회 정리 storage/legacyCleanup(mint_cleanup_v1).
   - 3단계 목업: src/pages/mock/data/sources.ts(loadMeetings·loadGems·loadCoupons, VITE_SAMPLE_DATA=off면 빈 화면).
-  - 남은 것(기록만): reservations 테이블에 가게명·주소 저장(어드민이 표시) / 그룹 참여자 출발지명·좌표 저장과 게스트에게 노출(session GET members) / recommendation_log 쓰기(파일럿 serial) / 옛 mint_share_snapshots·result_json 컬럼 삭제(7일 뒤) / 포인트 로컬 키.
+  - 남은 것(기록만): reservations 테이블에 가게명·주소 저장(어드민이 표시) / ~~그룹 참여자 출발지명·좌표 저장과 게스트에게 노출~~(10-02 해결) / recommendation_log 쓰기(파일럿 serial) / 옛 mint_share_snapshots·result_json 컬럼 삭제(7일 뒤) / 포인트 로컬 키.
   - 배포 전: 010 실행 → Supabase Auth Redirect URLs에 dev 도메인 와일드카드(/shared 로그인 복귀) → pg_cron 켜고 cleanup-expired 예약.
 - **10-01 코드리뷰(handover-notes/code-review/code-review.md) 반영(미커밋)**:
   - 탭 이동 때 서버 복원·정보 유실: stores/resultMemory.ts(메모리 전용)로 같은 추천이면 그대로 되살림. 스냅샷은 403·404일 때만 삭제. clearResultSnapshot이 메모리도 비움.
@@ -79,6 +79,15 @@
   - record 없는 결과: 스냅샷·메모리 삭제, 그룹 호스트에 전달 실패 안내. 다른 그룹 세션이 살아 있으면 결과 복원 생략. 공유 링크 저장 4초·서버 레이트리밋과 회원 확인 병렬. mint_wishlist는 목업 때문에 정리 대상에서 뺌.
   - **10-01 dev 반영 완료(유저)**: 010, 011-1·2, Redirect URLs(이미 있었음), pg_cron 켜고 예약, 배포, 011-3.
   - **배포 순서: 010(010-3은 011-3으로 옮김) → 011-1·011-2 → 배포 → 011-3(투표 place_name 삭제).** 배포 순간 옛 화면이 열린 그룹 호스트의 결과 전달 1회 실패는 감수.
+- **10-02 동작 점검(dev 브라우저 실사용 + 코드 리뷰) 반영(미커밋)**:
+  - 새로고침 뒤 "대중교통 예상"이 '계산 중'에 멈춤: 출발지 2곳 이상일 때만 칸 표시, 계산 실패는 '가져올 수 없어요'(NO_TRAVEL_TIMES). 복원 때 출발지를 다시 찾으면 이동시간도 다시 계산. 1차→2차 도보는 좌표로 다시 계산(서버와 같은 시속 4km).
+  - 투표 테이블 직접 읽기가 모든 공유 ID를 나열하던 문제: 012-1 share_vote_counts(공유 ID 하나의 선택지별 표 수만). 첫 조회 실패 시 폴링도 멈춤.
+  - 그룹 참여자 출발지: 서버·게스트 폰에 검색어·장소 ID만(location_query·location_place_id, mint_guest_ctx는 locQuery·locPlaceId). 호스트 화면과 서버(그룹 복원 중심)가 카카오로 다시 찾는다. 게스트 조회 응답은 참여자 이름만 — 출발지·취향은 호스트만.
+  - 호스트 비밀값(host_token_hash): 세션 만들 때 발급, 호스트 폰 그룹 세션 저장본에 보관. 참여자 상세 조회(x-host-token 헤더)·결과 전달·취소에 필요. 012 이전 세션은 예전처럼 허용. 같은 추천을 다시 전달하면 result_at 유지.
+  - 결과 복원 뒤 출발지가 비어 서울 중심으로 재추천되던 문제(원래 있던 것): 스냅샷 v2에 출발지(검색어·ID)·인원·예산·직접 입력 취향을 넣고 복원 때 다시 찾음. 탭 이동은 메모리에서 그대로. 자동 중간지점인데 출발지가 0곳이면 추천하지 않고 출발지 단계로.
+  - 공유 링크·투표 하루 상한을 IP별로(링크 300, 투표 1000). users는 last_sign_in_at만 수정 가능(012-1).
+  - 스냅샷 24시간은 처음 저장 시각 기준(같은 추천을 다시 저장해도 연장 안 됨). 옛 게스트 저장본 좌표는 1회 정리(mint_cleanup_v2).
+  - **배포 순서: 012-1 → 배포 → 012-2(투표 직접 읽기 권한 회수, 참여자 location_name·lat·lng 칸 삭제).** 배포 순간 열려 있던 옛 그룹 화면은 출발지가 안 잡힐 수 있음(감수).
 - 결과 스냅샷: localStorage에 검색 조건 + 슬롯별 장소 ID만. 새로고침 시 재검색 복원.
 - 공유: 버튼 누를 때 서버 저장(조건 + ID), 링크 열면 재검색 복원, 7일 삭제 배치.
 - 공유 투표(mint_share_votes): place_name 칸 제거(카카오 이름 저장 불가, 선택 번호가 슬롯을 가리키므로 이름은 재검색 결과를 쓴다). 통계가 필요하면 이름 대신 카카오 장소 ID. 투표 테이블은 공유와 같이 7일 삭제.

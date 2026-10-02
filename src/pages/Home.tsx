@@ -36,7 +36,7 @@ export default function Home({ onChromeChange }: { onChromeChange?: (showTabBar:
       : '추천 결과와 입력한 취향이 모두 지워져요.\n처음부터 다시 시작할까요?';
     if (!window.confirm(msg)) return;
     // 서버에도 알려야 옛 링크가 실제로 죽는다 — 안 알리면 그 링크로 들어온 게스트가 영원히 결과를 기다린다.
-    if (sessionId) cancelGroupSessionOnServer(sessionId);
+    if (sessionId) cancelGroupSessionOnServer(sessionId, group.hostToken);
     clearResultSnapshot();
     try { localStorage.removeItem(INPUT_DRAFT_KEY); sessionStorage.removeItem(INPUT_DRAFT_KEY); localStorage.removeItem(GROUP_SESSION_KEY); } catch { /* ignore */ }
     resultState.reset();

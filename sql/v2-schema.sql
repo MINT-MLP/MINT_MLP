@@ -12,6 +12,7 @@
 --               009 비회원 추천을 로그인 뒤 계정으로(claim_recommendation)
 --   2026-10-01  010 공유·그룹 결과를 추천 ID로, 공유·그룹 화면 회원 찜(wish_from_slot), 만료 정리(cleanup_expired)
 --               011 010 보완(찜 복사 최소화, 투표 직접 조회 권한, 투표 가게명 삭제는 배포 후)
+--   2026-10-02  012 투표 집계 함수, 그룹 출발지 검색어·ID만, 호스트 확인, users 수정 칸 제한
 -- ═══════════════════════════════════════════════════════════════════════════
 
 
@@ -1250,3 +1251,48 @@ create policy mint_share_votes_read on public.mint_share_votes
 
 -- 011-3. (배포 뒤에 실행) 투표에서 가게 이름 칸을 지운다. 배포 전에 지우면 그 사이 옛 코드의 투표 저장이 실패한다.
 -- alter table public.mint_share_votes drop column if exists place_name;
+
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- 012. 10-02 동작 점검 보완 — 투표 집계 함수, 그룹 출발지는 검색어·장소 ID만, 호스트 확인, users 수정 칸 제한
+-- 순서: 012-1 → 배포 → 012-2
+-- ───────────────────────────────────────────────────────────────────────────
+
+-- 012-1. (배포 전에 실행)
+-- 투표 집계는 공유 ID 하나를 받아 선택지별 표 수만 돌려준다. 테이블을 직접 읽게 하면 모든 공유 ID가 나열된다.
+create or replace function public.share_vote_counts(p_share text)
+returns table (choice integer, votes bigint)
+language sql
+stable
+security definer
+set search_path = ''
+as $fn$
+  select v.choice, count(*) from public.mint_share_votes v where v.share_id = p_share group by v.choice;
+$fn$;
+
+revoke all on function public.share_vote_counts(text) from public;
+grant execute on function public.share_vote_counts(text) to anon, authenticated;
+
+-- 그룹 호스트 확인용 비밀값(해시만). 이게 있는 세션은 참여자 상세 조회·결과 전달·취소를 호스트만 할 수 있다.
+alter table public.mint_sessions add column if not exists host_token_hash text;
+comment on column public.mint_sessions.host_token_hash is '호스트 비밀값 해시(sha256)';
+
+-- 참여자 출발지는 사용자가 친 검색어와 카카오 장소 ID만. 좌표는 호스트 화면과 서버가 그때그때 다시 찾는다.
+alter table public.mint_session_members add column if not exists location_query text;
+alter table public.mint_session_members add column if not exists location_place_id text;
+comment on column public.mint_session_members.location_query    is '출발지 검색어(사용자 입력)';
+comment on column public.mint_session_members.location_place_id is '출발지 카카오 장소 ID';
+alter table public.mint_session_members alter column location_lat drop not null;
+alter table public.mint_session_members alter column location_lng drop not null;
+
+-- 회원은 자기 행의 마지막 로그인 시각만 고칠 수 있다(닉네임·아바타·kakao_id는 트리거가 채운다)
+revoke update on public.users from authenticated;
+grant update (last_sign_in_at) on public.users to authenticated;
+
+
+-- 012-2. (배포 뒤에 실행) 옛 투표 직접 읽기 권한과 옛 출발지 칸(카카오 장소 이름·좌표)을 지운다
+-- revoke select (share_id, choice) on public.mint_share_votes from anon, authenticated;
+-- drop policy if exists mint_share_votes_read on public.mint_share_votes;
+-- alter table public.mint_session_members drop column if exists location_name;
+-- alter table public.mint_session_members drop column if exists location_lat;
+-- alter table public.mint_session_members drop column if exists location_lng;

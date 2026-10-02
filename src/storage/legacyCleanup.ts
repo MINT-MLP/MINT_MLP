@@ -1,3 +1,4 @@
+import type { GuestCtxSaved } from '@/types';
 import { LEGACY_RESULT_KEYS, INPUT_DRAFT_KEY, GROUP_SESSION_KEY } from '@/storage/history';
 
 // 10-01 저장 정리 — 예전 폰 저장분 가운데 카카오 가게 정보·좌표가 든 것을 한 번 지운다.
@@ -7,6 +8,7 @@ const DONE_KEY = 'mint_cleanup_v1';
 const LEGACY_KEYS = [...LEGACY_RESULT_KEYS];
 
 export function runLegacyCleanup(): void {
+  cleanupGuestOrigins();
   try {
     if (localStorage.getItem(DONE_KEY)) return;
     for (const k of LEGACY_KEYS) localStorage.removeItem(k);
@@ -25,4 +27,20 @@ export function runLegacyCleanup(): void {
     }
     localStorage.setItem(DONE_KEY, '1');
   } catch { /* 저장소가 막힌 환경 — 다음 실행에서 다시 시도 */ }
+}
+
+// 10-02 — 그룹 게스트 저장본(mint_guest_ctx_*)의 출발지 이름·좌표를 뺀다. 이제는 검색어·장소 ID만 저장한다
+function cleanupGuestOrigins(): void {
+  try {
+    if (localStorage.getItem('mint_cleanup_v2')) return;
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (!k?.startsWith('mint_guest_ctx_')) continue;
+      const c = JSON.parse(localStorage.getItem(k) ?? 'null') as Partial<GuestCtxSaved> | null;
+      localStorage.setItem(k, JSON.stringify({
+        locQuery: c?.locQuery ?? null, locPlaceId: c?.locPlaceId ?? null, chips: c?.chips ?? [], budget: c?.budget ?? null,
+      } satisfies GuestCtxSaved));
+    }
+    localStorage.setItem('mint_cleanup_v2', '1');
+  } catch { /* 다음 실행에서 다시 시도 */ }
 }

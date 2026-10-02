@@ -15,9 +15,13 @@ export const GROUP_SESSION_KEY = 'mint_group_session_v1';
 // 유효기간이 지난 스냅샷은 자동 복원하지 않는다(지난 약속이 불쑥 뜨지 않게).
 const RESULT_TTL_MS = 24 * 60 * 60 * 1000;
 
+// 같은 추천을 다시 저장할 때(복원 뒤 상태 갱신)는 처음 저장 시각을 유지한다 — 열 때마다 24시간이 연장되지 않게
 export function saveResultSnapshot(snapshot: ResultSnapshotV2) {
   try {
-    localStorage.setItem(RESULT_STORAGE_KEY, JSON.stringify({ savedAt: Date.now(), snapshot }));
+    let savedAt = Date.now();
+    const prev = JSON.parse(localStorage.getItem(RESULT_STORAGE_KEY) ?? 'null') as { savedAt?: number; snapshot?: { recommendationId?: number } } | null;
+    if (prev?.snapshot?.recommendationId === snapshot.recommendationId && typeof prev.savedAt === 'number') savedAt = prev.savedAt;
+    localStorage.setItem(RESULT_STORAGE_KEY, JSON.stringify({ savedAt, snapshot }));
   } catch { /* 저장 실패는 치명적이지 않음 */ }
 }
 

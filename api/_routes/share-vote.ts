@@ -52,7 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!ID_RE.test(linkId) || !Number.isInteger(recId) || recId <= 0) return res.status(400).json({ error: '잘못된 요청이에요.' });
       // 레이트리밋과 회원 확인을 동시에 — 공유 버튼이 기다리는 시간을 줄인다
       const [gate, memberId] = await Promise.all([
-        checkRateLimit(supabase, 'share-link', clientIp(req), 10, 2000),
+        checkRateLimit(supabase, 'share-link', clientIp(req), 10, 300, 'ip'),
         memberIdFromRequest(supabase, req.headers.authorization),
       ]);
       if (!gate.allowed) return res.status(429).json({ error: '잠시 후 다시 시도해주세요.' });
@@ -78,7 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       try { raw = JSON.stringify(payload); } catch { /* noop */ }
       if (!raw || raw.length > 20_000) return res.status(400).json({ error: '공유 데이터가 너무 커요.' });
 
-      const gate = await checkRateLimit(supabase, 'share-snapshot', clientIp(req), 10, 2000);
+      const gate = await checkRateLimit(supabase, 'share-snapshot', clientIp(req), 10, 300, 'ip');
       if (!gate.allowed) return res.status(429).json({ error: '잠시 후 다시 시도해주세요.' });
 
       // 같은 id 덮어쓰기 금지(선점 우선) — 공유 클릭마다 새 id라 충돌 없음
@@ -99,7 +99,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: '잘못된 요청이에요.' });
     }
 
-    const gate = await checkRateLimit(supabase, 'share-vote', clientIp(req), 20, 5000);
+    const gate = await checkRateLimit(supabase, 'share-vote', clientIp(req), 20, 1000, 'ip');
     if (!gate.allowed) return res.status(429).json({ error: '잠시 후 다시 시도해주세요.' });
 
     const { error } = await supabase

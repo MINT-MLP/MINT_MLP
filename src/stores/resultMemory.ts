@@ -1,4 +1,4 @@
-import type { Coordinates, MeetingLocation, PlaceRecommendation, RegionScope, TravelTimeData, WeatherSummary } from '@/types';
+import type { Coordinates, LocationEntry, MeetingLocation, PlaceRecommendation, RegionScope, TravelTimeData, WeatherSummary } from '@/types';
 
 // 결과 화면 상태를 메모리에만 들고 있는다. 탭을 옮기면 Home이 다시 마운트되는데(AppShell key),
 // 그때마다 서버 복원·카카오 재검색을 돌리면 느리고 모델 설명·사진·이동시간이 사라진다.
@@ -14,6 +14,8 @@ export interface ResultMemory {
   meetingLocation: MeetingLocation | null;
   resultTravelTimes: TravelTimeData | null;
   resultWeather: WeatherSummary | null;
+  locations: LocationEntry[];              // 출발지(이름·좌표 포함) — 조건 수정·다시 뽑기·이동시간용
+  groupTravelLabels: string[] | null;
 }
 
 let memory: ResultMemory | null = null;

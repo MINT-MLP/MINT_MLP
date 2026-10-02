@@ -16,7 +16,7 @@ export default function HomeResultView({ result, flow, input, resultState, actio
   onShare: () => void; onFullReset: () => void;
 }) {
   const { setView, setStep, isGroup } = flow;
-  const { meetingLocation, purpose, vibe, conditions, keywords, budget } = input;
+  const { meetingLocation, purpose, vibe, conditions, keywords, budget, locations } = input;
   const {
     showRetryModal, setShowRetryModal, midpointData, resultTravelTimes, treasurer, pointsBalance, setPointsBalance,
     showWishlist, setShowWishlist, resultWeather, resultThird, resultThirdLabel, resultSecondMissing, changeNote, setChangeNote,
@@ -27,6 +27,8 @@ export default function HomeResultView({ result, flow, input, resultState, actio
   const handleShare = onShare;
   const handleFullReset = onFullReset;
   const hasSecond = resultHasSecond(purpose, resultSecondMissing);
+  // 이동시간은 출발지 2곳 이상일 때만 계산한다(useRecommendActions·복원 공통). 출발지를 못 찾은 복원 결과에서 '계산 중'이 멈춰 있지 않게
+  const canShowTravel = meetingLocation?.type === 'auto' && locations.filter((l) => l.lat != null && l.lng != null).length >= 2;
 
   return (
       <div className="min-h-screen bg-mint-50">
@@ -134,7 +136,7 @@ export default function HomeResultView({ result, flow, input, resultState, actio
             thirdResult={resultThird}
             thirdLabel={resultThirdLabel}
             travelTimes={resultTravelTimes}
-            showTravelTime={meetingLocation?.type === 'auto'}
+            showTravelTime={canShowTravel}
             midpointAreaName={midpointData?.areaName}
             purpose={purpose?.first ? { first: purpose.first, second: hasSecond ? purpose.second ?? null : null } : undefined}
             vibeLabels={[...Object.values(vibe).flatMap((g) => [...g.first, ...g.second]), ...conditions].map((k) => VIBE_KEY_TO_LABEL[k] ?? k)}

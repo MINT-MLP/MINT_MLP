@@ -1,8 +1,9 @@
+import { randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { memberIdFromRequest } from '../_lib/recordRecommendation.js';
-import { ownsRecommendation } from '../_lib/recAccess.js';
+import { ownsRecommendation, isSessionHost, sha256 } from '../_lib/recAccess.js';
 import { clientIp, checkRateLimit } from '../_lib/guard.js';
 
 // ── 그룹 세션 단일 엔드포인트 ────────────────────────────────────────────────
@@ -24,6 +25,7 @@ function randomId(len = 8): string {
   }
   return s;
 }
+
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).end();
@@ -68,13 +70,14 @@ async function handleCreate(req: VercelRequest, res: VercelResponse, supabase: S
     const expected = Math.min(6, Math.max(2, Number(body.expected_count) || 2));
     const has_second = body.has_second === true;
 
+    const hostToken = randomBytes(24).toString('base64url');
     for (let attempt = 0; attempt < 3; attempt++) {
       const id = randomId();
       const { error } = await supabase
         .from('mint_sessions')
-        .insert({ id, expected_count: expected, status: 'waiting', has_second });
+        .insert({ id, expected_count: expected, status: 'waiting', has_second, host_token_hash: sha256(hostToken) });
 
-      if (!error) return res.status(200).json({ id });
+      if (!error) return res.status(200).json({ id, hostToken });
       if (error.code !== '23505') {
         // has_second 컬럼 없으면 fallback
         if (error.code === '42703') {
@@ -101,9 +104,8 @@ async function handleJoin(req: VercelRequest, res: VercelResponse, supabase: Sup
     const body = (req.body ?? {}) as {
       session_id?: string;
       member_name?: string;
-      location_name?: string;
-      location_lat?: number;
-      location_lng?: number;
+      location_query?: string;
+      location_place_id?: string;
       purpose_first?: string | null;
       purpose_second?: string | null;
       vibe_atmosphere?: string | null;
@@ -119,21 +121,16 @@ async function handleJoin(req: VercelRequest, res: VercelResponse, supabase: Sup
       && body.device_id.length > 0 && body.device_id.length <= 64
       ? body.device_id
       : null;
-    // 출발지는 '중간지점 자동' 모드에서만 필요 — 임의 지역 모드 게스트는 미입력이므로 선택적으로 처리
-    const location_name = body.location_name ?? '';
-    const hasCoords = body.location_lat != null && body.location_lng != null
-      && !Number.isNaN(Number(body.location_lat)) && !Number.isNaN(Number(body.location_lng));
-    const location_lat = hasCoords ? Number(body.location_lat) : null;
-    const location_lng = hasCoords ? Number(body.location_lng) : null;
+    // 출발지는 '중간지점 자동' 모드에서만 필요. 검색어와 카카오 장소 ID만 받는다(카카오 이름·좌표는 저장 불가 — 012)
+    const location_query = typeof body.location_query === 'string' ? body.location_query.trim() : '';
+    const location_place_id = typeof body.location_place_id === 'string' ? body.location_place_id : '';
+    const hasOrigin = location_query.length > 0 && location_place_id.length > 0;
 
     if (!session_id || !member_name) {
       return res.status(400).json({ error: '필수 항목이 누락되었어요.' });
     }
-    if (member_name.length > 20 || location_name.length > 80) {
+    if (member_name.length > 20 || location_query.length > 80 || (location_place_id && !/^\d{1,20}$/.test(location_place_id))) {
       return res.status(400).json({ error: '입력값이 올바르지 않아요.' });
-    }
-    if (hasCoords && (location_lat! < 33 || location_lat! > 39 || location_lng! < 124 || location_lng! > 132)) {
-      return res.status(400).json({ error: '출발지 좌표가 올바르지 않아요.' });
     }
 
     // 세션 존재 + 정원 검증 (기존엔 클라이언트 sessionStorage만 믿어서 무한 제출이 가능했다)
@@ -178,9 +175,8 @@ async function handleJoin(req: VercelRequest, res: VercelResponse, supabase: Sup
     const baseData = {
       session_id,
       member_name,
-      location_name,
-      location_lat,
-      location_lng,
+      location_query: hasOrigin ? location_query : null,
+      location_place_id: hasOrigin ? location_place_id : null,
       vibe_atmosphere: body.vibe_atmosphere ?? null,
       vibe_budget: body.vibe_budget ?? null,
     };
@@ -225,21 +221,11 @@ async function handleJoin(req: VercelRequest, res: VercelResponse, supabase: Sup
 
     if (existingRowId != null) {
       // 이미 자리를 차지한 사람이므로 정원 검사도, 순번 검사도 건너뛴다.
-      //
-      // 좌표 NOT NULL 폴백을 여기에도 둔다. insert 경로에만 있었더니, 좌표 없이(임의 지역 모드)
-      // 재제출한 사람이 500을 맞고 갱신이 통째로 실패했다 — 프로덕션에서 그대로 재현됐다.
-      // (supabase/setup.sql의 DROP NOT NULL이 아직 실행되지 않은 DB에서만 나는 증상이다.)
-      const updateWithFallback = async (data: Record<string, unknown>) => {
-        const r = await supabase.from('mint_session_members').update(data).eq('id', existingRowId);
-        if (r.error?.code === '23502' && data.location_lat == null) {
-          return supabase.from('mint_session_members')
-            .update({ ...data, location_lat: 37.5665, location_lng: 126.978 }).eq('id', existingRowId);
-        }
-        return r;
-      };
-      let upd = await updateWithFallback(fullData);
+      const update = (data: Record<string, unknown>) =>
+        supabase.from('mint_session_members').update(data).eq('id', existingRowId);
+      let upd = await update(fullData);
       if (upd.error?.code === '42703') {
-        upd = await updateWithFallback(baseData);
+        upd = await update(baseData);
       }
       if (upd.error) {
         console.error('[session-join] resubmit update failed', upd.error);
@@ -257,27 +243,21 @@ async function handleJoin(req: VercelRequest, res: VercelResponse, supabase: Sup
       return res.status(409).json({ error: '이미 모든 인원이 입력을 마친 세션이에요.' });
     }
 
-    // 출발지 없는(임의 지역) 멤버 삽입 헬퍼 — location 컬럼이 아직 NOT NULL이면(마이그레이션 전)
-    // 좌표 자리에 서울 중심을 넣어 삽입만 성공시킨다. 임의 지역 모드에선 이 좌표를 추천에 쓰지 않는다.
-    async function insertWithFallback(data: Record<string, unknown>) {
+    async function insertMember(data: Record<string, unknown>) {
       const { data: inserted, error } = await supabase
         .from('mint_session_members')
         .insert(data)
         .select('id')
         .single();
       if (!error) return { error: null, insertedId: (inserted as { id?: number } | null)?.id ?? null };
-      // NOT NULL 위반 → 좌표 자리에 서울 중심 채워 재시도
-      if (error.code === '23502' && data.location_lat == null) {
-        return insertWithFallback({ ...data, location_lat: 37.5665, location_lng: 126.978 });
-      }
       return { error, insertedId: null };
     }
 
-    let insertResult = await insertWithFallback({ ...fullData, ...deviceField });
+    let insertResult = await insertMember({ ...fullData, ...deviceField });
 
     // 아직 없는 컬럼(purpose/vibe_keywords) 때문이면 기본 데이터로 재시도
     if (insertResult.error && insertResult.error.code === '42703') {
-      insertResult = await insertWithFallback({ ...baseData, ...deviceField });
+      insertResult = await insertMember({ ...baseData, ...deviceField });
     }
 
     // 부분 유니크 인덱스 위반 = 같은 기기가 동시에 두 번 보냈다(더블탭·재시도).
@@ -343,7 +323,7 @@ async function handleJoin(req: VercelRequest, res: VercelResponse, supabase: Sup
 async function handleResult(req: VercelRequest, res: VercelResponse, supabase: SupabaseClient) {
   // 호스트 추천 결과 전달 — 가게 정보 대신 추천 ID(010). 게스트는 /api/restore로 재검색 복원한다.
   // 호스트 본인 추천인지(회원 토큰 또는 일회용 토큰) 확인해 남의 결과로 덮어쓰지 못하게 한다.
-  const body = (req.body ?? {}) as { id?: string; recommendationId?: unknown; claimToken?: unknown };
+  const body = (req.body ?? {}) as { id?: string; recommendationId?: unknown; claimToken?: unknown; hostToken?: unknown };
   const sid = String(body.id ?? '');
   const recId = Number(body.recommendationId);
   if (!/^[a-z0-9]{4,32}$/.test(sid) || !Number.isInteger(recId) || recId <= 0) {
@@ -354,21 +334,24 @@ async function handleResult(req: VercelRequest, res: VercelResponse, supabase: S
   const gate = await checkRateLimit(supabase, 'session-result', clientIp(req), 10, 2000, 'ip');
   if (!gate.allowed) return res.status(429).json({ error: '잠시 후 다시 시도해주세요.' });
 
+  const host = await isSessionHost(supabase, sid, body.hostToken);
+  if (host === null) return res.status(404).json({ error: '세션을 찾을 수 없어요.' });
+  if (!host) return res.status(403).json({ error: '호스트만 결과를 전달할 수 있어요.' });
+
   const memberId = await memberIdFromRequest(supabase, req.headers.authorization);
   if (!(await ownsRecommendation(supabase, recId, memberId, body.claimToken))) {
     return res.status(403).json({ error: '전달할 수 없는 추천이에요.' });
   }
 
+  // 같은 추천을 다시 보내면(호스트 새로고침) 전달 시각을 그대로 둔다 — 게스트 복원은 이 시각까지 제출한 사람으로 중심을 잡는다
   const upd = await supabase.from('mint_sessions')
     .update({ recommendation_id: recId, result_at: new Date().toISOString() })
     .eq('id', sid)
+    .or(`recommendation_id.is.null,recommendation_id.neq.${recId}`)
     .select('id');
   if (upd.error) {
     console.error('[session] result save failed', upd.error);
     return res.status(200).json({ ok: false, disabled: true });
-  }
-  if (!upd.data || upd.data.length === 0) {
-    return res.status(404).json({ error: '세션을 찾을 수 없어요.' });
   }
   return res.status(200).json({ ok: true });
 }
@@ -378,9 +361,13 @@ async function handleResult(req: VercelRequest, res: VercelResponse, supabase: S
 // 그래서 이미 뿌려진 옛 링크가 계속 살아 있었고, 그 링크로 들어온 게스트는 제출에 성공한 뒤
 // 아무도 읽지 않을 세션에서 영원히 결과를 기다렸다(에러 한 줄 없이).
 async function handleCancel(req: VercelRequest, res: VercelResponse, supabase: SupabaseClient) {
-  const body = (req.body ?? {}) as { id?: string };
+  const body = (req.body ?? {}) as { id?: string; hostToken?: unknown };
   const sid = String(body.id ?? '');
   if (!/^[a-z0-9]{4,32}$/.test(sid)) return res.status(400).json({ error: '잘못된 요청이에요.' });
+
+  const host = await isSessionHost(supabase, sid, body.hostToken);
+  if (host === null) return res.status(404).json({ error: '세션을 찾을 수 없어요.' });
+  if (!host) return res.status(403).json({ error: '호스트만 링크를 취소할 수 있어요.' });
 
   const upd = await supabase.from('mint_sessions')
     .update({ status: 'cancelled' })
@@ -441,11 +428,34 @@ async function handleGet(req: VercelRequest, res: VercelResponse, supabase: Supa
       return res.status(404).json({ error: '세션을 찾을 수 없어요.' });
     }
 
+    // 게스트에게는 참여자 이름만 준다. 출발지·취향은 호스트(비밀값 소지자)만 — 집계와 중간지점 계산에 쓴다.
+    const host = await isSessionHost(supabase, String(id), req.headers['x-host-token']);
+    if (!host) {
+      const { data: names, error: nErr } = await supabase
+        .from('mint_session_members')
+        .select('member_name')
+        .eq('session_id', id)
+        .order('submitted_at', { ascending: true });
+      if (nErr) {
+        console.error('[session-get] members fetch failed', nErr);
+        return res.status(500).json({ error: '세션 정보를 불러오지 못했어요.' });
+      }
+      const { data: recRow } = await supabase.from('mint_sessions').select('recommendation_id').eq('id', id).maybeSingle();
+      return res.status(200).json({
+        recommendation_id: (recRow as { recommendation_id: number | null } | null)?.recommendation_id ?? null,
+        expected_count: session.expected_count,
+        has_second: (session as Record<string, unknown>).has_second ?? false,
+        result_json: (session as Record<string, unknown>).result_json ?? null,
+        status: (session as Record<string, unknown>).status ?? null,
+        members: names ?? [],
+      });
+    }
+
     // 멤버 조회 (purpose + keywords 포함 시도, 없으면 fallback)
     // members는 두 쿼리(컬럼 수 다름) 결과를 모두 받으므로 넓은 타입으로 선언한다.
     const primary = await supabase
       .from('mint_session_members')
-      .select('member_name, location_name, location_lat, location_lng, vibe_atmosphere, vibe_budget, vibe_keywords, purpose_first, purpose_second')
+      .select('member_name, location_query, location_place_id, vibe_atmosphere, vibe_budget, vibe_keywords, purpose_first, purpose_second')
       .eq('session_id', id)
       .order('submitted_at', { ascending: true });
 
@@ -456,7 +466,7 @@ async function handleGet(req: VercelRequest, res: VercelResponse, supabase: Supa
       // 일부 컬럼 없을 수 있음, 기본 필드만 조회
       const fallback = await supabase
         .from('mint_session_members')
-        .select('member_name, location_name, location_lat, location_lng, vibe_atmosphere, vibe_budget')
+        .select('member_name, location_query, location_place_id, vibe_atmosphere, vibe_budget')
         .eq('session_id', id)
         .order('submitted_at', { ascending: true });
       members = fallback.data;

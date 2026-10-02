@@ -87,8 +87,8 @@ function VoteSection({ shareId, candidates }: { shareId: string; candidates: Vot
   });
   const [disabled, setDisabled] = useState(false);
 
-  // 집계는 화면이 보이는 동안 몇 초마다 다시 불러온다(친구들 표가 바로 올라오게). 브라우저가 Supabase를 직접 읽는다 —
-  // Vercel 함수를 거치지 않아 호출 한도에 영향이 없다(011-2: 공유 ID·선택 번호만 읽기 허용).
+  // 집계는 화면이 보이는 동안 몇 초마다 다시 불러온다(친구들 표가 바로 올라오게). 브라우저가 Supabase를 직접 부른다 —
+  // Vercel 함수를 거치지 않아 호출 한도에 영향이 없다(012-1: 이 공유 ID의 선택지별 표 수만 돌려주는 함수).
   // 첫 조회가 실패하면(표 기능 미설정) 칸을 숨기고, 이후의 일시 실패는 무시한다. 탭이 숨으면 멈추고 10분 뒤엔 완전히 그만둔다.
   useEffect(() => {
     let alive = true;
@@ -96,15 +96,15 @@ function VoteSection({ shareId, candidates }: { shareId: string; candidates: Vot
     const startedAt = Date.now();
     const load = async () => {
       if (!alive || document.visibilityState !== 'visible') return;
-      const { data, error } = await supabase.from('mint_share_votes').select('choice').eq('share_id', shareId).limit(500);
+      const { data, error } = await supabase.rpc('share_vote_counts', { p_share: shareId });
       if (!alive) return;
       if (error) {
-        if (!loadedOnce) setDisabled(true);
+        if (!loadedOnce) { setDisabled(true); stop(); }
         return;
       }
       loadedOnce = true;
       const next: Record<number, number> = {};
-      for (const row of (data ?? []) as { choice: number }[]) next[row.choice] = (next[row.choice] ?? 0) + 1;
+      for (const row of (data ?? []) as { choice: number; votes: number }[]) next[row.choice] = Number(row.votes);
       setCounts(next);
     };
     const stop = () => {

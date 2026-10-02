@@ -2,9 +2,12 @@ import type { SlotRef } from '@/types/share';
 
 // 그룹 약속 — 세션 참여자와 호스트→게스트 결과 전달 계약
 
-// mint_session_members 행 (서버 응답 모양)
+// mint_session_members 행 (호스트가 받는 서버 응답 + 화면에서 다시 찾은 출발지)
 export interface GroupMember {
   member_name: string;
+  // 서버에는 검색어·장소 ID만 있다(012). 이름·좌표는 호스트 화면이 카카오로 다시 찾아 메모리에만 채운다
+  location_query?: string | null;
+  location_place_id?: string | null;
   location_name: string | null;
   // 임의 지역 모드 게스트는 출발지를 입력하지 않으므로 좌표가 null일 수 있다
   location_lat: number | null;
@@ -32,11 +35,19 @@ export interface GroupResult {
   weather?: { description: string; temp: number; isRainy: boolean } | null;
 }
 
-// 게스트가 입력 단계에서 들고 다니는 자기 응답
+// 게스트가 입력 단계에서 들고 다니는 자기 응답(메모리). 출발지 이름·좌표는 저장본에서 다시 찾은 값
 export interface GuestCtx {
   locName: string | null;
   locLat: number | null;
   locLng: number | null;
+  chips: string[];
+  budget: string | null;
+}
+
+// 게스트 폰에 두는 저장본 — 출발지는 검색어·장소 ID만
+export interface GuestCtxSaved {
+  locQuery: string | null;
+  locPlaceId: string | null;
   chips: string[];
   budget: string | null;
 }

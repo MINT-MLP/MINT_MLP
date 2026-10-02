@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
-import type { LocationEntry } from '@/types';
+import type { GroupMember, LocationEntry } from '@/types';
 import { trackEvent } from '@/services/analytics';
 import { encodeHostContext } from '@/utils/groupLink';
 import { aggregateVibe, aggregateBudget, splitMemberKeywords } from '@/utils/groupAggregate';
 import { GROUP_SESSION_KEY } from '@/storage/history';
 import { cancelGroupSessionOnServer } from '@/services/session';
 import { shareViaKakaoOrFallback } from '@/services/share';
+import { resolveOriginCached } from '@/services/resultRestore';
 import type { RecommendFlow } from '@/hooks/useRecommendFlow';
 import type { RecommendInput } from '@/hooks/useRecommendInput';
 import type { GroupSession } from '@/hooks/useGroupSession';
@@ -20,7 +21,7 @@ export function useGroupActions({ flow, input, group }: {
     setBudget, setConditions, setVibeCustom, setOccasionChip, setCustomOccasion, setEtcRelOpen,
   } = input;
   const {
-    sessionId, setSessionId, expectedCount, setExpectedCount, groupMembers, setGroupMembers,
+    sessionId, setSessionId, hostToken, setHostToken, expectedCount, setExpectedCount, groupMembers, setGroupMembers,
     setPendingGroupRecommend, setCreatingSession, setGroupError, setCopied,
   } = group;
 
@@ -51,12 +52,17 @@ export function useGroupActions({ flow, input, group }: {
     async function poll() {
       if (document.hidden) return; // 백그라운드 탭에서는 폴링 중지
       try {
-        const res = await fetch(`/api/session?id=${encodeURIComponent(sessionId!)}`);
+        const res = await fetch(`/api/session?id=${encodeURIComponent(sessionId!)}`, {
+          headers: hostToken ? { 'x-host-token': hostToken } : {},
+        });
         if (!res.ok) return;
         const data = await res.json();
         if (!active) return;
         if (typeof data.expected_count === 'number') setExpectedCount(data.expected_count);
-        if (Array.isArray(data.members)) setGroupMembers(data.members);
+        if (Array.isArray(data.members)) {
+          const members = await withOrigins(data.members as GroupMember[]);
+          if (active) setGroupMembers(members);
+        }
       } catch {
         // 폴링 실패는 조용히 무시
       }
@@ -71,7 +77,7 @@ export function useGroupActions({ flow, input, group }: {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [appMode, sessionId, view, setExpectedCount, setGroupMembers]);
+  }, [appMode, sessionId, hostToken, view, setExpectedCount, setGroupMembers]);
 
   // 호스트가 링크로 돌아왔을 때(?grp=recommend) 멤버가 모이면 자동으로 추천을 시작
   useEffect(() => {
@@ -101,6 +107,7 @@ export function useGroupActions({ flow, input, group }: {
       }
       const data = await res.json();
       setSessionId(data.id);
+      setHostToken(typeof data.hostToken === 'string' ? data.hostToken : null);
       setGroupMembers([]);
       trackEvent('group_session_create'); // 그룹 바이럴 루프 분해 — 링크 생성 성공 수
       // appMode/step은 그대로(step 2 공유 화면) — 링크가 생기면 같은 화면이 공유 UI로 전환된다
@@ -155,8 +162,9 @@ export function useGroupActions({ flow, input, group }: {
       : '코스나 지역을 바꾸면 지금 초대 링크는 못 쓰게 돼요.\n이미 링크를 받은 친구들에겐 새 링크를 다시 보내야 해요.\n\n초대 링크를 취소하고 다시 설정할까요?';
     const ok = window.confirm(msg);
     if (!ok) return false;
-    if (sessionId) cancelGroupSessionOnServer(sessionId); // 서버에도 알려야 옛 링크가 실제로 죽는다
+    if (sessionId) cancelGroupSessionOnServer(sessionId, hostToken); // 서버에도 알려야 옛 링크가 실제로 죽는다
     setSessionId(null);
+    setHostToken(null);
     setGroupMembers([]);
     try { localStorage.removeItem(GROUP_SESSION_KEY); } catch { /* ignore */ }
     return true;
@@ -169,8 +177,11 @@ export function useGroupActions({ flow, input, group }: {
     // locations[].name은 '지명'으로 쓰인다 — AI 프롬프트의 "- 출발지: ○○"와 총무 발표("○○에서 출발하는 분")가
     // 이 값을 그대로 읽는다. 사람 이름을 넣으면 "김철수에서 출발하는 분이 오늘의 총무 당첨!"이
     // 결과·게스트 화면·카톡 공유 카드까지 그대로 나간다. 그래서 실제 출발지명(location_name)을 쓴다.
-    const groupLocations: LocationEntry[] = withCoords
-      .map((m) => ({ name: m.location_name || m.member_name, lat: m.location_lat!, lng: m.location_lng! }));
+    // 검색어·장소 ID도 같이 둔다 — 결과 스냅샷이 이것만 저장했다가 새로고침 뒤 다시 찾는다
+    const groupLocations: LocationEntry[] = withCoords.map((m) => ({
+      name: m.location_name || m.member_name, lat: m.location_lat!, lng: m.location_lng!,
+      ...(m.location_query && m.location_place_id ? { query: m.location_query, kakaoPlaceId: m.location_place_id } : {}),
+    }));
     setLocations(groupLocations);
     // 반대로 이동시간 표("○○님 25분")의 label은 사람 이름이 맞다 — 같은 배열을 두 용도로 쓰던 걸 여기서 분리한다.
     // groupLocations와 같은 순서·길이라 인덱스로 대응된다.
@@ -205,3 +216,11 @@ export function useGroupActions({ flow, input, group }: {
   return { groupShareLink, handleCreateSession, handleCopyLink, handleShareGroupLink, confirmInvalidateGroupLink, aggregateGroupMembers, requestGroupRecommend };
 }
 export type GroupActions = ReturnType<typeof useGroupActions>;
+
+// 서버엔 출발지 검색어·장소 ID만 있다 — 이름·좌표는 여기서 다시 찾아 메모리에만 채운다
+async function withOrigins(members: GroupMember[]): Promise<GroupMember[]> {
+  return Promise.all(members.map(async (m) => {
+    const o = m.location_query && m.location_place_id ? await resolveOriginCached(m.location_query, m.location_place_id) : null;
+    return { ...m, location_name: o?.name ?? null, location_lat: o?.lat ?? null, location_lng: o?.lng ?? null };
+  }));
+}

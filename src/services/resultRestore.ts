@@ -4,6 +4,7 @@ import { slotSource } from '@/services/memberData';
 import { kakaoPlaceLink, resolveCenter, defaultRestoreDeps, type RestoredPlace } from '@/services/restore';
 import { areaCoords, findNearestAreas } from '@/services/midpoint';
 import { SEOUL_CENTER } from '@/constants/geo';
+import { walkingMinutes } from '@/utils/geo';
 
 // 결과 화면 새로고침 복원(10-01). 폰엔 추천 ID와 화면 상태만 있고, 가게는 서버 슬롯 → 카카오 재검색으로 채운다.
 // 모델이 쓴 설명·가격대·태그는 저장하지 않으므로 복원된 화면엔 없다.
@@ -56,6 +57,10 @@ export function placesFromPayload(
     ? [...firstMain, ...secondMain, ...pick('first', 'alt'), ...pick('second', 'alt')]
     : [...firstMain, ...pick('first', 'alt')];
   const places = ordered.map((s, i) => ({ ...toPlace(p, s.id, s.kakao_place_id, restored.get(s.id), claimToken), rank: i + 1 }));
+  if (twoCourses) {
+    const w = walkingMinutes(places[0], places[1]);
+    if (w != null) places[0] = { ...places[0], walkingToNext: w };
+  }
   return { places, twoCourses };
 }
 
@@ -130,6 +135,19 @@ export async function resolveOrigins(saved: { query: string; kakaoPlaceId: strin
     }
   }));
   return found.filter((x): x is NonNullable<typeof x> => !!x);
+}
+
+// 그룹 호스트 폴링(3초)용 — 같은 참여자를 매번 다시 찾지 않게 메모리에 둔다. 못 찾은 건 다음 폴링에 다시 시도
+const originCache = new Map<string, Promise<LocationEntry | null>>();
+export function resolveOriginCached(query: string, kakaoPlaceId: string): Promise<LocationEntry | null> {
+  const k = `${query}\u0000${kakaoPlaceId}`;
+  let p = originCache.get(k);
+  if (!p) {
+    p = resolveOrigins([{ query, kakaoPlaceId }]).then((l) => l[0] ?? null, () => null);
+    originCache.set(k, p);
+    void p.then((v) => { if (!v) originCache.delete(k); });
+  }
+  return p;
 }
 
 // 저장용: 출발지는 검색어·ID만

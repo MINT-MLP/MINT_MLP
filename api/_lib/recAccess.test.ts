@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createHash } from 'node:crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { ownsRecommendation } from './recAccess';
+import { ownsRecommendation, isSessionHost } from './recAccess';
 
 const fake = (row: { user_id: string | null; claim_token_hash: string | null } | null) => ({
   from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: row }) }) }) }),
@@ -25,5 +25,22 @@ describe('ownsRecommendation', () => {
 
   it('없는 추천은 거부', async () => {
     expect(await ownsRecommendation(fake(null), 1, 'u1', token)).toBe(false);
+  });
+});
+
+const fakeSession = (row: { host_token_hash: string | null } | null) => ({
+  from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: row, error: null }) }) }) }),
+}) as unknown as SupabaseClient;
+
+describe('isSessionHost', () => {
+  it('비밀값이 맞아야 호스트', async () => {
+    expect(await isSessionHost(fakeSession({ host_token_hash: hash }), 's1', token)).toBe(true);
+    expect(await isSessionHost(fakeSession({ host_token_hash: hash }), 's1', 'y'.repeat(32))).toBe(false);
+    expect(await isSessionHost(fakeSession({ host_token_hash: hash }), 's1', undefined)).toBe(false);
+  });
+
+  it('비밀값 없는 옛 세션은 예전처럼 허용, 없는 세션은 null', async () => {
+    expect(await isSessionHost(fakeSession({ host_token_hash: null }), 's1', undefined)).toBe(true);
+    expect(await isSessionHost(fakeSession(null), 's1', token)).toBe(null);
   });
 });

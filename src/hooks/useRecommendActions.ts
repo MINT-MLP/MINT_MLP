@@ -5,7 +5,7 @@ import { VIBE_KEY_TO_LABEL, ATMOSPHERE_LABELS } from '@/constants/vibeOptions';
 import { SEOUL_CENTER } from '@/constants/geo';
 import { PRESET_REGIONS, findNearestAreas, findBalancedAreas } from '@/services/midpoint';
 import { getAIRecommendation, enrichPlaces } from '@/services/ai';
-import { computeTravelTimes } from '@/services/travelTime';
+import { computeTravelTimes, NO_TRAVEL_TIMES } from '@/services/travelTime';
 import { trackEvent, setSessionKey, newSessionKey } from '@/services/analytics';
 import { savePilotHandoff, buildCoursePicks } from '@/storage/pilotHandoff';
 import { LOADING_MESSAGE_COUNT } from '@/utils/loadingCopy';
@@ -22,7 +22,7 @@ import type { RequestState } from '@/hooks/useRequestState';
 export function useRecommendActions({ flow, input, group, result: resultState, request }: {
   flow: RecommendFlow; input: RecommendInput; group: GroupSession; result: ResultState; request: RequestState;
 }) {
-  const { view, setView, isGroup } = flow;
+  const { view, setView, setStep, isGroup } = flow;
   const {
     groupSize, locations, groupTravelLabels, purpose, vibe, budget, meetingLocation,
     keywords, conditions, vibeCustom,
@@ -121,6 +121,14 @@ export function useRecommendActions({ flow, input, group, result: resultState, r
     let midpoint: Coordinates;
     let areaName: string;
     const validLocs = locations.filter((l) => l.lat != null && l.lng != null);
+
+    // 출발지 없이 자동 중간지점을 돌리면 서울 중심으로 추천된다 — 출발지를 다시 받는다
+    if (!presetRegion && validLocs.length === 0) {
+      window.alert(isGroup ? '참여자 출발지를 찾지 못했어요. 잠시 후 다시 시도해주세요.' : '출발지를 다시 입력해주세요.');
+      setView('steps');
+      if (!isGroup) setStep(2);
+      return;
+    }
 
     if (presetRegion) {
       midpoint = presetRegion.midpoint;
@@ -334,7 +342,7 @@ export function useRecommendActions({ flow, input, group, result: resultState, r
           { first: firstDest, ...(secondDest ? { second: secondDest } : {}) },
         )
           .then((data) => { if (reqId === travelReqRef.current) setResultTravelTimes(data); })
-          .catch(() => { if (reqId === travelReqRef.current) setResultTravelTimes(null); });
+          .catch(() => { if (reqId === travelReqRef.current) setResultTravelTimes(NO_TRAVEL_TIMES); });
       } else {
         setResultTravelTimes(null);
       }

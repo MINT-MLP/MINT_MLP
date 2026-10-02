@@ -78,6 +78,9 @@ function drivingTimes(origins: Origin[], dest: Point): TravelResult[] {
   });
 }
 
+// 계산 실패 — 결과 카드가 '계산 중'에 멈추지 않고 '가져올 수 없어요'를 띄운다
+export const NO_TRAVEL_TIMES: TravelTimeData = { first: { transit: [], driving: [] }, second: null };
+
 export async function computeTravelTimes(
   origins: Origin[],
   destinations: { first: Point; second?: Point },

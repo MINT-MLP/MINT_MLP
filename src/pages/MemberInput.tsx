@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { searchAddress } from '@/services/kakaoMap';
-import type { KakaoPlace, VibeState, GroupResult, GuestCtx } from '@/types';
+import type { KakaoPlace, VibeState, GroupResult, GuestCtx, GuestCtxSaved } from '@/types';
 import { VibeSelect, StepProgress, GroupResultView, AnchoredDropdown, Icon } from '@/components';
 import { VIBE_KEY_TO_LABEL } from '@/constants/vibeOptions';
 // SECOND_KEYWORD_PREFIX는 더 이상 생성하지 않는다(1차/2차 키워드 입력 통합).
@@ -10,6 +10,7 @@ import { decodeHostContext } from '@/utils/groupLink';
 import type { HostContext } from '@/utils/groupLink';
 import { trackEvent } from '@/services/analytics';
 import { loadGroupResult } from '@/services/recRestore';
+import { resolveOriginCached } from '@/services/resultRestore';
 import { getDeviceId } from '@/storage/device';
 
 type Phase = 'step0' | 'step1' | 'step2' | 'done';
@@ -84,6 +85,9 @@ export default function MemberInput() {
   const [locSelected, setLocSelected] = useState(false);
   const [locLat, setLocLat] = useState<number | null>(null);
   const [locLng, setLocLng] = useState<number | null>(null);
+  // 서버·폰에는 사용자가 친 검색어와 고른 장소 ID만 보낸다(카카오 이름·좌표는 저장 불가)
+  const [locQuery, setLocQuery] = useState('');
+  const [locPlaceId, setLocPlaceId] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<KakaoPlace[]>([]);
   const [searching, setSearching] = useState(false);
 
@@ -124,10 +128,22 @@ export default function MemberInput() {
   useEffect(() => {
     if (!sessionId) return;
     if (localStorage.getItem(`mint_joined_${sessionId}`) || sessionStorage.getItem(`mint_joined_${sessionId}`)) setPhase('done');
+    let alive = true;
     try {
       const raw = localStorage.getItem(`mint_guest_ctx_${sessionId}`);
-      if (raw) setGuestCtx(JSON.parse(raw) as GuestCtx);
+      if (raw) {
+        // 저장본엔 출발지 검색어·장소 ID만 있다 — 이동시간·길찾기용 이름·좌표는 다시 찾는다
+        const saved = JSON.parse(raw) as Partial<GuestCtxSaved>;
+        const base: GuestCtx = { locName: null, locLat: null, locLng: null, chips: saved.chips ?? [], budget: saved.budget ?? null };
+        setGuestCtx(base);
+        if (saved.locQuery && saved.locPlaceId) {
+          void resolveOriginCached(saved.locQuery, saved.locPlaceId).then((o) => {
+            if (alive && o) setGuestCtx({ ...base, locName: o.name, locLat: o.lat ?? null, locLng: o.lng ?? null });
+          });
+        }
+      }
     } catch { /* ignore */ }
+    return () => { alive = false; };
   }, [sessionId]);
 
   // done 화면 폴링 — 결과 도착 전에만 3초 간격으로 돈다.
@@ -201,6 +217,8 @@ export default function MemberInput() {
     setLocSelected(false);
     setLocLat(null);
     setLocLng(null);
+    setLocQuery(value);
+    setLocPlaceId(null);
     setSuggestions([]);
     if (searchTimer.current) clearTimeout(searchTimer.current);
     if (value.length < 1) return;
@@ -219,12 +237,13 @@ export default function MemberInput() {
     setLocValue(place.place_name);
     setLocLat(parseFloat(place.y));
     setLocLng(parseFloat(place.x));
+    setLocPlaceId(place.id);
     setLocSelected(true);
     setSuggestions([]);
     setSearching(false);
   }
 
-  const canGoStep1 = name.trim().length > 0 && (!showLocation || (locSelected && locLat != null && locLng != null));
+  const canGoStep1 = name.trim().length > 0 && (!showLocation || (locSelected && locLat != null && locLng != null && !!locPlaceId && !!locQuery.trim()));
 
   async function handleSubmit() {
     if (!sessionId) {
@@ -256,8 +275,8 @@ export default function MemberInput() {
           // (서버가 device_id를 몰라도 그냥 무시되므로 구버전 서버에서도 안전하다)
           device_id: getDeviceId(),
           // 출발지는 중간지점 모드에서만 전송 — 임의 지역 모드는 좌표 없이 참여
-          ...(showLocation && locLat != null && locLng != null
-            ? { location_name: locValue, location_lat: locLat, location_lng: locLng }
+          ...(showLocation && locPlaceId && locQuery.trim()
+            ? { location_query: locQuery.trim().slice(0, 80), location_place_id: locPlaceId }
             : {}),
           // 코스는 호스트가 정한 값을 그대로 실어 멤버 기록을 일관되게 유지
           purpose_first: hostCtx?.purposeFirst ?? null,
@@ -302,7 +321,13 @@ export default function MemberInput() {
         chips: myChips,
         budget,
       };
-      try { localStorage.setItem(`mint_guest_ctx_${sessionId}`, JSON.stringify(ctx)); } catch { /* ignore */ }
+      const saved: GuestCtxSaved = {
+        locQuery: showLocation && locPlaceId ? locQuery.trim().slice(0, 80) : null,
+        locPlaceId: showLocation ? locPlaceId : null,
+        chips: myChips,
+        budget,
+      };
+      try { localStorage.setItem(`mint_guest_ctx_${sessionId}`, JSON.stringify(saved)); } catch { /* ignore */ }
       setGuestCtx(ctx);
       setPhase('done');
     } catch (e) {

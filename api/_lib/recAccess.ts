@@ -27,7 +27,17 @@ export interface RestoredPlace {
   name: string; category: string; address: string; lat: number; lng: number; url: string;
 }
 
-const sha256 = (s: string) => createHash('sha256').update(s, 'utf8').digest('hex');
+export const sha256 = (s: string) => createHash('sha256').update(s, 'utf8').digest('hex');
+
+// 그룹 호스트인가(012) — 세션 ID는 게스트도 다 갖고 있으므로, 참여자 상세·결과 전달·취소는 비밀값으로 호스트만.
+// 비밀값이 없는 세션(012 이전 생성)은 예전처럼 둔다(7일 안에 정리된다). 세션이 없으면 null.
+export async function isSessionHost(supabase: SupabaseClient, sid: string, token: unknown): Promise<boolean | null> {
+  const { data, error } = await supabase.from('mint_sessions').select('host_token_hash').eq('id', sid).maybeSingle();
+  if (error || !data) return null;
+  const hash = (data as { host_token_hash: string | null }).host_token_hash;
+  if (!hash) return true;
+  return typeof token === 'string' && token.length >= 20 && sha256(token) === hash;
+}
 
 // 내 추천인가: 회원이면 주인, 비회원이면 저장 때 받은 일회용 토큰(009)
 export async function ownsRecommendation(
@@ -121,26 +131,25 @@ export async function loadRecPayload(
   if (condition.area_type === 'preset') {
     center = areaCoords(condition.area_label);
   } else if (condition.area_type === 'auto') {
-    let coords: Coordinates[] = [];
+    let list: { query: string; kakao_place_id: string }[] = [];
     if (opts.sessionId) {
-      // 그룹: 참여자 출발지 좌표(세션에 이미 있음)로 계산. 호스트가 추천받은 시점까지 제출한 사람만 —
+      // 그룹: 참여자 출발지(검색어·장소 ID)로 계산. 호스트가 추천받은 시점까지 제출한 사람만 —
       // 그 뒤에 들어오거나 출발지를 바꾼 사람까지 넣으면 추천 때와 중심이 달라져 가게를 못 찾는다.
       const { data: sess } = await supabase.from('mint_sessions').select('result_at').eq('id', opts.sessionId).maybeSingle();
       const resultAt = (sess as { result_at: string | null } | null)?.result_at ?? null;
-      let q = supabase.from('mint_session_members').select('location_lat, location_lng').eq('session_id', opts.sessionId);
+      let q = supabase.from('mint_session_members').select('location_query, location_place_id').eq('session_id', opts.sessionId);
       if (resultAt) q = q.lte('submitted_at', resultAt);
       const { data: members } = await q;
-      coords = (members ?? [])
-        .filter((m: { location_lat: number | null; location_lng: number | null }) => m.location_lat != null && m.location_lng != null)
-        .map((m: { location_lat: number; location_lng: number }) => ({ lat: m.location_lat, lng: m.location_lng }));
+      list = ((members ?? []) as { location_query: string | null; location_place_id: string | null }[])
+        .filter((m) => m.location_query && m.location_place_id)
+        .map((m) => ({ query: m.location_query!, kakao_place_id: m.location_place_id! }));
     } else if (origins?.length) {
-      const key = process.env.VITE_KAKAO_REST_API_KEY;
-      const found = key
-        ? await Promise.all([...origins].sort((a, b) => a.ord - b.ord).map((o) => kakaoFind(key, o.query, o.kakao_place_id)))
-        : [];
-      // 하나라도 못 찾으면 그 일부의 중간점은 틀린 값이라 상권 근사로
-      coords = found.length === origins.length && found.every(Boolean) ? (found as Coordinates[]) : [];
+      list = [...origins].sort((a, b) => a.ord - b.ord);
     }
+    const key = process.env.VITE_KAKAO_REST_API_KEY;
+    const found = key && list.length ? await Promise.all(list.map((o) => kakaoFind(key, o.query, o.kakao_place_id))) : [];
+    // 하나라도 못 찾으면 그 일부의 중간점은 틀린 값이라 상권 근사로
+    const coords = found.length > 0 && found.every(Boolean) ? (found as Coordinates[]) : [];
     center = centerFrom(coords, condition.area_label);
   }
 

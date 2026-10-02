@@ -24,7 +24,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
     locations, setLocations, purpose, setPurpose, vibe, setVibe, budget, setBudget, meetingLocation, setMeetingLocation,
     keywords, setKeywords, conditions, setConditions,
   } = input;
-  const { sessionId, setSessionId, expectedCount, setExpectedCount, groupMembers, setGroupMembers, pendingGroupRecommend, creatingSession, groupError, setGroupError, copied } = group;
+  const { sessionId, setSessionId, hostToken, setHostToken, expectedCount, setExpectedCount, groupMembers, setGroupMembers, pendingGroupRecommend, creatingSession, groupError, setGroupError, copied } = group;
   const { loading, error, lastRecommendRef } = request;
   const { groupShareLink, handleCopyLink, handleShareGroupLink, requestGroupRecommend, handleCreateSession } = groupActions;
   const { handleConfirmMeetingLocation } = actions;
@@ -123,7 +123,7 @@ export default function HomeStepsView({ flow, input, group, request, groupAction
                 <button
                   // 혼자 모드로 전환하면 그룹 세션을 확인 없이 버린다 → 서버에도 알려 옛 링크를 죽인다.
                   // (알리지 않으면 이미 공유된 링크가 계속 살아 있고, 그 링크로 제출한 게스트는 결과를 영원히 기다린다)
-                  onClick={() => { if (sessionId) cancelGroupSessionOnServer(sessionId); setAppMode('solo'); setSessionId(null); setGroupMembers([]); setGroupError(null); try { localStorage.removeItem(GROUP_SESSION_KEY); } catch { /* ignore */ } }}
+                  onClick={() => { if (sessionId) cancelGroupSessionOnServer(sessionId, hostToken); setAppMode('solo'); setSessionId(null); setHostToken(null); setGroupMembers([]); setGroupError(null); try { localStorage.removeItem(GROUP_SESSION_KEY); } catch { /* ignore */ } }}
                   aria-pressed={appMode === 'solo'}
                   className={`flex flex-col items-center justify-center gap-0.5 py-3 rounded-2xl border transition-all active:scale-[0.97] ${
                     appMode === 'solo'

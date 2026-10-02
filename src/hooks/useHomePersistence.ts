@@ -1,10 +1,11 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
-import type { MeetingLocation, PurposeValue, Step } from '@/types';
+import type { LocationEntry, MeetingLocation, PlaceRecommendation, PurposeValue, ResultSnapshotV2, Step } from '@/types';
 import { OCCASION_BY_RELATION } from '@/constants/occasion';
 import { saveResultSnapshot, loadResultSnapshot, clearResultSnapshot, INPUT_DRAFT_KEY, GROUP_SESSION_KEY, INPUT_DRAFT_TTL_MS, GROUP_SESSION_TTL_MS } from '@/storage/history';
 import { restoreResultSnapshot, stripMeetingLocation, resolveMeetingLocation, resolveOrigins, stripOrigins } from '@/services/resultRestore';
 import { RecRestoreError } from '@/services/recRestore';
 import { rememberResult, recallResult, forgetResult } from '@/stores/resultMemory';
+import { computeTravelTimes, NO_TRAVEL_TIMES } from '@/services/travelTime';
 import { trackSessionDuration } from '@/services/analytics';
 import { supabase } from '@/services/supabase';
 import { migrateVibeState } from '@/utils/vibeMigrate';
@@ -22,10 +23,11 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
   const { view, setView, step, setStep, appMode, setAppMode, isGroup } = flow;
   const {
     groupSize, setGroupSize, setCustomOccasion, setEtcRelOpen, setOccasionChip, locations, setLocations, setLocationsVersion,
+    groupTravelLabels, setGroupTravelLabels,
     purpose, setPurpose, vibe, setVibe, budget, setBudget, meetingLocation, setMeetingLocation,
     keywords, setKeywords, conditions, setConditions, vibeCustom, setVibeCustom, customOccasion,
   } = input;
-  const { sessionId, setSessionId, expectedCount, setExpectedCount } = group;
+  const { sessionId, setSessionId, hostToken, setHostToken, expectedCount, setExpectedCount } = group;
   const {
     result, setResult, resultSecondMissing, setResultSecondMissing,
     midpointData, setMidpointData, resultWeather, setResultWeather,
@@ -34,6 +36,8 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
   } = resultState;
   const { setLoading, setLoadingProgress, loadingStartRef } = request;
   const lastSessionResultRef = useRef<string | null>(null); // 그룹 결과 세션 저장 중복 억제
+  // 새로고침 복원 중 출발지를 다시 찾는 동안 스냅샷 저장이 빈 출발지로 덮어쓰지 않게 원래 값을 들고 있는다
+  const pendingOriginsRef = useRef<{ recId: number; origins: NonNullable<ResultSnapshotV2['origins']> } | null>(null);
 
   useEffect(() => {
     if (!sessionStorage.getItem('mintSessionStart')) {
@@ -53,6 +57,16 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
     // 혼자/다같이 선택은 저장본에 따로 없다 — 그룹 결과에만 sessionId가 있으므로 그걸로 판정한다.
     // 안 넣으면 'mode-select'로 남아, 결과에서 입력 화면으로 돌아갔을 때 선택이 풀려 보인다.
     setAppMode(snap.sessionId ? 'group' : 'solo');
+    // 이 결과를 만든 입력 — 조건 수정·다시 뽑기가 빈 출발지·기본 인원으로 나가지 않게
+    if (snap.purpose) setPurpose(snap.purpose);
+    if (snap.vibe) setVibe(migrateVibeState(snap.vibe));            // 개인화 배너 복원용
+    if (Array.isArray(snap.keywords)) setKeywords(snap.keywords);
+    if (Array.isArray(snap.conditions)) setConditions(snap.conditions);
+    if (snap.groupSize) setGroupSize(snap.groupSize);
+    if (snap.budget !== undefined) setBudget(snap.budget);
+    if (snap.vibeCustom) setVibeCustom(snap.vibeCustom);
+    if (typeof snap.customOccasion === 'string') setCustomOccasion(snap.customOccasion);
+
     const mem = recallResult(snap.recommendationId);
     if (mem) {
       setResult(mem.result);
@@ -64,24 +78,21 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
       if (mem.meetingLocation) setMeetingLocation(mem.meetingLocation);
       setResultTravelTimes(mem.resultTravelTimes);
       setResultWeather(mem.resultWeather);
-      if (snap.purpose) setPurpose(snap.purpose);
-      if (snap.vibe) setVibe(migrateVibeState(snap.vibe));
-      if (Array.isArray(snap.keywords)) setKeywords(snap.keywords);
-      if (Array.isArray(snap.conditions)) setConditions(snap.conditions);
+      setLocations(mem.locations);
+      setLocationsVersion((v) => v + 1);
+      setGroupTravelLabels(mem.groupTravelLabels);
       setView('result');
       return;
     }
 
-    if (snap.purpose) setPurpose(snap.purpose);
-    if (snap.vibe) setVibe(migrateVibeState(snap.vibe));            // 개인화 배너 복원용
-    if (Array.isArray(snap.keywords)) setKeywords(snap.keywords);
-    if (Array.isArray(snap.conditions)) setConditions(snap.conditions);
     if (snap.resultWeather) setResultWeather(snap.resultWeather);
     setView('result');
     loadingStartRef.current = Date.now();
     setLoadingProgress(60);
     setLoading(true);
     let alive = true;
+    const origins = snap.origins ?? [];
+    pendingOriginsRef.current = { recId: snap.recommendationId, origins };
     restoreResultSnapshot(snap)
       .then((r) => {
         if (!alive) return;
@@ -89,6 +100,17 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
         setResultSecondMissing(r.secondMissing);
         setMidpointData(r.midpointData);
         if (r.meetingLocation) setMeetingLocation(r.meetingLocation);
+        if (origins.length > 0) {
+          void resolveOrigins(origins).then((list) => {
+            if (!alive || list.length === 0) return;
+            setLocations(list);
+            setLocationsVersion((v) => v + 1);
+            // 이동시간은 저장하지 않는다 — 출발지를 전부 다시 찾았으면 다시 계산한다
+            if (snap.meetingLocation?.type === 'auto' && list.length === origins.length && list.length >= 2) {
+              void travelTimesFor(list, r.places).then((t) => { if (alive) setResultTravelTimes(t); });
+            }
+          });
+        }
       })
       .catch((e) => {
         if (!alive) return;
@@ -98,7 +120,7 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
       })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [setAppMode, setView, setResult, setResultThird, setResultThirdLabel, setResultSecondMissing, setPurpose, setMidpointData, setTreasurer, setMeetingLocation, setResultTravelTimes, setResultWeather, setVibe, setKeywords, setConditions, setLoading, setLoadingProgress, loadingStartRef]);
+  }, [setAppMode, setView, setResult, setResultThird, setResultThirdLabel, setResultSecondMissing, setPurpose, setMidpointData, setTreasurer, setMeetingLocation, setResultTravelTimes, setResultWeather, setVibe, setKeywords, setConditions, setGroupSize, setBudget, setVibeCustom, setCustomOccasion, setLocations, setLocationsVersion, setGroupTravelLabels, setLoading, setLoadingProgress, loadingStartRef]);
 
   // 입력 초안 복원 — 결과가 없을 때만. 그룹도 링크 생성 전에는 서버 세션이 없으므로 로컬 초안에서 복원한다.
   useLayoutEffect(() => {
@@ -159,7 +181,7 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
       const raw = localStorage.getItem(GROUP_SESSION_KEY);
       if (!raw) return;
       const g = JSON.parse(raw) as {
-        savedAt?: number; sessionId?: string; expectedCount?: number;
+        savedAt?: number; sessionId?: string; hostToken?: string; expectedCount?: number;
         purpose?: PurposeValue; meetingLocation?: MeetingLocation;
       };
       if (!g.sessionId) return;
@@ -169,6 +191,7 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
       }
       // 마운트 시 localStorage 그룹 세션을 페인트 전에 복원(결과 복원보다 뒤에 실행돼 step/appMode/view를 덮어써야 함)
       setSessionId(g.sessionId);
+      setHostToken(typeof g.hostToken === 'string' ? g.hostToken : null);
       if (typeof g.expectedCount === 'number') setExpectedCount(g.expectedCount);
       if (g.purpose) setPurpose(g.purpose);              // 호스트가 정한 코스 복원
       if (g.meetingLocation) {                                      // 호스트가 정한 지역 복원(좌표는 다시 찾는다)
@@ -184,17 +207,18 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
       const snap = loadResultSnapshot() as { sessionId?: string } | null;
       if (!snap || snap.sessionId !== g.sessionId) setView('steps');
     } catch { /* 손상된 그룹 세션 무시 */ }
-  }, [setSessionId, setExpectedCount, setPurpose, setMeetingLocation, setStep, setAppMode, setView]);
+  }, [setSessionId, setHostToken, setExpectedCount, setPurpose, setMeetingLocation, setStep, setAppMode, setView]);
 
   // 그룹 호스트 세션 저장 — sessionId가 살아있는 동안 코스·지역까지 함께 보존(새로고침 복원용)
   useEffect(() => {
     if (appMode !== 'group' || !sessionId) return;
     try {
       localStorage.setItem(GROUP_SESSION_KEY, JSON.stringify({
-        savedAt: Date.now(), sessionId, expectedCount, purpose, meetingLocation: stripMeetingLocation(meetingLocation),
+        savedAt: Date.now(), sessionId, ...(hostToken ? { hostToken } : {}),
+        expectedCount, purpose, meetingLocation: stripMeetingLocation(meetingLocation),
       }));
     } catch { /* 저장 실패는 치명적이지 않음 */ }
-  }, [appMode, sessionId, expectedCount, purpose, meetingLocation]);
+  }, [appMode, sessionId, hostToken, expectedCount, purpose, meetingLocation]);
 
   // 입력 초안 저장 — solo 전체와 그룹 링크 생성 전까지 보존한다.
   // 그룹 링크 생성 후에는 GROUP_SESSION_KEY가 서버 세션 ID와 함께 이어서 보존한다.
@@ -224,8 +248,10 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
     }
     rememberResult({
       recommendationId: rec.recommendationId, result, resultThird, resultThirdLabel, resultSecondMissing,
-      midpointData, treasurer, meetingLocation, resultTravelTimes, resultWeather,
+      midpointData, treasurer, meetingLocation, resultTravelTimes, resultWeather, locations, groupTravelLabels,
     });
+    const pending = pendingOriginsRef.current;
+    const origins = locations.length === 0 && pending && pending.recId === rec.recommendationId ? pending.origins : stripOrigins(locations);
     saveResultSnapshot({
       v: 2,
       recommendationId: rec.recommendationId,
@@ -236,12 +262,17 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
       keywords,
       conditions,
       meetingLocation: stripMeetingLocation(meetingLocation),
+      origins,
+      groupSize,
+      budget,
+      vibeCustom,
+      customOccasion,
       areaName: midpointData?.areaName ?? '',
       nearestAreas: midpointData?.nearestAreas ?? [],
       resultWeather,
       sessionId, // 이 결과가 '어느 그룹 세션의 것인지' — 재진입 시 대기 화면과 결과 화면 중 무엇을 열지 가른다
     });
-  }, [view, result, resultThird, resultThirdLabel, resultSecondMissing, purpose, midpointData, treasurer, meetingLocation, resultTravelTimes, resultWeather, vibe, keywords, conditions, sessionId]);
+  }, [view, result, resultThird, resultThirdLabel, resultSecondMissing, purpose, midpointData, treasurer, meetingLocation, resultTravelTimes, resultWeather, vibe, keywords, conditions, sessionId, locations, groupTravelLabels, groupSize, budget, vibeCustom, customOccasion]);
 
   // 그룹 호스트가 추천을 받으면 추천 ID를 세션에 전달(010) → 게스트 화면이 폴링으로 받아 재검색으로 복원.
   // 가게 정보는 보내지 않는다. 재추천으로 추천이 바뀌면 새 ID를 다시 보낸다. 실패는 무해(카톡 공유로도 전달 가능).
@@ -264,10 +295,13 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
       fetch('/api/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ action: 'result', id: sessionId, recommendationId: rec.recommendationId, ...(rec.claimToken ? { claimToken: rec.claimToken } : {}) }),
+        body: JSON.stringify({
+          action: 'result', id: sessionId, recommendationId: rec.recommendationId,
+          ...(rec.claimToken ? { claimToken: rec.claimToken } : {}), ...(hostToken ? { hostToken } : {}),
+        }),
       }).catch(() => { /* 실패 무해 */ });
     })();
-  }, [view, isGroup, sessionId, result]);
+  }, [view, isGroup, sessionId, hostToken, result]);
 
   useEffect(() => {
     if (view === 'result') {
@@ -279,6 +313,17 @@ export function useHomePersistence({ flow, input, group, result: resultState, re
       }
     }
   }, [view]);
+}
+
+// 복원한 결과의 1차(와 2차) 대표까지 이동시간. 그룹 참여자 이름은 저장하지 않으므로 표의 이름은 출발지명이다
+function travelTimesFor(origins: LocationEntry[], places: PlaceRecommendation[]) {
+  const first = places[0];
+  const second = places[1]?.record?.course === 'second' ? places[1] : undefined;
+  if (first?.lat == null || first.lng == null) return Promise.resolve(NO_TRAVEL_TIMES);
+  return computeTravelTimes(
+    origins.map((o) => ({ lat: o.lat!, lng: o.lng!, label: o.name })),
+    { first: { lat: first.lat, lng: first.lng }, ...(second?.lat != null && second.lng != null ? { second: { lat: second.lat, lng: second.lng } } : {}) },
+  ).catch(() => NO_TRAVEL_TIMES);
 }
 
 // 살아 있는(6시간 안) 그룹 세션이 이 스냅샷과 다른 세션인가

@@ -2,6 +2,7 @@ import { supabase } from '@/services/supabase';
 import { restorePlaces, slotSource, type ConditionRow, type SlotRow } from '@/services/memberData';
 import { kakaoPlaceLink, type RestoredPlace } from '@/services/restore';
 import type { GroupResult, GroupResultPlace } from '@/types';
+import { walkingMinutes } from '@/utils/geo';
 
 // 공유 링크·그룹 결과·새로고침에서 저장된 추천을 다시 그린다(010).
 // 서버(/api/restore)는 조건 일부와 슬롯만 주고, 가게 이름·주소는 여기서 카카오 재검색으로 찾는다.
@@ -105,11 +106,13 @@ export async function loadGroupResult(sessionId: string): Promise<{ recommendati
   };
   const first = toPlace(slots.find((s) => s.course === 'first' && s.role === 'main'));
   if (!first) throw new Error('no slots');
+  const second = toPlace(slots.find((s) => s.course === 'second' && s.role === 'main'));
+  if (second) first.walkingToNext = walkingMinutes(first, second);
   return {
     recommendationId: p.recommendationId,
     result: {
       first,
-      second: toPlace(slots.find((s) => s.course === 'second' && s.role === 'main')),
+      second,
       third: null,
       purposeFirst: p.condition.first_purpose,
       purposeSecond: p.condition.second_purpose,
